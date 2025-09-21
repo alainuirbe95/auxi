@@ -1,0 +1,47 @@
+# CodeIgniter
+application/logs/*
+application/cache/*
+application/config/database.php
+application/config/config.php
+
+# XAMPP specific
+.htaccess.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Database files
+*.sql
+*.db
+
+# Upload directories (if they contain user uploads)
+uploads/
+assets/uploads/
+
+# Environment files
+.env
+.env.local
+
+# Node modules (if any)
+node_modules/
+
+# Composer
+vendor/
+composer.lock
+
+# Backup files
+*.bak
+*.backup
