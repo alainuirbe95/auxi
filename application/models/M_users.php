@@ -835,6 +835,67 @@ class M_users extends CI_Model {
         return $this->db->update('users', $update_data);
     }
 
+    /**
+     * Get recent activity for dashboard
+     */
+    public function get_recent_activity($limit = 10) {
+        $activities = array();
+        
+        // Get recent user registrations
+        $this->db->select('user_id, username, first_name, last_name, created_at, auth_level');
+        $this->db->from('users');
+        $this->db->order_by('created_at', 'DESC');
+        $this->db->limit($limit);
+        $recent_users = $this->db->get()->result();
+        
+        foreach ($recent_users as $user) {
+            $role_name = '';
+            switch ($user->auth_level) {
+                case 3: $role_name = 'Cleaner'; break;
+                case 6: $role_name = 'Host'; break;
+                case 9: $role_name = 'Administrator'; break;
+                default: $role_name = 'User'; break;
+            }
+            
+            $activities[] = array(
+                'type' => 'registration',
+                'icon' => 'fas fa-user-plus',
+                'icon_class' => 'new-user',
+                'title' => 'New ' . $role_name . ' registration',
+                'description' => $user->first_name . ' ' . $user->last_name . ' (@' . $user->username . ')',
+                'time' => $user->created_at,
+                'user_id' => $user->user_id
+            );
+        }
+        
+        // Sort by time (most recent first)
+        usort($activities, function($a, $b) {
+            return strtotime($b['time']) - strtotime($a['time']);
+        });
+        
+        return array_slice($activities, 0, $limit);
+    }
+
+    public function update_user_password($user_id, $new_password) {
+        $this->db->where('user_id', $user_id);
+        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+        
+        $data = array(
+            'passwd' => $hashed_password,
+            'passwd_force_change' => '0', // Reset force change flag
+            'passwd_temp_generated' => '0' // Reset temp password flag
+        );
+        
+        return $this->db->update('users', $data);
+    }
+
+    public function update_login_count($user_id) {
+        $this->db->where('user_id', $user_id);
+        $this->db->set('login_count', 'login_count + 1', FALSE);
+        $this->db->set('last_login', date('Y-m-d H:i:s'));
+        return $this->db->update('users');
+    }
+
 }
 
 /* End of file M_users.php */

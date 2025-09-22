@@ -47,13 +47,25 @@ class App extends MY_Controller {
 
             // Login attempt was successful
             if ($this->auth_data) {
+                // Check if this is the user's first login
+                $this->load->model('M_users');
+                $user_info = $this->M_users->get_user_by_id($this->auth_user_id);
+                
+                $is_first_login = false;
+                if ($user_info && $user_info->login_count == 0) {
+                    $is_first_login = true;
+                    // Update login count
+                    $this->M_users->update_login_count($this->auth_user_id);
+                }
+                
                 echo json_encode([
                     'status' => 1,
                     'user_id' => $this->auth_user_id,
                     'username' => $this->auth_username,
                     'level' => $this->auth_level,
                     'role' => $this->auth_role,
-                    'email' => $this->auth_email
+                    'email' => $this->auth_email,
+                    'first_login' => $is_first_login
                 ]);
             }
 

@@ -1,3 +1,19 @@
+<?php
+// Helper function for time ago
+if (!function_exists('time_ago')) {
+    function time_ago($datetime) {
+        $time = time() - strtotime($datetime);
+        
+        if ($time < 60) return 'just now';
+        if ($time < 3600) return floor($time/60) . ' minutes ago';
+        if ($time < 86400) return floor($time/3600) . ' hours ago';
+        if ($time < 2592000) return floor($time/86400) . ' days ago';
+        if ($time < 31536000) return floor($time/2592000) . ' months ago';
+        return floor($time/31536000) . ' years ago';
+    }
+}
+?>
+
 <style>
 /* Enhanced Dashboard Styles */
 .dashboard-welcome {
@@ -336,6 +352,12 @@
     margin-bottom: 0.25rem;
 }
 
+.activity-description {
+    font-size: 0.85rem;
+    color: #4a5568;
+    margin-bottom: 0.25rem;
+}
+
 .activity-time {
     font-size: 0.8rem;
     color: #718096;
@@ -525,33 +547,27 @@
             <i class="fas fa-history"></i>
             Recent Activity
         </h3>
-        <div class="activity-item">
-            <div class="activity-icon new-user">
-                <i class="fas fa-user-plus"></i>
+        <?php if (!empty($recent_activity)): ?>
+            <?php foreach ($recent_activity as $activity): ?>
+                <div class="activity-item">
+                    <div class="activity-icon <?php echo $activity['icon_class']; ?>">
+                        <i class="<?php echo $activity['icon']; ?>"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title"><?php echo $activity['title']; ?></div>
+                        <div class="activity-description"><?php echo $activity['description']; ?></div>
+                        <div class="activity-time"><?php echo time_ago($activity['time']); ?></div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="text-center py-4">
+                <div class="text-muted">
+                    <i class="fas fa-inbox fa-2x mb-3"></i>
+                    <p>No recent activity to display</p>
+                </div>
             </div>
-            <div class="activity-content">
-                <div class="activity-title">New user registration</div>
-                <div class="activity-time">2 minutes ago</div>
-            </div>
-        </div>
-        <div class="activity-item">
-            <div class="activity-icon pending">
-                <i class="fas fa-user-clock"></i>
-            </div>
-            <div class="activity-content">
-                <div class="activity-title">User account pending review</div>
-                <div class="activity-time">5 minutes ago</div>
-            </div>
-        </div>
-        <div class="activity-item">
-            <div class="activity-icon approved">
-                <i class="fas fa-user-check"></i>
-            </div>
-            <div class="activity-content">
-                <div class="activity-title">User account approved</div>
-                <div class="activity-time">1 hour ago</div>
-            </div>
-        </div>
+        <?php endif; ?>
     </div>
 </div>
 

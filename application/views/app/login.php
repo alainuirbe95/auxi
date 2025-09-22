@@ -178,10 +178,18 @@
                         $btn.removeClass('loading').addClass('success');
                         $btn.find('.btn-text').text('Success!');
                         
-                        // Redirect after short delay
-                        setTimeout(function() {
-                        window.location.href = '<?php echo base_url() ?>';
-                        }, 1000);
+                        // Check if this is first login
+                        if (response.first_login) {
+                            // First login - redirect to password change
+                            setTimeout(function() {
+                                window.location.href = '<?php echo base_url('admin/change_password'); ?>';
+                            }, 1000);
+                        } else {
+                            // Regular login - redirect to dashboard
+                            setTimeout(function() {
+                                window.location.href = '<?php echo base_url() ?>';
+                            }, 1000);
+                        }
                     } else if (response.status == 0 && response.on_hold) {
                         // Account on hold
                         $btn.removeClass('loading');

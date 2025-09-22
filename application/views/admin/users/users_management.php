@@ -92,7 +92,6 @@ if (!function_exists('time_ago')) {
             <i class="fas fa-table mr-2"></i>
             Users Table
           </h3>
-          <p class="card-subtitle">Browse, search, and manage all users</p>
         </div>
         <div class="card-actions">
           <a href="<?php echo base_url('admin/create_user'); ?>" class="btn btn-modern btn-success">

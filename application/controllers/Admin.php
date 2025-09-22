@@ -30,8 +30,10 @@ class Admin extends MY_Controller {
         
         $stats = $this->M_users->get_user_statistics();
         $pending_users = $this->M_users->get_pending_users();
+        $recent_activity = $this->M_users->get_recent_activity(5);
         
         $view["title"] = 'Dashboard'; 
+        $view["page_icon"] = 'tachometer-alt';
         $view["breadcrumbs"] = array(
             array('title' => 'Dashboard', 'url' => '', 'active' => true)
         );
@@ -40,7 +42,8 @@ class Admin extends MY_Controller {
             'total_users' => $stats->total_users,
             'active_users' => $stats->active_users,
             'banned_users' => $stats->banned_users,
-            'pending_users_count' => count($pending_users)
+            'pending_users_count' => count($pending_users),
+            'recent_activity' => $recent_activity
         ), TRUE);
 
         $this->load->view("admin/template/layout_with_sidebar", $view);
@@ -115,6 +118,7 @@ class Admin extends MY_Controller {
         
         // Set page title and breadcrumbs
         $view["title"] = 'Users Management';
+        $view["page_icon"] = 'users';
         $view["breadcrumbs"] = array(
             array('title' => 'Users Management', 'url' => '', 'active' => true)
         );
@@ -645,11 +649,12 @@ class Admin extends MY_Controller {
             // Get pending users (banned with reason "Account pending admin review")
             $pending_users = $this->M_users->get_pending_users();
             
-            $view["title"] = 'Pending User Reviews';
-            $view["breadcrumbs"] = array(
-                array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
-                array('title' => 'Pending User Reviews', 'url' => '', 'active' => true)
-            );
+        $view["title"] = 'Pending User Reviews';
+        $view["page_icon"] = 'user-clock';
+        $view["breadcrumbs"] = array(
+            array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
+            array('title' => 'Pending User Reviews', 'url' => '', 'active' => true)
+        );
             $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
             $view["body"] = $this->load->view("admin/users/pending_users", array('pending_users' => $pending_users), TRUE);
             
@@ -784,6 +789,7 @@ class Admin extends MY_Controller {
         $rejected_users = $this->M_users->get_rejected_users();
         
         $view["title"] = 'Rejected Users';
+        $view["page_icon"] = 'user-times';
         $view["breadcrumbs"] = array(
             array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
             array('title' => 'Rejected Users', 'url' => '', 'active' => true)
@@ -939,6 +945,90 @@ class Admin extends MY_Controller {
         
         echo "<p><a href='" . base_url('admin/debug_rejection') . "'>Back to Debug</a></p>";
         echo "</body></html>";
+    }
+
+    public function change_password() {
+        $this->load->model('M_users');
+        
+        // Get current user info - try different session field names
+        $user_id = $this->session->userdata('user_id');
+        if (!$user_id) {
+            $user_id = $this->session->userdata('id'); // Try 'id' field
+        }
+        
+        if (!$user_id) {
+            show_error('User not authenticated. Please login again.', 401);
+        }
+        
+        $user_info = $this->M_users->get_user_by_id($user_id);
+        
+        if (!$user_info) {
+            show_error('User not found. Please contact administrator.', 404);
+        }
+        
+        $view["title"] = 'Change Password';
+        $view["page_icon"] = 'key';
+        $view["breadcrumbs"] = array(
+            array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
+            array('title' => 'Change Password', 'url' => '', 'active' => true)
+        );
+        $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+        $view["body"] = $this->load->view("admin/change_password", array('user_info' => $user_info), TRUE);
+        
+        $this->load->view("admin/template/layout_with_sidebar", $view);
+    }
+
+    public function update_password() {
+        $this->load->model('M_users');
+        
+        // Get current user info - try different session field names
+        $user_id = $this->session->userdata('user_id');
+        if (!$user_id) {
+            $user_id = $this->session->userdata('id'); // Try 'id' field
+        }
+        
+        if (!$user_id) {
+            $this->output->set_status_header(401);
+            echo json_encode(array('success' => false, 'message' => 'User not authenticated'));
+            return;
+        }
+        
+        // Get form data
+        $current_password = $this->input->post('current_password');
+        $new_password = $this->input->post('new_password');
+        $confirm_password = $this->input->post('confirm_password');
+        
+        // Validate input
+        if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
+            echo json_encode(array('success' => false, 'message' => 'All fields are required'));
+            return;
+        }
+        
+        if ($new_password !== $confirm_password) {
+            echo json_encode(array('success' => false, 'message' => 'New passwords do not match'));
+            return;
+        }
+        
+        if (strlen($new_password) < 8) {
+            echo json_encode(array('success' => false, 'message' => 'New password must be at least 8 characters long'));
+            return;
+        }
+        
+        // Verify current password
+        $user = $this->M_users->get_user_by_id($user_id);
+        if (!$user || !password_verify($current_password, $user->passwd)) {
+            echo json_encode(array('success' => false, 'message' => 'Current password is incorrect'));
+            return;
+        }
+        
+        // Update password
+        $result = $this->M_users->update_user_password($user_id, $new_password);
+        
+        if ($result) {
+            echo json_encode(array('success' => true, 'message' => 'Password updated successfully'));
+        } else {
+            echo json_encode(array('success' => false, 'message' => 'Failed to update password'));
+        }
     }
 
 }

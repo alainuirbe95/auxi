@@ -167,54 +167,14 @@
         
         <!-- Content Wrapper -->
         <div class="content-wrapper">
-            <!-- Content Header -->
-            <div class="content-header">
-                <div class="container-fluid">
-                    <div class="row mb-2">
-                        <div class="col-sm-6">
-                            <button type="button" class="btn btn-link mobile-sidebar-toggle d-none" style="color: #6c757d; padding: 0.5rem; margin-right: 10px;">
-                                <i class="fas fa-bars"></i>
-                            </button>
-                            <h1 class="m-0 d-inline"><?php echo isset($title) ? $title : 'Dashboard'; ?></h1>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="d-flex justify-content-end align-items-center">
-                                <!-- User Info -->
-                                <div class="mr-3">
-                                    <span class="text-muted">
-                                        <i class="fas fa-user mr-1"></i>
-                                        Welcome, <strong><?php echo $this->session->userdata('username') ?: 'Admin'; ?></strong>
-                                    </span>
-                                </div>
-                                
-                                <!-- Logout Button -->
-                                <a href="<?php echo base_url('app/logout'); ?>" 
-                                   class="btn btn-outline-danger btn-sm logout-btn" 
-                                   onclick="return confirm('Are you sure you want to logout?')">
-                                    <i class="fas fa-sign-out-alt mr-1"></i>Logout
-                                </a>
-                                
-                                <!-- Breadcrumbs -->
-                                <ol class="breadcrumb float-sm-right ml-3">
-                                    <li class="breadcrumb-item"><a href="<?php echo base_url('admin/dashboard'); ?>">Home</a></li>
-                                    <?php if (isset($breadcrumbs) && is_array($breadcrumbs)): ?>
-                                        <?php foreach ($breadcrumbs as $breadcrumb): ?>
-                                            <li class="breadcrumb-item <?php echo isset($breadcrumb['active']) && $breadcrumb['active'] ? 'active' : ''; ?>">
-                                                <?php if (isset($breadcrumb['url']) && !isset($breadcrumb['active'])): ?>
-                                                    <a href="<?php echo $breadcrumb['url']; ?>"><?php echo $breadcrumb['title']; ?></a>
-                                                <?php else: ?>
-                                                    <?php echo $breadcrumb['title']; ?>
-                                                <?php endif; ?>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </ol>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- /.content-header -->
+            <!-- Modern Header -->
+            <?php 
+            $this->load->view("admin/template/modern_header", array(
+                'title' => isset($title) ? $title : 'Dashboard',
+                'page_icon' => isset($page_icon) ? $page_icon : 'tachometer-alt',
+                'breadcrumbs' => isset($breadcrumbs) ? $breadcrumbs : array()
+            )); 
+            ?>
 
             <!-- Main content -->
             <section class="content">
