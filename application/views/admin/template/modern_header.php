@@ -61,6 +61,9 @@ if (!function_exists('time_ago')) {
     margin-right: 1rem;
     transition: all 0.3s ease;
     display: none;
+    cursor: pointer;
+    z-index: 1001;
+    position: relative;
 }
 
 .mobile-menu-btn:hover {
@@ -189,7 +192,7 @@ if (!function_exists('time_ago')) {
 /* Responsive Design */
 @media (max-width: 991.98px) {
     .mobile-menu-btn {
-        display: block;
+        display: block !important;
     }
     
     .page-title {
@@ -347,16 +350,95 @@ if (!function_exists('time_ago')) {
 
 <script>
 $(document).ready(function() {
+    console.log('Header script loaded');
+    console.log('Button element:', $('#mobileSidebarToggle').length);
+    console.log('Sidebar element:', $('.app-sidebar').length);
+    console.log('Overlay element:', $('.sidebar-overlay').length);
+    
     // Mobile sidebar toggle
-    $('#mobileSidebarToggle').on('click', function() {
-        $('.app-sidebar').toggleClass('sidebar-open');
-        $('.sidebar-overlay').toggleClass('active');
+    $(document).on('click', '#mobileSidebarToggle', function(e) {
+        e.preventDefault();
+        console.log('Mobile toggle clicked');
+        
+        var $sidebar = $('.app-sidebar');
+        var $overlay = $('.sidebar-overlay');
+        
+        console.log('Before toggle - Sidebar classes:', $sidebar.attr('class'));
+        console.log('Before toggle - Overlay classes:', $overlay.attr('class'));
+        console.log('Before toggle - Sidebar has show class:', $sidebar.hasClass('show'));
+        console.log('Before toggle - Overlay has show class:', $overlay.hasClass('show'));
+        
+        $sidebar.toggleClass('show');
+        $overlay.toggleClass('show');
+        
+        console.log('After toggle - Sidebar classes:', $sidebar.attr('class'));
+        console.log('After toggle - Overlay classes:', $overlay.attr('class'));
+        console.log('After toggle - Sidebar has show class:', $sidebar.hasClass('show'));
+        console.log('After toggle - Overlay has show class:', $overlay.hasClass('show'));
+        
+        // Force visibility for testing
+        if ($sidebar.hasClass('show')) {
+            $sidebar.css({
+                'transform': 'translateX(0)',
+                'z-index': '1050',
+                'position': 'fixed'
+            });
+            $overlay.css({
+                'display': 'block',
+                'opacity': '1'
+            });
+        } else {
+            $sidebar.css({
+                'transform': 'translateX(-100%)',
+                'z-index': '1000'
+            });
+            $overlay.css({
+                'display': 'none',
+                'opacity': '0'
+            });
+        }
     });
     
     // Close sidebar when clicking overlay
     $('.sidebar-overlay').on('click', function() {
-        $('.app-sidebar').removeClass('sidebar-open');
-        $('.sidebar-overlay').removeClass('active');
+        var $sidebar = $('.app-sidebar');
+        var $overlay = $('.sidebar-overlay');
+        
+        $sidebar.removeClass('show');
+        $overlay.removeClass('show');
+        
+        // Force CSS properties
+        $sidebar.css({
+            'transform': 'translateX(-100%)',
+            'z-index': '1000'
+        });
+        $overlay.css({
+            'display': 'none',
+            'opacity': '0'
+        });
+    });
+    
+    // Close sidebar when clicking outside on mobile
+    $(document).on('click', function(e) {
+        if ($(window).width() <= 991) {
+            if (!$(e.target).closest('.app-sidebar, #mobileSidebarToggle').length) {
+                var $sidebar = $('.app-sidebar');
+                var $overlay = $('.sidebar-overlay');
+                
+                $sidebar.removeClass('show');
+                $overlay.removeClass('show');
+                
+                // Force CSS properties
+                $sidebar.css({
+                    'transform': 'translateX(-100%)',
+                    'z-index': '1000'
+                });
+                $overlay.css({
+                    'display': 'none',
+                    'opacity': '0'
+                });
+            }
+        }
     });
     
     // Add animation to header elements

@@ -249,9 +249,9 @@ if (!function_exists('time_ago')) {
 
 .user-info {
     background: rgba(255, 255, 255, 0.1);
-    padding: 1.5rem;
-    border-radius: 12px;
-    margin-bottom: 2rem;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     max-width: 500px;
@@ -261,43 +261,39 @@ if (!function_exists('time_ago')) {
 
 .user-info h4 {
     color: white;
-    margin: 0 0 1rem 0;
-    font-size: 1.2rem;
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
     font-weight: 600;
     text-align: center;
 }
 
 .user-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
 }
 
 .user-detail {
     color: rgba(255, 255, 255, 0.9);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-direction: column;
+    padding: 0.25rem 0;
 }
 
-.user-detail:last-child {
-    border-bottom: none;
-}
 
 .user-detail strong {
     color: white;
     font-weight: 600;
-    min-width: 100px;
-    text-align: left;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.15rem;
 }
 
 .user-detail span {
     color: rgba(255, 255, 255, 0.8);
-    text-align: right;
-    flex: 1;
+    font-size: 0.75rem;
 }
 
 .loading {
@@ -342,18 +338,13 @@ if (!function_exists('time_ago')) {
         margin-right: 0;
     }
     
+    .user-details {
+        grid-template-columns: 1fr;
+        gap: 0.4rem;
+    }
+    
     .user-detail {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
-    }
-    
-    .user-detail strong {
-        min-width: auto;
-    }
-    
-    .user-detail span {
-        text-align: left;
+        padding: 0.2rem 0;
     }
 }
 
@@ -378,7 +369,7 @@ if (!function_exists('time_ago')) {
                 Change Password
             </h2>
             <p class="modern-card-subtitle">Update your account password for enhanced security</p>
-            <?php if (isset($user_info) && $user_info->login_count <= 1): ?>
+            <?php if (isset($user_info) && $user_info->login_count == 1 && empty($user_info->passwd_modified_at)): ?>
                 <div class="first-login-notice">
                     <i class="fas fa-info-circle"></i>
                     <strong>Welcome!</strong> This appears to be your first login. Please set a secure password for your account.
@@ -542,7 +533,7 @@ $(document).ready(function() {
                     $('#strength-text').text('Password strength will appear here').css('color', 'rgba(255, 255, 255, 0.7)');
                     
                     // Check if this was a first-time user
-                    var isFirstLogin = <?php echo (isset($user_info) && $user_info->login_count <= 1) ? 'true' : 'false'; ?>;
+                    var isFirstLogin = <?php echo (isset($user_info) && $user_info->login_count == 1 && empty($user_info->passwd_modified_at)) ? 'true' : 'false'; ?>;
                     if (isFirstLogin) {
                         // Redirect to dashboard after 3 seconds for first-time users
                         setTimeout(function() {

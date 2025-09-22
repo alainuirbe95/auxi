@@ -247,16 +247,18 @@ class Admin extends MY_Controller {
         // Load required libraries and helpers
         $this->load->library('form_validation');
         
-        // Set validation rules
-        $this->form_validation->set_rules('username', 'Username', 'required|max_length[12]|is_unique[users.username]');
+        // Set validation rules - Only require essential fields for admin-created users
+        $this->form_validation->set_rules('username', 'Username', 'required|max_length[50]|is_unique[users.username]');
         $this->form_validation->set_rules('email', 'Email', 'required|valid_email|is_unique[users.email]');
         $this->form_validation->set_rules('passwd', 'Password', 'required|min_length[8]|callback_password_strength_check');
         $this->form_validation->set_rules('passwd_confirm', 'Confirm Password', 'required|matches[passwd]');
+        $this->form_validation->set_rules('auth_level', 'User Level', 'required|in_list[3,6,9]');
+        
+        // Optional fields - no validation required
         $this->form_validation->set_rules('first_name', 'First Name', 'max_length[50]');
         $this->form_validation->set_rules('last_name', 'Last Name', 'max_length[50]');
         $this->form_validation->set_rules('phone', 'Phone', 'max_length[20]');
         $this->form_validation->set_rules('date_of_birth', 'Date of Birth', 'callback_validate_date_of_birth');
-        $this->form_validation->set_rules('auth_level', 'User Level', 'required|in_list[3,6,9]');
         $this->form_validation->set_rules('address', 'Address', 'max_length[255]');
         $this->form_validation->set_rules('city', 'City', 'max_length[100]');
         $this->form_validation->set_rules('country', 'Country', 'max_length[100]');
@@ -279,17 +281,18 @@ class Admin extends MY_Controller {
                 'username' => $this->input->post('username'),
                 'email' => $this->input->post('email'),
                 'passwd' => $this->input->post('passwd'),
+                'auth_level' => $this->input->post('auth_level'),
                 'first_name' => $this->input->post('first_name'),
                 'last_name' => $this->input->post('last_name'),
                 'phone' => $this->input->post('phone'),
                 'date_of_birth' => $this->input->post('date_of_birth'),
-                'auth_level' => $this->input->post('auth_level'),
                 'address' => $this->input->post('address'),
                 'city' => $this->input->post('city'),
                 'country' => $this->input->post('country'),
                 'notes' => $this->input->post('notes'),
-                'email_verified' => $this->input->post('email_verified') ? '1' : '0',
+                'email_verified' => $this->input->post('email_verified') ? '1' : '1', // Admin-created users are auto-verified
                 'banned' => $this->input->post('banned') ? '1' : '0',
+                'pending_verification' => '0', // Admin-created users bypass review process
                 'created_at' => date('Y-m-d H:i:s'),
                 'created_by' => $this->session->userdata('user_id')
             );
@@ -710,30 +713,11 @@ class Admin extends MY_Controller {
     public function reject_user($user_id) {
         $this->load->model('M_users');
         
-        // Keep user banned and pending verification, but mark as rejected
-        $update_data = array(
-            'banned' => '1',
-            'pending_verification' => '0' // Remove from pending list
-        );
+        // Use the model's reject_user method which properly sets rejection fields
+        $result = $this->M_users->reject_user($user_id);
         
-        // Add optional fields if they exist
-        $columns = $this->db->list_fields('users');
-        if (in_array('banned_reason', $columns)) {
-            $update_data['banned_reason'] = 'Account rejected by admin';
-        }
-        if (in_array('banned_at', $columns)) {
-            $update_data['banned_at'] = date('Y-m-d H:i:s');
-        }
-        if (in_array('banned_by', $columns)) {
-            $update_data['banned_by'] = $this->session->userdata('user_id') ?: 'admin';
-        }
-        if (in_array('modified_by', $columns)) {
-            $update_data['modified_by'] = $this->session->userdata('user_id') ?: 'admin';
-        }
-        
-        $this->db->where('user_id', $user_id);
-        if ($this->db->update('users', $update_data)) {
-            $this->session->set_flashdata('text', 'User rejected successfully!');
+        if ($result) {
+            $this->session->set_flashdata('text', 'User rejected successfully and moved to Rejected Users!');
             $this->session->set_flashdata('type', 'success');
         } else {
             $this->session->set_flashdata('text', 'Failed to reject user.');

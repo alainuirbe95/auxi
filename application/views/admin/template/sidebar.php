@@ -289,6 +289,23 @@ $(document).ready(function() {
             }, 600);
         }
     });
+    
+    // Close sidebar on mobile when clicking a navigation link
+    $('.modern-nav-link').on('click', function() {
+        if ($(window).width() <= 991) {
+            var $this = $(this);
+            var $parent = $this.parent();
+            var $submenu = $parent.find('.modern-submenu');
+            
+            // Only close if it's not a submenu toggle
+            if ($submenu.length === 0) {
+                setTimeout(function() {
+                    $('.app-sidebar').removeClass('show');
+                    $('.sidebar-overlay').removeClass('show');
+                }, 300);
+            }
+        }
+    });
 });
 </script>
 
@@ -636,6 +653,25 @@ $(document).ready(function() {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
 }
 
+/* Sidebar Overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+  display: none;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+.sidebar-overlay.show {
+  display: block !important;
+  opacity: 1;
+}
+
 /* Responsive Design */
 @media (max-width: 991.98px) {
   .modern-sidebar {
@@ -643,7 +679,7 @@ $(document).ready(function() {
     transition: transform 0.3s ease !important;
   }
   
-  .modern-sidebar.sidebar-open {
+  .modern-sidebar.show {
     transform: translateX(0) !important;
   }
 }

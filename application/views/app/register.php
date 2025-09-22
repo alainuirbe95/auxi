@@ -6,7 +6,7 @@
         <div class="bg-shape shape-2"></div>
         <div class="bg-shape shape-3"></div>
     </div>
-    
+
     <!-- Registration Card -->
     <div class="register-card">
         <!-- Header Section -->
@@ -161,7 +161,7 @@
                 </button>
             </div>
 
-            </form>
+        </form>
 
             <!-- Links Section -->
             <div class="register-links">

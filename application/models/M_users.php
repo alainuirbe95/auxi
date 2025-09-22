@@ -214,6 +214,7 @@ class M_users extends CI_Model {
         // Set default values
         $user_data['banned'] = $user_data['banned'] ?? '0';
         $user_data['email_verified'] = $user_data['email_verified'] ?? '0';
+        $user_data['pending_verification'] = $user_data['pending_verification'] ?? '0'; // Default to no pending verification
         $user_data['login_count'] = $user_data['login_count'] ?? 0;
         $user_data['failed_logins'] = $user_data['failed_logins'] ?? 0;
         $user_data['locked'] = $user_data['locked'] ?? '0';
@@ -883,7 +884,8 @@ class M_users extends CI_Model {
         $data = array(
             'passwd' => $hashed_password,
             'passwd_force_change' => '0', // Reset force change flag
-            'passwd_temp_generated' => '0' // Reset temp password flag
+            'passwd_temp_generated' => '0', // Reset temp password flag
+            'passwd_modified_at' => date('Y-m-d H:i:s') // Set password modification timestamp
         );
         
         return $this->db->update('users', $data);
