@@ -1,0 +1,161 @@
+AUXIAPP DATABASE RELATIONSHIP DIAGRAM
+=====================================
+
+EXISTING TABLES (User Management System)
+┌─────────────────────────────────────────────────────────────┐
+│                        USERS                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ user_id (PK)                                       │   │
+│  │ username, email, passwd                            │   │
+│  │ first_name, last_name, phone                       │   │
+│  │ auth_level (3=Cleaner, 6=Host, 9=Admin)           │   │
+│  │ banned, pending_verification, rejected             │   │
+│  │ created_at, modified_at, last_login                │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                                │
+                                │ (1:Many)
+                                │
+                                ▼
+
+NEW TABLES (Marketplace System)
+┌─────────────────────────────────────────────────────────────┐
+│                        JOBS                                │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ id (PK)                                            │   │
+│  │ host_id (FK → users.user_id)                       │   │
+│  │ title, description, address, city, state           │   │
+│  │ scheduled_date, scheduled_time, estimated_duration │   │
+│  │ rooms (JSON), extras (JSON), pets                  │   │
+│  │ suggested_price, final_price                       │   │
+│  │ status, boost_amount, expires_at                   │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                                │
+                                │ (1:Many)
+                                │
+                ┌───────────────┼───────────────┐
+                │               │               │
+                ▼               ▼               ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│  JOB_PHOTOS     │  │     OFFERS      │  │ JOB_ASSIGNMENTS │
+│ ┌─────────────┐ │  │ ┌─────────────┐ │  │ ┌─────────────┐ │
+│ │ id (PK)     │ │  │ │ id (PK)     │ │  │ │ id (PK)     │ │
+│ │ job_id (FK) │ │  │ │ job_id (FK) │ │  │ │ job_id (FK) │ │
+│ │ photo_url   │ │  │ │ cleaner_id  │ │  │ │ cleaner_id  │ │
+│ │ photo_type  │ │  │ │ offer_type  │ │  │ │ qr_code     │ │
+│ │ uploaded_by │ │  │ │ amount      │ │  │ │ passcode    │ │
+│ └─────────────┘ │  │ │ status      │ │  │ │ status      │ │
+└─────────────────┘  │ │ expires_at  │ │  │ │ started_at  │ │
+                     │ └─────────────┘ │  │ │ completed_at│ │
+                     └─────────────────┘  │ └─────────────┘ │
+                                          └─────────────────┘
+                                │
+                                │ (1:Many)
+                                │
+                ┌───────────────┼───────────────┐
+                │               │               │
+                ▼               ▼               ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│    PAYMENTS     │  │    DISPUTES     │  │ USER_STRIKES    │
+│ ┌─────────────┐ │  │ ┌─────────────┐ │  │ ┌─────────────┐ │
+│ │ id (PK)     │ │  │ │ id (PK)     │ │  │ │ id (PK)     │ │
+│ │ job_id (FK) │ │  │ │ job_id (FK) │ │  │ │ user_id (FK)│ │
+│ │ host_id (FK)│ │  │ │ host_id (FK)│ │  │ │ job_id (FK) │ │
+│ │ cleaner_id  │ │  │ │ cleaner_id  │ │  │ │ dispute_id  │ │
+│ │ payment_type│ │  │ │ dispute_type│ │  │ │ reason      │ │
+│ │ amount      │ │  │ │ reason      │ │  │ │ admin_id    │ │
+│ │ platform_fee│ │  │ │ status      │ │  │ │ is_active   │ │
+│ │ status      │ │  │ │ resolution  │ │  │ └─────────────┘ │
+│ └─────────────┘ │  │ └─────────────┘ │  └─────────────────┘
+└─────────────────┘  └─────────────────┘
+                                │
+                                │ (1:Many)
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   NOTIFICATIONS                            │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ id (PK)                                            │   │
+│  │ user_id (FK → users.user_id)                       │   │
+│  │ job_id (FK → jobs.id)                              │   │
+│  │ type, title, message                               │   │
+│  │ channels (JSON), email_sent, sms_sent              │   │
+│  │ in_app_read, scheduled_at, sent_at                 │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+
+KEY RELATIONSHIPS:
+==================
+
+1. USERS (1) ──→ (Many) JOBS
+   - Host creates multiple job listings
+
+2. USERS (1) ──→ (Many) OFFERS  
+   - Cleaner makes multiple offers
+
+3. USERS (1) ──→ (Many) JOB_ASSIGNMENTS
+   - Cleaner gets multiple job assignments
+
+4. USERS (1) ──→ (Many) PAYMENTS
+   - Users involved in multiple payments
+
+5. USERS (1) ──→ (Many) DISPUTES
+   - Users involved in multiple disputes
+
+6. USERS (1) ──→ (Many) USER_STRIKES
+   - Users can receive multiple strikes
+
+7. USERS (1) ──→ (Many) NOTIFICATIONS
+   - Users receive multiple notifications
+
+8. JOBS (1) ──→ (Many) JOB_PHOTOS
+   - Jobs have multiple photos
+
+9. JOBS (1) ──→ (Many) OFFERS
+   - Jobs receive multiple offers
+
+10. JOBS (1) ──→ (1) JOB_ASSIGNMENTS
+    - Jobs get one assignment when accepted
+
+11. JOBS (1) ──→ (Many) PAYMENTS
+    - Jobs have multiple payment transactions
+
+12. JOBS (1) ──→ (Many) DISPUTES
+    - Jobs can have multiple disputes
+
+13. JOBS (1) ──→ (Many) NOTIFICATIONS
+    - Jobs generate multiple notifications
+
+BUSINESS FLOW:
+==============
+
+1. HOST creates JOB
+2. CLEANERS submit OFFERS
+3. HOST accepts offer → JOB_ASSIGNMENT created
+4. CLEANER starts job using QR code
+5. CLEANER completes job
+6. HOST confirms completion
+7. PAYMENT processed (platform fee + cleaner payout)
+8. If dispute → DISPUTE created
+9. If penalty → USER_STRIKE created
+10. NOTIFICATIONS sent throughout process
+
+STATUS FLOWS:
+=============
+
+JOBS: draft → open → offers_received → assigned → in_progress → completed
+                                                      ↓
+                                                 cancelled/disputed
+
+OFFERS: pending → accepted/declined/expired/cancelled
+
+JOB_ASSIGNMENTS: assigned → started → completed
+                                    ↓
+                               cancelled/no_show
+
+PAYMENTS: pending → processing → completed/failed/refunded/disputed
+
+DISPUTES: open → under_review → resolved/closed
+
+NOTIFICATIONS: created → scheduled → sent → read
