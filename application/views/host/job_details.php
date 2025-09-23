@@ -28,13 +28,33 @@
                                             </div>
                                             <div class="col-sm-6">
                                                 <strong>Date & Time:</strong><br>
-                                                <?php echo date('M j, Y g:i A', strtotime($job->date_time)); ?>
+                                                <?php 
+                                                // Use scheduled_date and scheduled_time from database
+                                                $job_date = isset($job->scheduled_date) ? $job->scheduled_date : '';
+                                                $job_time = isset($job->scheduled_time) ? $job->scheduled_time : '';
+                                                
+                                                if ($job_date && $job_time) {
+                                                    $datetime = $job_date . ' ' . $job_time;
+                                                    echo date('M j, Y g:i A', strtotime($datetime));
+                                                } else {
+                                                    echo 'Not scheduled';
+                                                }
+                                                ?>
                                             </div>
                                         </div>
                                         
                                         <div class="row mt-3">
                                             <div class="col-sm-6">
-                                                <strong>Rooms:</strong> <?php echo $job->rooms; ?><br>
+                                                <strong>Rooms:</strong> 
+                                                <?php 
+                                                // Decode JSON rooms array
+                                                $rooms = json_decode($job->rooms, true);
+                                                if (is_array($rooms) && !empty($rooms)) {
+                                                    echo implode(', ', $rooms);
+                                                } else {
+                                                    echo 'Not specified';
+                                                }
+                                                ?><br>
                                                 <strong>Price:</strong> $<?php echo number_format($job->suggested_price, 2); ?>
                                             </div>
                                             <div class="col-sm-6">
@@ -44,6 +64,48 @@
                                                 </span>
                                             </div>
                                         </div>
+                                        
+                                        <!-- Additional Job Details -->
+                                        <div class="row mt-3">
+                                            <div class="col-sm-6">
+                                                <strong>City:</strong> <?php echo htmlspecialchars($job->city ?? 'Not specified'); ?><br>
+                                                <strong>State:</strong> <?php echo htmlspecialchars($job->state ?? 'Not specified'); ?><br>
+                                                <strong>Duration:</strong> <?php echo isset($job->estimated_duration) ? $job->estimated_duration . ' minutes' : 'Not specified'; ?>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <strong>Additional Services:</strong><br>
+                                                <?php 
+                                                // Decode JSON extras array
+                                                $extras = json_decode($job->extras ?? '[]', true);
+                                                if (is_array($extras) && !empty($extras)) {
+                                                    echo '<ul class="list-unstyled mb-0">';
+                                                    foreach ($extras as $extra) {
+                                                        echo '<li><i class="fas fa-check text-success me-2"></i>' . htmlspecialchars($extra) . '</li>';
+                                                    }
+                                                    echo '</ul>';
+                                                } else {
+                                                    echo '<span class="text-muted">None selected</span>';
+                                                }
+                                                ?>
+                                            </div>
+                                        </div>
+                                        
+                                        <?php if (!empty($job->special_instructions)): ?>
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <strong>Special Instructions:</strong><br>
+                                                <p class="text-muted"><?php echo htmlspecialchars($job->special_instructions); ?></p>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (isset($job->pets) && $job->pets): ?>
+                                        <div class="row mt-2">
+                                            <div class="col-12">
+                                                <span class="badge bg-info"><i class="fas fa-paw me-1"></i> Pets Present</span>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 
@@ -67,6 +129,35 @@
 </div>
 
 <style>
+/* Content Layout */
+.content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+}
+
+.container-fluid {
+    max-width: 95% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 20px !important;
+}
+
+/* Responsive Layout */
+@media (max-width: 991.98px) {
+    .container-fluid {
+        max-width: 98% !important;
+        padding: 0 15px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .container-fluid {
+        max-width: 100% !important;
+        padding: 0 10px !important;
+    }
+}
+
 /* Modern Card Styles */
 .modern-card {
     background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.8) 100%);

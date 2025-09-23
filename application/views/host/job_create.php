@@ -10,7 +10,7 @@
             
             <!-- Job Creation Form -->
             <div class="row justify-content-center">
-                <div class="col-lg-8">
+                <div class="col-lg-10 col-xl-9 job-create-container">
                     <div class="modern-card">
                         <div class="card-header">
                             <h5 class="card-title mb-0">
@@ -229,6 +229,41 @@
 </div>
 
 <style>
+/* Content Layout */
+.content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+}
+
+.container-fluid {
+    max-width: 95% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 20px !important;
+}
+
+/* Form Container Enhancement */
+.job-create-container {
+    max-width: 1200px !important;
+    width: 100% !important;
+}
+
+/* Responsive Layout */
+@media (max-width: 991.98px) {
+    .container-fluid {
+        max-width: 98% !important;
+        padding: 0 15px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .container-fluid {
+        max-width: 100% !important;
+        padding: 0 10px !important;
+    }
+}
+
 /* Modern Card Styles */
 .modern-card {
     background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.8) 100%);

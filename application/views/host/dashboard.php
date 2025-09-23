@@ -171,7 +171,15 @@
                                                     </td>
                                                     <td>
                                                         <span class="date-badge">
-                                                            <?php echo date('M j, Y', strtotime($job->date_time)); ?>
+                                                            <?php 
+                                                            // Use scheduled_date from database
+                                                            $job_date = isset($job->scheduled_date) ? $job->scheduled_date : '';
+                                                            if ($job_date) {
+                                                                echo date('M j, Y', strtotime($job_date));
+                                                            } else {
+                                                                echo 'Not scheduled';
+                                                            }
+                                                            ?>
                                                         </span>
                                                     </td>
                                                     <td>
@@ -268,6 +276,113 @@
 </div>
 
 <style>
+/* Content Layout */
+.content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+}
+
+.container-fluid {
+    max-width: 95% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 20px !important;
+}
+
+/* Responsive Layout */
+@media (max-width: 991.98px) {
+    .container-fluid {
+        max-width: 98% !important;
+        padding: 0 15px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .container-fluid {
+        max-width: 100% !important;
+        padding: 0 10px !important;
+    }
+}
+
+/* Table Styles */
+.table-modern {
+    background: transparent;
+}
+
+.table-modern thead th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.table-modern tbody td {
+    border: none;
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+/* Badge Styles */
+.date-badge, .price-badge, .offers-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+.price-badge {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.offers-badge {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+    min-width: 60px;
+    text-align: center;
+}
+
+.status-open {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.status-active {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.status-assigned {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.status-completed {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    color: white;
+}
+
+.status-cancelled {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+}
+
 /* Modern Card Styles */
 .modern-card {
     background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.8) 100%);

@@ -254,6 +254,15 @@ class Host extends MY_Controller
     }
 
     /**
+     * View Job Details (Alias for job method)
+     * Show job details, offers, and management options
+     */
+    public function view_job($job_id)
+    {
+        return $this->job($job_id);
+    }
+
+    /**
      * View Job Details
      * Show job details, offers, and management options
      */
@@ -583,25 +592,30 @@ class Host extends MY_Controller
             return;
         }
         
+        // Debug: Log job details
+        log_message('debug', 'Delete job - Job ID: ' . $job_id . ', Status: ' . $job->status . ', Host ID: ' . $job->host_id . ', Auth User ID: ' . $this->auth_user_id);
+        
         // Verify the job belongs to this host
         if ($job->host_id != $this->auth_user_id) {
             echo json_encode(['success' => false, 'message' => 'Unauthorized to delete this job']);
             return;
         }
         
-        // Only allow deletion of cancelled jobs
-        if ($job->status != 'cancelled') {
-            echo json_encode(['success' => false, 'message' => 'Only cancelled jobs can be deleted']);
+        // Only allow deletion of cancelled jobs (check both cases)
+        if (strtolower($job->status) != 'cancelled') {
+            echo json_encode(['success' => false, 'message' => 'Only cancelled jobs can be deleted. Current status: ' . $job->status]);
             return;
         }
         
         // Delete the job (hard delete)
         $result = $this->M_jobs->hard_delete_job($job_id);
         
+        log_message('debug', 'Hard delete result: ' . ($result ? 'SUCCESS' : 'FAILED'));
+        
         if ($result) {
             echo json_encode(['success' => true, 'message' => 'Job deleted successfully']);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to delete job']);
+            echo json_encode(['success' => false, 'message' => 'Failed to delete job. Check logs for details.']);
         }
     }
 }

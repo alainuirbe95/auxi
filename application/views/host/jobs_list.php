@@ -133,6 +133,20 @@
 </div>
 
 <style>
+/* Content Layout */
+.content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+}
+
+.container-fluid {
+    max-width: 95% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 20px !important;
+}
+
 /* Modern Card Styles */
 .modern-card {
     background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.8) 100%);
@@ -297,6 +311,21 @@
     border-color: #dc3545;
     color: white;
 }
+
+/* Responsive Layout */
+@media (max-width: 991.98px) {
+    .container-fluid {
+        max-width: 98% !important;
+        padding: 0 15px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .container-fluid {
+        max-width: 100% !important;
+        padding: 0 10px !important;
+    }
+}
 </style>
 
 <script>
@@ -360,6 +389,7 @@ $(document).ready(function() {
                     <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
                 },
                 success: function(response) {
+                    console.log('Delete job response:', response);
                     if (response.success) {
                         alert('Job deleted successfully!');
                         location.reload();
@@ -368,7 +398,8 @@ $(document).ready(function() {
                         $('.delete-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-trash"></i>');
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
+                    console.log('Delete job error:', xhr.responseText, status, error);
                     alert('Error deleting job. Please try again.');
                     $('.delete-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-trash"></i>');
                 }

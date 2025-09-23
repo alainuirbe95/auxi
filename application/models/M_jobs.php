@@ -291,21 +291,34 @@ class M_jobs extends CI_Model
     {
         // Check if jobs table exists
         if (!$this->db->table_exists('jobs')) {
+            log_message('error', 'Jobs table does not exist in hard_delete_job');
             return false;
         }
         
-        // Check if job exists and is cancelled
+        // Check if job exists and is cancelled (case-insensitive)
         $this->db->where('id', $job_id);
-        $this->db->where('status', 'cancelled');
+        $this->db->where('LOWER(status)', 'cancelled');
         $query = $this->db->get('jobs');
         
+        log_message('debug', 'Hard delete check - Job ID: ' . $job_id . ', Found rows: ' . $query->num_rows());
+        
         if ($query->num_rows() == 0) {
+            log_message('error', 'Job not found or not cancelled in hard_delete_job');
             return false;
         }
         
         // Delete the job
         $this->db->where('id', $job_id);
-        return $this->db->delete('jobs');
+        $result = $this->db->delete('jobs');
+        
+        if (!$result) {
+            $error = $this->db->error();
+            log_message('error', 'Delete job failed: ' . print_r($error, true));
+        } else {
+            log_message('debug', 'Job deleted successfully from database');
+        }
+        
+        return $result;
     }
 
     /**
