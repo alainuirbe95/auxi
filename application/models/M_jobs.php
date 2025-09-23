@@ -322,6 +322,86 @@ class M_jobs extends CI_Model
     }
 
     /**
+     * Get all jobs for admin management
+     */
+    public function get_all_jobs_admin($filters = [], $limit = 20, $offset = 0, $sort_by = 'created_at', $sort_order = 'DESC')
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return [];
+        }
+
+        $this->db->select('j.*, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name, u.email as host_email');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.host_id = u.user_id');
+        
+        // Apply filters
+        if (!empty($filters['search'])) {
+            $this->db->group_start();
+            $this->db->like('j.title', $filters['search']);
+            $this->db->or_like('j.description', $filters['search']);
+            $this->db->or_like('j.address', $filters['search']);
+            $this->db->or_like('u.username', $filters['search']);
+            $this->db->or_like('u.first_name', $filters['search']);
+            $this->db->or_like('u.last_name', $filters['search']);
+            $this->db->group_end();
+        }
+        
+        if (!empty($filters['status'])) {
+            $this->db->where('j.status', $filters['status']);
+        }
+        
+        if (!empty($filters['host'])) {
+            $this->db->where('j.host_id', $filters['host']);
+        }
+        
+        // Apply sorting
+        $this->db->order_by('j.' . $sort_by, $sort_order);
+        
+        // Apply limit and offset
+        $this->db->limit($limit, $offset);
+        
+        $query = $this->db->get();
+        return $query->result();
+    }
+
+    /**
+     * Count all jobs for admin management
+     */
+    public function count_all_jobs_admin($filters = [])
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return 0;
+        }
+
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.host_id = u.user_id');
+        
+        // Apply filters
+        if (!empty($filters['search'])) {
+            $this->db->group_start();
+            $this->db->like('j.title', $filters['search']);
+            $this->db->or_like('j.description', $filters['search']);
+            $this->db->or_like('j.address', $filters['search']);
+            $this->db->or_like('u.username', $filters['search']);
+            $this->db->or_like('u.first_name', $filters['search']);
+            $this->db->or_like('u.last_name', $filters['search']);
+            $this->db->group_end();
+        }
+        
+        if (!empty($filters['status'])) {
+            $this->db->where('j.status', $filters['status']);
+        }
+        
+        if (!empty($filters['host'])) {
+            $this->db->where('j.host_id', $filters['host']);
+        }
+        
+        return $this->db->count_all_results();
+    }
+
+    /**
      * Get job photos
      */
     public function get_job_photos($job_id)

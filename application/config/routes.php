@@ -91,5 +91,13 @@ $route['cleaner/earnings'] = 'cleaner/earnings';
 // Test route
 $route['test_db'] = 'test_db';
 
+// Admin Job Management routes
+$route['admin/jobs'] = 'admin/jobs';
+$route['admin/view_job/(:num)'] = 'admin/view_job/$1';
+$route['admin/edit_job/(:num)'] = 'admin/edit_job/$1';
+$route['admin/process_edit_job/(:num)'] = 'admin/process_edit_job/$1';
+$route['admin/cancel_job'] = 'admin/cancel_job';
+$route['admin/delete_job'] = 'admin/delete_job';
+
 // Redirect root URL based on authentication
 $route['^$'] = 'app/redirect_user';

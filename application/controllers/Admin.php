@@ -1015,4 +1015,333 @@ class Admin extends MY_Controller {
         }
     }
 
+    /**
+     * Admin Job Management - List all jobs
+     */
+    public function jobs()
+    {
+        // Load required models
+        $this->load->model('M_jobs');
+        
+        // Get filter parameters
+        $search = $this->input->get('search');
+        $status = $this->input->get('status');
+        $host = $this->input->get('host');
+        $sort = $this->input->get('sort');
+        
+        // Parse sort parameter
+        $sort_by = 'created_at';
+        $sort_order = 'DESC';
+        if ($sort) {
+            $sort_parts = explode('_', $sort);
+            if (count($sort_parts) == 2) {
+                $sort_by = $sort_parts[0];
+                $sort_order = strtoupper($sort_parts[1]);
+            }
+        }
+        
+        // Get pagination parameters
+        $page = $this->input->get('page') ?: 1;
+        $per_page = 20;
+        $offset = ($page - 1) * $per_page;
+        
+        // Prepare filters for model
+        $filters = [
+            'search' => $search,
+            'status' => $status,
+            'host' => $host
+        ];
+        
+        // Get jobs with pagination
+        $jobs = $this->M_jobs->get_all_jobs_admin($filters, $per_page, $offset, $sort_by, $sort_order);
+        $total_jobs = $this->M_jobs->count_all_jobs_admin($filters);
+        
+        // Calculate pagination
+        $total_pages = ceil($total_jobs / $per_page);
+        $pagination = [
+            'current_page' => $page,
+            'total_pages' => $total_pages,
+            'per_page' => $per_page,
+            'total_items' => $total_jobs,
+            'has_prev' => $page > 1,
+            'has_next' => $page < $total_pages,
+            'prev_page' => $page > 1 ? $page - 1 : null,
+            'next_page' => $page < $total_pages ? $page + 1 : null
+        ];
+        
+        $data = [
+            'title' => 'Job Management',
+            'page_icon' => 'fas fa-clipboard-list',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin/dashboard'],
+                ['title' => 'Job Management', 'url' => '', 'active' => true]
+            ],
+            'jobs' => $jobs,
+            'pagination' => $pagination,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'host' => $host,
+                'sort' => $sort
+            ],
+            'view_filters' => [
+                'search' => $search,
+                'status' => $status,
+                'host' => $host,
+                'sort' => $sort
+            ]
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        
+        // Load the jobs management content as a string
+        $data['body'] = $this->load->view('admin/jobs/jobs_management', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+    
+    /**
+     * Admin Job Management - View job details
+     */
+    public function view_job($job_id)
+    {
+        // Load required models
+        $this->load->model('M_jobs');
+        $this->load->model('M_offers');
+        
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job) {
+            show_404();
+        }
+        
+        $data = [
+            'title' => 'Job Details - ' . $job->title,
+            'page_icon' => 'fas fa-clipboard-list',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin/dashboard'],
+                ['title' => 'Job Management', 'url' => 'admin/jobs'],
+                ['title' => $job->title, 'url' => '', 'active' => true]
+            ],
+            'job' => $job,
+            'offers' => $this->M_offers->get_offers_by_job($job_id),
+            'is_admin_view' => true
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        
+        // Load the job details content as a string
+        $data['body'] = $this->load->view('admin/jobs/job_details', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+    
+    /**
+     * Admin Job Management - Edit job
+     */
+    public function edit_job($job_id)
+    {
+        // Load required models
+        $this->load->model('M_jobs');
+        
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job) {
+            show_404();
+        }
+        
+        $data = [
+            'title' => 'Edit Job - ' . $job->title,
+            'page_icon' => 'fas fa-edit',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin/dashboard'],
+                ['title' => 'Job Management', 'url' => 'admin/jobs'],
+                ['title' => 'Edit Job', 'url' => '', 'active' => true]
+            ],
+            'job' => $job
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        
+        // Load the job edit content as a string
+        $data['body'] = $this->load->view('admin/jobs/job_edit', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+    
+    /**
+     * Admin Job Management - Process job edit
+     */
+    public function process_edit_job($job_id)
+    {
+        // Load required models
+        $this->load->model('M_jobs');
+        
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job) {
+            show_404();
+        }
+        
+        // Set validation rules
+        $this->form_validation->set_rules('title', 'Job Title', 'required|trim|max_length[255]');
+        $this->form_validation->set_rules('description', 'Description', 'required|trim');
+        $this->form_validation->set_rules('address', 'Address', 'required|trim');
+        $this->form_validation->set_rules('city', 'City', 'required|trim');
+        $this->form_validation->set_rules('state', 'State', 'required|trim');
+        $this->form_validation->set_rules('scheduled_date', 'Scheduled Date', 'required|trim');
+        $this->form_validation->set_rules('scheduled_time', 'Scheduled Time', 'required|trim');
+        $this->form_validation->set_rules('estimated_duration', 'Estimated Duration', 'required|integer|greater_than[0]');
+        $this->form_validation->set_rules('suggested_price', 'Suggested Price', 'required|numeric|greater_than[0]');
+        $this->form_validation->set_rules('status', 'Status', 'required|in_list[open,active,assigned,completed,cancelled]');
+        
+        if ($this->form_validation->run() == FALSE) {
+            // Validation failed, redirect back to edit form
+            $this->session->set_flashdata('text', validation_errors());
+            $this->session->set_flashdata('type', 'error');
+            redirect('admin/edit_job/' . $job_id);
+        } else {
+            // Process extras (checkbox array to JSON)
+            $extras = $this->input->post('extras');
+            $extras_json = json_encode($extras && is_array($extras) ? $extras : []);
+            
+            // Process rooms (single value to JSON array)
+            $rooms = $this->input->post('rooms');
+            $rooms_json = json_encode($rooms ? [$rooms] : []);
+            
+            // Prepare job data
+            $job_data = [
+                'title' => trim($this->input->post('title')),
+                'description' => trim($this->input->post('description')),
+                'address' => trim($this->input->post('address')),
+                'city' => trim($this->input->post('city')),
+                'state' => trim($this->input->post('state')),
+                'scheduled_date' => trim($this->input->post('scheduled_date')),
+                'scheduled_time' => trim($this->input->post('scheduled_time')),
+                'estimated_duration' => (int)$this->input->post('estimated_duration'),
+                'rooms' => $rooms_json,
+                'extras' => $extras_json,
+                'pets' => $this->input->post('pets') ? 1 : 0,
+                'special_instructions' => trim($this->input->post('special_instructions')),
+                'suggested_price' => (float)$this->input->post('suggested_price'),
+                'status' => trim($this->input->post('status'))
+            ];
+            
+            // Update the job
+            $updated = $this->M_jobs->update_job($job_id, $job_data);
+            
+            if ($updated) {
+                $this->session->set_flashdata('text', 'Job updated successfully!');
+                $this->session->set_flashdata('type', 'success');
+                redirect('admin/jobs');
+            } else {
+                $this->session->set_flashdata('text', 'Failed to update job. Please try again.');
+                $this->session->set_flashdata('type', 'error');
+                redirect('admin/edit_job/' . $job_id);
+            }
+        }
+    }
+    
+    /**
+     * Admin Job Management - Cancel job (AJAX)
+     */
+    public function cancel_job()
+    {
+        // Check if user is logged in and is an admin
+        if (!$this->require_min_level(9)) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            return;
+        }
+        
+        $job_id = $this->input->post('job_id');
+        
+        if (!$job_id) {
+            echo json_encode(['success' => false, 'message' => 'Job ID is required']);
+            return;
+        }
+        
+        // Load required models
+        $this->load->model('M_jobs');
+        
+        // Get job details
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job) {
+            echo json_encode(['success' => false, 'message' => 'Job not found']);
+            return;
+        }
+        
+        // Cancel the job
+        $result = $this->M_jobs->update_job_status($job_id, 'cancelled');
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Job cancelled successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to cancel job']);
+        }
+    }
+    
+    /**
+     * Admin Job Management - Delete job (AJAX)
+     */
+    public function delete_job()
+    {
+        // Check if user is logged in and is an admin
+        if (!$this->require_min_level(9)) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            return;
+        }
+        
+        $job_id = $this->input->post('job_id');
+        
+        // Debug: Log the job ID
+        log_message('debug', 'Admin delete_job - Job ID: ' . $job_id);
+        
+        if (!$job_id) {
+            echo json_encode(['success' => false, 'message' => 'Job ID is required']);
+            return;
+        }
+        
+        // Load required models
+        $this->load->model('M_jobs');
+        
+        // Get job details
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        // Debug: Log job details
+        log_message('debug', 'Admin delete_job - Job found: ' . ($job ? 'YES' : 'NO'));
+        if ($job) {
+            log_message('debug', 'Admin delete_job - Job status: ' . $job->status);
+        }
+        
+        if (!$job) {
+            echo json_encode(['success' => false, 'message' => 'Job not found']);
+            return;
+        }
+        
+        // Only allow deletion of cancelled jobs
+        if ($job->status != 'cancelled') {
+            echo json_encode(['success' => false, 'message' => 'Only cancelled jobs can be deleted. Current status: ' . $job->status]);
+            return;
+        }
+        
+        // Delete the job (hard delete)
+        $result = $this->M_jobs->hard_delete_job($job_id);
+        
+        // Debug: Log the result
+        log_message('debug', 'Admin delete_job - Hard delete result: ' . ($result ? 'SUCCESS' : 'FAILED'));
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Job deleted successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to delete job. Check logs for details.']);
+        }
+    }
+
 }

@@ -144,8 +144,21 @@
           </a>
         </li>
 
-        <!-- Divider -->
-        <li class="nav-header modern-nav-header">MARKETPLACE</li>
+          <!-- Divider -->
+          <li class="nav-header modern-nav-header">JOB MANAGEMENT</li>
+
+          <!-- Job Management -->
+          <li class="nav-item">
+            <a href="<?php echo base_url('admin/jobs'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'admin/jobs') ? 'active' : ''; ?>">
+              <div class="nav-icon-container">
+                <i class="nav-icon fas fa-clipboard-list"></i>
+              </div>
+              <span class="nav-text">All Jobs</span>
+            </a>
+          </li>
+
+          <!-- Divider -->
+          <li class="nav-header modern-nav-header">MARKETPLACE</li>
 
         <!-- Host Management -->
         <li class="nav-item has-submenu">
