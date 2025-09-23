@@ -145,6 +145,99 @@
         </li>
 
         <!-- Divider -->
+        <li class="nav-header modern-nav-header">MARKETPLACE</li>
+
+        <!-- Host Management -->
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'host') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-home"></i>
+            </div>
+            <span class="nav-text">Host Panel</span>
+            <i class="nav-arrow fas fa-chevron-right"></i>
+          </a>
+          <ul class="modern-submenu">
+            <li class="nav-item">
+              <a href="<?php echo base_url('host'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'host') ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                  <i class="nav-icon fas fa-tachometer-alt"></i>
+                </div>
+                <span class="nav-text">Dashboard</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="<?php echo base_url('host/create_job'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'host/create_job') ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                  <i class="nav-icon fas fa-plus-circle"></i>
+                </div>
+                <span class="nav-text">Create Job</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="<?php echo base_url('host/jobs'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'host/jobs') ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                  <i class="nav-icon fas fa-clipboard-list"></i>
+                </div>
+                <span class="nav-text">My Jobs</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="<?php echo base_url('host/offers'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'host/offers') ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                  <i class="nav-icon fas fa-handshake"></i>
+                </div>
+                <span class="nav-text">Review Offers</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Cleaner Management -->
+        <li class="nav-item has-submenu">
+          <a href="#" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-broom"></i>
+            </div>
+            <span class="nav-text">Cleaner Panel</span>
+            <i class="nav-arrow fas fa-chevron-right"></i>
+          </a>
+          <ul class="modern-submenu">
+            <li class="nav-item">
+              <a href="<?php echo base_url('cleaner'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'cleaner') ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                  <i class="nav-icon fas fa-tachometer-alt"></i>
+                </div>
+                <span class="nav-text">Dashboard</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="<?php echo base_url('cleaner/jobs'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'cleaner/jobs') ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                  <i class="nav-icon fas fa-search"></i>
+                </div>
+                <span class="nav-text">Browse Jobs</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="<?php echo base_url('cleaner/offers'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'cleaner/offers') ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                  <i class="nav-icon fas fa-handshake"></i>
+                </div>
+                <span class="nav-text">My Offers</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="<?php echo base_url('cleaner/earnings'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'cleaner/earnings') ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                  <i class="nav-icon fas fa-dollar-sign"></i>
+                </div>
+                <span class="nav-text">Earnings</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Divider -->
         <li class="nav-header modern-nav-header">ADMINISTRATION</li>
 
         <!-- User Profile -->

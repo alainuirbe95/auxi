@@ -429,4 +429,34 @@ class App extends MY_Controller {
         }
     }
 
+    /**
+     * Redirect user based on their authentication level
+     */
+    public function redirect_user()
+    {
+        // Check if user is logged in
+        if ($this->is_logged_in()) {
+            $user_level = $this->auth_level;
+            
+            // Redirect based on user level
+            switch ($user_level) {
+                case 9: // Admin
+                    redirect('admin/dashboard');
+                    break;
+                case 6: // Host
+                    redirect('host');
+                    break;
+                case 3: // Cleaner
+                    redirect('cleaner');
+                    break;
+                default:
+                    redirect('admin/dashboard');
+                    break;
+            }
+        } else {
+            // Not logged in, redirect to login
+            redirect('app/login');
+        }
+    }
+
 }

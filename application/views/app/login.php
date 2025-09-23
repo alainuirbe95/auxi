@@ -185,9 +185,22 @@
                                 window.location.href = '<?php echo base_url('admin/change_password'); ?>';
                             }, 1000);
                         } else {
-                            // Regular login - redirect to dashboard
+                            // Regular login - redirect based on user role
                             setTimeout(function() {
-                                window.location.href = '<?php echo base_url() ?>';
+                                // Redirect based on user level
+                                if (response.level == 9) {
+                                    // Admin
+                                    window.location.href = '<?php echo base_url('admin/dashboard'); ?>';
+                                } else if (response.level == 6) {
+                                    // Host
+                                    window.location.href = '<?php echo base_url('host'); ?>';
+                                } else if (response.level == 3) {
+                                    // Cleaner
+                                    window.location.href = '<?php echo base_url('cleaner'); ?>';
+                                } else {
+                                    // Default fallback
+                                    window.location.href = '<?php echo base_url('admin/dashboard'); ?>';
+                                }
                             }, 1000);
                         }
                     } else if (response.status == 0 && response.on_hold) {

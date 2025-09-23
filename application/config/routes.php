@@ -49,7 +49,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 | Examples:	my-controller/index	-> my_controller/index
 |		my-controller/my-method	-> my_controller/my_method
 */
-$route['default_controller'] = 'index';
+$route['default_controller'] = 'app/login';
 // $route['comment/(:any)'] = 'comment/$1';
 // $route['spa/favorite_save/(:num)'] = 'spa/favorite_save/$1';
 // $route['spa/favorite_delete/(:num)'] = 'spa/favorite_delete/$1';
@@ -65,3 +65,31 @@ $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 $route[LOGIN_PAGE] = 'app/login';
 $route['register'] = 'app/register';
+
+// Host routes
+$route['host'] = 'host/index';
+$route['host/create_job'] = 'host/create_job';
+$route['host/process_create_job'] = 'host/process_create_job';
+$route['host/jobs'] = 'host/jobs';
+$route['host/job/(:num)'] = 'host/view_job/$1';
+$route['host/edit_job/(:num)'] = 'host/edit_job/$1';
+$route['host/process_edit_job/(:num)'] = 'host/process_edit_job/$1';
+$route['host/cancel_job'] = 'host/cancel_job';
+$route['host/delete_job'] = 'host/delete_job';
+$route['host/offers'] = 'host/offers';
+$route['host/accept_offer/(:num)'] = 'host/accept_offer/$1';
+$route['host/reject_offer/(:num)'] = 'host/reject_offer/$1';
+
+// Cleaner routes
+$route['cleaner'] = 'cleaner/index';
+$route['cleaner/jobs'] = 'cleaner/jobs';
+$route['cleaner/job/(:num)'] = 'cleaner/job/$1';
+$route['cleaner/make_offer/(:num)'] = 'cleaner/make_offer/$1';
+$route['cleaner/offers'] = 'cleaner/offers';
+$route['cleaner/earnings'] = 'cleaner/earnings';
+
+// Test route
+$route['test_db'] = 'test_db';
+
+// Redirect root URL based on authentication
+$route['^$'] = 'app/redirect_user';

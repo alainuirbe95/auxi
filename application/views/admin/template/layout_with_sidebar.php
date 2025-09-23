@@ -44,6 +44,21 @@
             min-height: 100vh !important;
             position: relative !important;
             z-index: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        
+        /* Main content centering */
+        .content {
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        
+        .container-fluid {
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+            padding: 0 20px !important;
         }
         
         /* Tablet responsive (768px - 991px) */
@@ -64,6 +79,11 @@
             /* Add mobile toggle button for tablet */
             .mobile-sidebar-toggle {
                 display: block !important;
+            }
+            
+            .container-fluid {
+                max-width: 100% !important;
+                padding: 0 15px !important;
             }
         }
         
@@ -96,6 +116,11 @@
             /* Add mobile toggle button */
             .mobile-sidebar-toggle {
                 display: block !important;
+            }
+            
+            .container-fluid {
+                max-width: 100% !important;
+                padding: 0 10px !important;
             }
             
             /* Overlay for mobile sidebar */
