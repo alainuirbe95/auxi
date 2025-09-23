@@ -1056,6 +1056,13 @@ class Admin extends MY_Controller {
         $jobs = $this->M_jobs->get_all_jobs_admin($filters, $per_page, $offset, $sort_by, $sort_order);
         $total_jobs = $this->M_jobs->count_all_jobs_admin($filters);
         
+        // Get job statistics
+        $stats = $this->M_jobs->get_admin_stats();
+        
+        // Get hosts for filter dropdown
+        $this->load->model('M_users');
+        $hosts = $this->M_users->get_users_by_level(6); // Host level = 6
+        
         // Calculate pagination
         $total_pages = ceil($total_jobs / $per_page);
         $pagination = [
@@ -1077,6 +1084,8 @@ class Admin extends MY_Controller {
                 ['title' => 'Job Management', 'url' => '', 'active' => true]
             ],
             'jobs' => $jobs,
+            'stats' => $stats,
+            'hosts' => $hosts,
             'pagination' => $pagination,
             'filters' => [
                 'search' => $search,
@@ -1102,6 +1111,195 @@ class Admin extends MY_Controller {
         $this->load->view('admin/template/layout_with_sidebar', $data);
     }
     
+    /**
+     * Admin Job Creation - Show create job form
+     */
+    public function create_job()
+    {
+        // Load required models
+        $this->load->model('M_jobs');
+        
+        $data = [
+            'title' => 'Create New Job',
+            'page_icon' => 'fas fa-plus-circle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin/dashboard'],
+                ['title' => 'Job Management', 'url' => 'admin/jobs'],
+                ['title' => 'Create Job', 'url' => '', 'active' => true]
+            ]
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        
+        // Load the job creation content as a string
+        $data['body'] = $this->load->view('admin/jobs/job_create', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+    
+    /**
+     * Admin Job Creation - Process create job form
+     */
+    public function process_create_job()
+    {
+        // Load required models
+        $this->load->model('M_jobs');
+        
+        // Set validation rules
+        $this->form_validation->set_rules('title', 'Job Title', 'required|trim|max_length[255]');
+        $this->form_validation->set_rules('description', 'Description', 'required|trim');
+        $this->form_validation->set_rules('address', 'Address', 'required|trim|max_length[500]');
+        $this->form_validation->set_rules('city', 'City', 'required|trim|max_length[100]');
+        $this->form_validation->set_rules('state', 'State', 'required|trim|max_length[50]');
+        $this->form_validation->set_rules('suggested_price', 'Suggested Price', 'required|numeric|greater_than[0]');
+        $this->form_validation->set_rules('estimated_duration', 'Estimated Duration', 'required|integer|greater_than[0]');
+        
+        if ($this->form_validation->run() == FALSE) {
+            $this->session->set_flashdata('error', validation_errors());
+            redirect('admin/create_job');
+        }
+        
+        // Process extras (checkbox array to JSON)
+        $extras = $this->input->post('extras');
+        $extras_json = json_encode($extras && is_array($extras) ? $extras : []);
+        
+        // Process rooms (single value to JSON array)
+        $rooms = $this->input->post('rooms');
+        $rooms_json = json_encode($rooms ? [$rooms] : []);
+        
+        // Parse date_time into separate date and time
+        $date_time = $this->input->post('date_time');
+        $scheduled_date = '';
+        $scheduled_time = '';
+        if ($date_time) {
+            $datetime_obj = DateTime::createFromFormat('Y-m-d\TH:i', $date_time);
+            if ($datetime_obj) {
+                $scheduled_date = $datetime_obj->format('Y-m-d');
+                $scheduled_time = $datetime_obj->format('H:i:s');
+            }
+        }
+        
+        // Prepare job data
+        $job_data = [
+            'host_id' => $this->auth_user_id, // Admin creating the job
+            'title' => trim($this->input->post('title')),
+            'description' => trim($this->input->post('description')),
+            'address' => trim($this->input->post('address')),
+            'city' => trim($this->input->post('city')),
+            'state' => trim($this->input->post('state')),
+            'scheduled_date' => $scheduled_date,
+            'scheduled_time' => $scheduled_time,
+            'estimated_duration' => (int)$this->input->post('estimated_duration'),
+            'rooms' => $rooms_json,
+            'extras' => $extras_json,
+            'pets' => $this->input->post('pets') ? 1 : 0,
+            'special_instructions' => trim($this->input->post('notes')),
+            'suggested_price' => (float)$this->input->post('suggested_price'),
+            'status' => 'open'
+        ];
+        
+        // Create the job
+        $job_id = $this->M_jobs->create_job($job_data);
+        
+        if ($job_id) {
+            $this->session->set_flashdata('success', 'Job created successfully!');
+            redirect('admin/my_jobs');
+        } else {
+            $this->session->set_flashdata('error', 'Failed to create job. Please try again.');
+            redirect('admin/create_job');
+        }
+    }
+    
+    /**
+     * Admin My Jobs - Show admin's own jobs
+     */
+    public function my_jobs()
+    {
+        // Load required models
+        $this->load->model('M_jobs');
+        
+        // Get filter parameters
+        $search = $this->input->get('search');
+        $status = $this->input->get('status');
+        $sort = $this->input->get('sort');
+        
+        // Parse sort parameter
+        $sort_by = 'created_at';
+        $sort_order = 'DESC';
+        if ($sort) {
+            $sort_parts = explode('_', $sort);
+            if (count($sort_parts) == 2) {
+                $sort_by = $sort_parts[0];
+                $sort_order = strtoupper($sort_parts[1]);
+            }
+        }
+        
+        // Get pagination parameters
+        $page = $this->input->get('page') ?: 1;
+        $per_page = 20;
+        $offset = ($page - 1) * $per_page;
+        
+        // Prepare filters for model
+        $filters = [
+            'search' => $search,
+            'status' => $status,
+            'host' => $this->auth_user_id // Only admin's own jobs
+        ];
+        
+        // Get jobs with pagination
+        $jobs = $this->M_jobs->get_all_jobs_admin($filters, $per_page, $offset, $sort_by, $sort_order);
+        $total_jobs = $this->M_jobs->count_all_jobs_admin($filters);
+        
+        // Get job statistics for admin's jobs
+        $stats = $this->M_jobs->get_host_stats($this->auth_user_id);
+        
+        // Calculate pagination
+        $total_pages = ceil($total_jobs / $per_page);
+        $pagination = [
+            'current_page' => $page,
+            'total_pages' => $total_pages,
+            'per_page' => $per_page,
+            'total_items' => $total_jobs,
+            'has_prev' => $page > 1,
+            'has_next' => $page < $total_pages,
+            'prev_page' => $page > 1 ? $page - 1 : null,
+            'next_page' => $page < $total_pages ? $page + 1 : null
+        ];
+        
+        $data = [
+            'title' => 'My Jobs',
+            'page_icon' => 'fas fa-clipboard-list',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin/dashboard'],
+                ['title' => 'My Jobs', 'url' => '', 'active' => true]
+            ],
+            'jobs' => $jobs,
+            'stats' => $stats,
+            'pagination' => $pagination,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'sort' => $sort
+            ],
+            'view_filters' => [
+                'search' => $search,
+                'status' => $status,
+                'sort' => $sort
+            ]
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        
+        // Load the my jobs content as a string
+        $data['body'] = $this->load->view('admin/jobs/my_jobs', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
     /**
      * Admin Job Management - View job details
      */

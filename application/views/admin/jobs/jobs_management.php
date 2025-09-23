@@ -14,853 +14,1062 @@ if (!function_exists('time_ago')) {
 }
 ?>
 
+<div class="container-fluid">
+  <!-- Modern Header Section -->
+  <div class="modern-header-section">
+    <div class="header-content">
+      <h1 class="page-title">
+        <i class="fas fa-clipboard-list mr-3"></i>
+        Job Management
+      </h1>
+      <p class="page-subtitle">
+        Manage and monitor all jobs across the platform
+      </p>
+    </div>
+  </div>
+
+  <!-- Modern Statistics Cards -->
+  <div class="row mb-5">
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="stats-card stats-card-primary">
+        <div class="stats-icon">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <div class="stats-content">
+          <h3 class="stats-number"><?php echo number_format($stats['total_jobs'] ?? 0); ?></h3>
+          <p class="stats-label">Total Jobs</p>
+        </div>
+        <div class="stats-decoration"></div>
+      </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="stats-card stats-card-success">
+        <div class="stats-icon">
+          <i class="fas fa-play-circle"></i>
+        </div>
+        <div class="stats-content">
+          <h3 class="stats-number"><?php echo number_format($stats['active_jobs'] ?? 0); ?></h3>
+          <p class="stats-label">Active Jobs</p>
+        </div>
+        <div class="stats-decoration"></div>
+      </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="stats-card stats-card-danger">
+        <div class="stats-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stats-content">
+          <h3 class="stats-number"><?php echo number_format($stats['completed_jobs'] ?? 0); ?></h3>
+          <p class="stats-label">Completed</p>
+        </div>
+        <div class="stats-decoration"></div>
+      </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-4">
+      <div class="stats-card stats-card-warning">
+        <div class="stats-icon">
+          <i class="fas fa-times-circle"></i>
+        </div>
+        <div class="stats-content">
+          <h3 class="stats-number"><?php echo number_format($stats['cancelled_jobs'] ?? 0); ?></h3>
+          <p class="stats-label">Cancelled</p>
+        </div>
+        <div class="stats-decoration"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Users Table Card -->
+  <div class="modern-card">
+    <div class="modern-card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h3 class="card-title">
+            <i class="fas fa-table mr-2"></i>
+            Jobs Table
+          </h3>
+        </div>
+        <div class="card-actions">
+          <a href="<?php echo base_url('admin/create_job'); ?>" class="btn btn-modern btn-success">
+            <i class="fas fa-plus-circle mr-2"></i>
+            Create New Job
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search and Filter Bar -->
+    <div class="modern-filter-section">
+      <?php echo form_open('admin/jobs', array('method' => 'GET', 'id' => 'filterForm')); ?>
+      
+      <div class="filter-row">
+        <!-- Search Input -->
+        <div class="filter-group">
+          <label for="search" class="filter-label">
+            <i class="fas fa-search mr-1"></i>
+            Search
+          </label>
+          <div class="search-input-container">
+            <input type="text" 
+                   class="modern-input" 
+                   id="search" 
+                   name="search" 
+                   value="<?php echo htmlspecialchars(isset($filters['search']) ? $filters['search'] : ''); ?>" 
+                   placeholder="Search jobs...">
+            <div class="search-icon">
+              <i class="fas fa-search"></i>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Status Filter -->
+        <div class="filter-group">
+          <label for="status" class="filter-label">
+            <i class="fas fa-filter mr-1"></i>
+            Status
+          </label>
+          <select class="modern-select" id="status" name="status">
+            <option value="">All Status</option>
+            <option value="open" <?php echo (isset($filters['status']) && $filters['status'] == 'open') ? 'selected' : ''; ?>>Open</option>
+            <option value="assigned" <?php echo (isset($filters['status']) && $filters['status'] == 'assigned') ? 'selected' : ''; ?>>Assigned</option>
+            <option value="completed" <?php echo (isset($filters['status']) && $filters['status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
+            <option value="cancelled" <?php echo (isset($filters['status']) && $filters['status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
+          </select>
+        </div>
+        
+        <!-- Host Filter -->
+        <div class="filter-group">
+          <label for="host" class="filter-label">
+            <i class="fas fa-user-tag mr-1"></i>
+            Host
+          </label>
+          <select class="modern-select" id="host" name="host">
+            <option value="">All Hosts</option>
+            <?php if (isset($hosts) && is_array($hosts)): ?>
+              <?php foreach ($hosts as $host): ?>
+                <option value="<?php echo $host->user_id; ?>" <?php echo (isset($filters['host']) && $filters['host'] == $host->user_id) ? 'selected' : ''; ?>>
+                  <?php echo htmlspecialchars($host->first_name . ' ' . $host->last_name); ?>
+                </option>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </select>
+        </div>
+        
+        <!-- Sort Filter -->
+        <div class="filter-group">
+          <label for="sort" class="filter-label">
+            <i class="fas fa-sort mr-1"></i>
+            Sort By
+          </label>
+          <select class="modern-select" id="sort" name="sort">
+            <option value="created_at_desc" <?php echo (isset($filters['sort']) && $filters['sort'] == 'created_at_desc') ? 'selected' : ''; ?>>Newest First</option>
+            <option value="created_at_asc" <?php echo (isset($filters['sort']) && $filters['sort'] == 'created_at_asc') ? 'selected' : ''; ?>>Oldest First</option>
+            <option value="title_asc" <?php echo (isset($filters['sort']) && $filters['sort'] == 'title_asc') ? 'selected' : ''; ?>>Title A-Z</option>
+            <option value="title_desc" <?php echo (isset($filters['sort']) && $filters['sort'] == 'title_desc') ? 'selected' : ''; ?>>Title Z-A</option>
+            <option value="price_desc" <?php echo (isset($filters['sort']) && $filters['sort'] == 'price_desc') ? 'selected' : ''; ?>>Highest Price</option>
+            <option value="price_asc" <?php echo (isset($filters['sort']) && $filters['sort'] == 'price_asc') ? 'selected' : ''; ?>>Lowest Price</option>
+          </select>
+        </div>
+        
+        <!-- Filter Buttons -->
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-modern btn-primary">
+            <i class="fas fa-search mr-1"></i>
+            Apply Filters
+          </button>
+          <a href="<?php echo base_url('admin/jobs'); ?>" class="btn btn-modern btn-outline">
+            <i class="fas fa-times mr-1"></i>
+            Clear
+          </a>
+        </div>
+      </div>
+      
+      <?php echo form_close(); ?>
+    </div>
+
+    <!-- Jobs Table -->
+    <div class="modern-table-container">
+      <?php if (empty($jobs)): ?>
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <h4>No Jobs Found</h4>
+          <p>No jobs match your current filter criteria.</p>
+          <a href="<?php echo base_url('admin/jobs'); ?>" class="btn btn-modern btn-primary">
+            <i class="fas fa-refresh mr-2"></i>
+            Reset Filters
+          </a>
+        </div>
+      <?php else: ?>
+        <div class="table-responsive">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th>Job Details</th>
+                <th>Host</th>
+                <th>Status</th>
+                <th>Price</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($jobs as $job): ?>
+                <tr class="job-row">
+                  <td>
+                    <div class="job-info">
+                      <h5 class="job-title"><?php echo htmlspecialchars($job->title); ?></h5>
+                      <p class="job-description"><?php echo htmlspecialchars(substr($job->description, 0, 100)) . (strlen($job->description) > 100 ? '...' : ''); ?></p>
+                      <div class="job-meta">
+                        <span class="job-location">
+                          <i class="fas fa-map-marker-alt mr-1"></i>
+                          <?php echo htmlspecialchars($job->city . ', ' . $job->state); ?>
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="host-info">
+                      <h6 class="host-name"><?php echo htmlspecialchars($job->host_first_name . ' ' . $job->host_last_name); ?></h6>
+                      <p class="host-username">@<?php echo htmlspecialchars($job->host_username); ?></p>
+                    </div>
+                  </td>
+                  <td>
+                    <?php
+                    $status_class = '';
+                    $status_text = '';
+                    switch(strtolower($job->status)) {
+                      case 'open':
+                        $status_class = 'status-open';
+                        $status_text = 'Open';
+                        break;
+                      case 'assigned':
+                        $status_class = 'status-assigned';
+                        $status_text = 'Assigned';
+                        break;
+                      case 'completed':
+                        $status_class = 'status-completed';
+                        $status_text = 'Completed';
+                        break;
+                      case 'cancelled':
+                        $status_class = 'status-cancelled';
+                        $status_text = 'Cancelled';
+                        break;
+                      default:
+                        $status_class = 'status-open';
+                        $status_text = ucfirst($job->status);
+                    }
+                    ?>
+                    <span class="status-badge <?php echo $status_class; ?>">
+                      <i class="fas fa-circle mr-1"></i>
+                      <?php echo $status_text; ?>
+                    </span>
+                  </td>
+                  <td>
+                    <div class="price-info">
+                      <span class="price-amount">$<?php echo number_format($job->suggested_price, 2); ?></span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="created-info">
+                      <p class="created-date"><?php echo date('M j, Y', strtotime($job->created_at)); ?></p>
+                      <p class="created-duration"><?php echo time_ago($job->created_at); ?></p>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="action-buttons">
+                      <a href="<?php echo base_url('admin/view_job/' . $job->id); ?>" 
+                         class="btn btn-sm btn-outline-primary" 
+                         title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                      <a href="<?php echo base_url('admin/edit_job/' . $job->id); ?>" 
+                         class="btn btn-sm btn-outline-warning" 
+                         title="Edit Job">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <?php if (strtolower($job->status) == 'open' || strtolower($job->status) == 'assigned'): ?>
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-danger cancel-job-btn" 
+                              data-job-id="<?php echo $job->id; ?>"
+                              data-job-title="<?php echo htmlspecialchars($job->title); ?>"
+                              title="Cancel Job">
+                        <i class="fas fa-times"></i>
+                      </button>
+                      <?php elseif (strtolower($job->status) == 'cancelled'): ?>
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-danger delete-job-btn" 
+                              data-job-id="<?php echo $job->id; ?>"
+                              data-job-title="<?php echo htmlspecialchars($job->title); ?>"
+                              title="Delete Job">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                      <?php endif; ?>
+                    </div>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <!-- Pagination -->
+    <?php if (isset($pagination) && $pagination['total_pages'] > 1): ?>
+      <div class="modern-pagination">
+        <div class="pagination-info">
+          <span>Showing <?php echo $pagination['offset'] + 1; ?> to <?php echo min($pagination['offset'] + $pagination['limit'], $pagination['total_records']); ?> of <?php echo $pagination['total_records']; ?> jobs</span>
+        </div>
+        
+        <nav aria-label="Jobs pagination">
+          <ul class="pagination">
+            <?php if ($pagination['current_page'] > 1): ?>
+              <li class="page-item">
+                <a class="page-link" href="<?php echo base_url('admin/jobs?' . http_build_query(array_merge($_GET, array('page' => $pagination['current_page'] - 1)))); ?>">
+                  <i class="fas fa-chevron-left"></i>
+                </a>
+              </li>
+            <?php endif; ?>
+            
+            <?php
+            $start_page = max(1, $pagination['current_page'] - 2);
+            $end_page = min($pagination['total_pages'], $pagination['current_page'] + 2);
+            
+            for ($i = $start_page; $i <= $end_page; $i++):
+            ?>
+              <li class="page-item <?php echo ($i == $pagination['current_page']) ? 'active' : ''; ?>">
+                <a class="page-link" href="<?php echo base_url('admin/jobs?' . http_build_query(array_merge($_GET, array('page' => $i)))); ?>">
+                  <?php echo $i; ?>
+                </a>
+              </li>
+            <?php endfor; ?>
+            
+            <?php if ($pagination['current_page'] < $pagination['total_pages']): ?>
+              <li class="page-item">
+                <a class="page-link" href="<?php echo base_url('admin/jobs?' . http_build_query(array_merge($_GET, array('page' => $pagination['current_page'] + 1)))); ?>">
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              </li>
+            <?php endif; ?>
+          </ul>
+        </nav>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
 <style>
-/* Content Layout */
-.content {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
+/* Modern Header Section */
+.modern-header-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
+  color: white;
+  position: relative;
+  overflow: hidden;
 }
 
-.container-fluid {
-    max-width: 95% !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 20px !important;
+.modern-header-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  opacity: 0.3;
 }
 
-/* Responsive Layout */
-@media (max-width: 991.98px) {
-    .container-fluid {
-        max-width: 98% !important;
-        padding: 0 15px !important;
-    }
+.header-content {
+  position: relative;
+  z-index: 1;
 }
 
-@media (max-width: 767.98px) {
-    .container-fluid {
-        max-width: 100% !important;
-        padding: 0 10px !important;
-    }
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Modern Card Styles */
-.modern-card {
-    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.8) 100%);
-    border: none;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    backdrop-filter: blur(10px);
-    margin-bottom: 2rem;
-    overflow: hidden;
-    transition: all 0.3s ease;
+.page-subtitle {
+  font-size: 1.1rem;
+  margin: 0.5rem 0 0 0;
+  opacity: 0.9;
 }
 
-.modern-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-}
-
-.modern-card .card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 1.5rem;
-}
-
-.modern-card .card-body {
-    padding: 2rem;
-}
-
-/* Statistics Cards */
+/* Modern Statistics Cards */
 .stats-card {
-    text-align: center;
-    padding: 1.5rem;
-    height: 100%;
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: none;
+  height: 100%;
+}
+
+.stats-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.stats-card-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.stats-card-success {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: white;
+}
+
+.stats-card-danger {
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+  color: white;
+}
+
+.stats-card-warning {
+  background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+  color: white;
 }
 
 .stats-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  font-size: 2.5rem;
+  opacity: 0.3;
+}
+
+.stats-content {
+  position: relative;
+  z-index: 1;
 }
 
 .stats-number {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    color: #333;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1;
 }
 
 .stats-label {
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 0;
+  font-size: 1rem;
+  margin: 0.5rem 0 0 0;
+  opacity: 0.9;
+  font-weight: 500;
 }
 
-/* Desktop Statistics Layout */
-@media (min-width: 1200px) {
-    .stats-card {
-        padding: 1.75rem 1.25rem;
-    }
-    
-    .stats-icon {
-        font-size: 2.75rem;
-        margin-bottom: 1rem;
-    }
-    
-    .stats-number {
-        font-size: 2.25rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .stats-label {
-        font-size: 0.95rem;
-    }
+.stats-decoration {
+  position: absolute;
+  bottom: -20px;
+  right: -20px;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
 }
 
-/* Filter Section Desktop Layout */
-@media (min-width: 1200px) {
-    .modern-card .card-body .row.g-3 {
-        margin: 0 -0.75rem;
-    }
-    
-    .modern-card .card-body .row.g-3 > [class*="col-"] {
-        padding: 0 0.75rem;
-    }
-    
-    .modern-card .card-body .row.g-3 .col-md-3 {
-        flex: 0 0 22%;
-        max-width: 22%;
-    }
-    
-    .modern-card .card-body .row.g-3 .col-md-2 {
-        flex: 0 0 18%;
-        max-width: 18%;
-    }
-    
-    .modern-card .card-body .row.g-3 .col-md-3:last-child {
-        flex: 0 0 22%;
-        max-width: 22%;
-    }
+/* Modern Card */
+.modern-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: none;
+  overflow: hidden;
 }
 
-/* Table Styles */
-.table-modern {
-    background: transparent;
-    width: 100%;
-    table-layout: auto;
+.modern-card-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 2rem;
+  border-bottom: 1px solid #dee2e6;
 }
 
-.table-modern thead th {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 1rem 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
+.modern-card-header .card-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
 }
 
-.table-modern tbody td {
-    border: none;
-    padding: 1rem 0.75rem;
-    vertical-align: middle;
-    word-wrap: break-word;
+.modern-card-header .card-subtitle {
+  margin: 0.5rem 0 0 0;
+  color: #6c757d;
+  font-size: 0.95rem;
 }
 
-/* Desktop Table Column Adjustments */
-@media (min-width: 1200px) {
-    .table-modern thead th,
-    .table-modern tbody td {
-        padding: 1.25rem 1rem;
-    }
-    
-    .table-modern thead th {
-        font-size: 0.9rem;
-    }
+.card-actions .btn-modern {
+  border-radius: 10px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
-/* Make specific columns wider on desktop */
-@media (min-width: 1200px) {
-    .table-modern th:nth-child(1), /* Job Details */
-    .table-modern td:nth-child(1) {
-        width: 25%;
-        min-width: 200px;
-    }
-    
-    .table-modern th:nth-child(2), /* Host */
-    .table-modern td:nth-child(2) {
-        width: 15%;
-        min-width: 150px;
-    }
-    
-    .table-modern th:nth-child(3), /* Date & Time */
-    .table-modern td:nth-child(3) {
-        width: 15%;
-        min-width: 140px;
-    }
-    
-    .table-modern th:nth-child(4), /* Price */
-    .table-modern td:nth-child(4) {
-        width: 10%;
-        min-width: 100px;
-    }
-    
-    .table-modern th:nth-child(5), /* Status */
-    .table-modern td:nth-child(5) {
-        width: 10%;
-        min-width: 100px;
-    }
-    
-    .table-modern th:nth-child(6), /* Created */
-    .table-modern td:nth-child(6) {
-        width: 10%;
-        min-width: 120px;
-    }
-    
-    .table-modern th:nth-child(7), /* Actions */
-    .table-modern td:nth-child(7) {
-        width: 15%;
-        min-width: 150px;
-    }
+.card-actions .btn-modern:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
-/* Badge Styles */
-.date-badge, .price-badge {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    white-space: nowrap;
-    display: inline-block;
+/* Modern Filter Section */
+.modern-filter-section {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-bottom: 1px solid #dee2e6;
 }
 
-.price-badge {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+.filter-row {
+  display: flex;
+  gap: 1.5rem;
+  align-items: end;
+  flex-wrap: wrap;
 }
 
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-label {
+  display: block;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.modern-input, .modern-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.modern-input:focus, .modern-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-input-container {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  pointer-events: none;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.btn-modern {
+  border-radius: 10px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-modern.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-modern.btn-outline {
+  background: white;
+  color: #6c757d;
+  border: 2px solid #e9ecef;
+}
+
+.btn-modern:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Modern Table */
+.modern-table-container {
+  padding: 0;
+}
+
+.modern-table {
+  margin: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.modern-table thead th {
+  background: #f8f9fa;
+  border: none;
+  font-weight: 600;
+  color: #495057;
+  padding: 1.5rem 1rem;
+  border-bottom: 2px solid #dee2e6;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modern-table tbody tr {
+  border-bottom: 1px solid #f1f3f4;
+  transition: all 0.3s ease;
+}
+
+.modern-table tbody tr:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modern-table tbody td {
+  padding: 1.5rem 1rem;
+  border: none;
+  vertical-align: middle;
+}
+
+/* Job Info */
+.job-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.job-title {
+  margin: 0;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.job-description {
+  margin: 0.25rem 0;
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.job-meta {
+  margin-top: 0.5rem;
+}
+
+.job-location {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+/* Host Info */
+.host-info h6 {
+  margin: 0;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.host-info p {
+  margin: 0.25rem 0 0 0;
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+/* Price Info */
+.price-info {
+  text-align: center;
+}
+
+.price-amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #28a745;
+}
+
+/* Created Info */
+.created-info p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.created-date {
+  color: #495057;
+  font-weight: 500;
+}
+
+.created-duration {
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+/* Badges */
+.badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-cleaner {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.badge-host {
+  background: linear-gradient(135deg, #007bff, #6610f2);
+  color: white;
+}
+
+.badge-admin {
+  background: linear-gradient(135deg, #dc3545, #e83e8c);
+  color: white;
+}
+
+/* Status Badges */
 .status-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    white-space: nowrap;
-    min-width: 60px;
-    text-align: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .status-open {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-}
-
-.status-active {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
 }
 
 .status-assigned {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    color: white;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
 }
 
 .status-completed {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    color: white;
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: white;
 }
 
 .status-cancelled {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    color: white;
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
 }
 
-/* Button Group Styling */
-.btn-group .btn {
-    margin-right: 2px;
+/* Last Login */
+.last-login p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
 }
 
-.btn-group .btn:last-child {
-    margin-right: 0;
+.login-time {
+  color: #495057;
+  font-weight: 500;
 }
 
-.btn-group .btn i {
-    font-size: 0.8rem;
+.login-duration {
+  color: #6c757d;
+  font-size: 0.8rem;
 }
 
-/* Cancel/Delete Job Buttons */
-.cancel-job-btn:hover {
-    background-color: #dc3545;
-    border-color: #dc3545;
-    color: white;
+.no-login {
+  color: #6c757d;
+  font-style: italic;
 }
 
-.delete-job-btn:hover {
-    background-color: #dc3545;
-    border-color: #dc3545;
-    color: white;
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+  border: 2px solid;
+}
+
+.action-buttons .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Empty State */
 .empty-state {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: #6c757d;
+  text-align: center;
+  padding: 4rem 2rem;
 }
 
-.empty-state i {
-    opacity: 0.5;
+.empty-icon {
+  font-size: 4rem;
+  color: #dee2e6;
+  margin-bottom: 1.5rem;
+}
+
+.empty-state h4 {
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.empty-state p {
+  color: #adb5bd;
+  margin-bottom: 2rem;
 }
 
 /* Pagination */
-.modern-pagination .page-link {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    color: white;
-    border-radius: 20px;
-    margin: 0 2px;
-    padding: 0.5rem 1rem;
-    transition: all 0.3s ease;
+.modern-pagination {
+  padding: 2rem;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.modern-pagination .page-link:hover {
-    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-    transform: translateY(-2px);
+.pagination-info {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
-.modern-pagination .page-item.active .page-link {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    color: white;
+.pagination {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0.5rem;
 }
 
-/* Form Styles */
-.modern-input, .modern-select {
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    transition: all 0.3s ease;
-    background-color: white;
-    min-height: 45px;
-    font-size: 0.9rem;
-    line-height: 1.4;
+.page-item {
+  margin: 0;
 }
 
-.modern-input:focus, .modern-select:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    background-color: white;
+.page-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  color: #495057;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  min-width: 45px;
+  height: 45px;
 }
 
-/* Select Dropdown Specific Styles */
-.modern-select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 1rem;
-    padding-right: 2.5rem;
+.page-link:hover {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+  text-decoration: none;
 }
 
-.modern-select option {
-    background-color: white;
-    color: #333;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    border: none;
-    height: auto;
-    min-height: 35px;
+.page-item.active .page-link {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+  color: white;
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
 }
 
-.modern-select option:hover {
-    background-color: #f8f9fa;
-    color: #667eea;
+.page-link i {
+  font-size: 0.8rem;
 }
 
-.modern-select option:checked {
-    background-color: #667eea;
-    color: white;
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modern-header-section {
+    padding: 2rem 1rem;
+  }
+  
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-group {
+    min-width: auto;
+  }
+  
+  .filter-actions {
+    justify-content: center;
+  }
+  
+  .modern-table {
+    font-size: 0.85rem;
+  }
+  
+  .action-buttons {
+    justify-content: center;
+  }
+  
+  .modern-pagination {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .pagination {
+    justify-content: center;
+  }
 }
 
-/* Ensure dropdown options are visible */
-.modern-select:focus option {
-    background-color: white;
-    color: #333;
-    z-index: 9999;
-}
-
-/* Fix dropdown container overflow issues */
-.modern-card .card-body {
-    overflow: visible;
-}
-
-.modern-card {
-    overflow: visible;
-}
-
-/* Ensure select dropdowns are not clipped */
-select.modern-select {
-    z-index: 10;
-    position: relative;
-}
-
-select.modern-select:focus {
-    z-index: 1000;
-}
-
-/* Additional dropdown styling for better visibility */
-.modern-select option {
-    display: block;
-    white-space: nowrap;
-    overflow: visible;
-    text-overflow: initial;
-    max-width: none;
-    width: auto;
-    min-width: 100%;
-}
-
-/* Override any Bootstrap or other framework conflicts */
-select.form-control.modern-select {
-    height: auto !important;
-    min-height: 45px !important;
-    padding: 0.75rem 2.5rem 0.75rem 1rem !important;
-    font-size: 0.9rem !important;
-    line-height: 1.4 !important;
-    background-color: white !important;
-    border: 2px solid #e9ecef !important;
-    border-radius: 10px !important;
-}
-
-select.form-control.modern-select:focus {
-    border-color: #667eea !important;
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
-    background-color: white !important;
-}
-
-/* Ensure the dropdown options are fully visible */
-select.form-control.modern-select option {
-    background-color: white !important;
-    color: #333 !important;
-    padding: 0.5rem 0.75rem !important;
-    font-size: 0.9rem !important;
-    line-height: 1.4 !important;
-    height: auto !important;
-    min-height: 35px !important;
-    white-space: normal !important;
-    word-wrap: break-word !important;
-}
-
-/* Button Styles */
-.btn-modern {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    border-radius: 50px;
-    padding: 0.75rem 2rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.3s ease;
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-}
-
-.btn-modern:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-}
-
-.btn-modern.btn-secondary {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
-}
-
-.btn-modern.btn-secondary:hover {
-    background: linear-gradient(135deg, #5a6268 0%, #3d4449 100%);
-    box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+@media (max-width: 576px) {
+  .stats-card {
+    padding: 1.5rem;
+  }
+  
+  .stats-number {
+    font-size: 2rem;
+  }
+  
+  .job-info {
+    text-align: center;
+  }
+  
+  .host-info {
+    text-align: center;
+  }
 }
 </style>
 
-<!-- Content Wrapper. Contains page content -->
-<div class="content-wrapper">
-    <!-- Main content -->
-    <section class="content">
-        <div class="container-fluid">
-            
-            <!-- Jobs Management Header -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="modern-card">
-                        <div class="card-body text-center py-4">
-                            <h2 class="mb-3">
-                                <i class="fas fa-clipboard-list text-primary me-2"></i>
-                                Job Management
-                            </h2>
-                            <p class="text-muted mb-0">Manage all cleaning jobs across the platform</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Statistics Cards -->
-            <div class="row mb-4">
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="modern-card stats-card">
-                        <div class="card-body text-center">
-                            <div class="stats-icon">
-                                <i class="fas fa-clipboard-list text-primary"></i>
-                            </div>
-                            <h3 class="stats-number"><?php echo $pagination['total_items']; ?></h3>
-                            <p class="stats-label">Total Jobs</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="modern-card stats-card">
-                        <div class="card-body text-center">
-                            <div class="stats-icon">
-                                <i class="fas fa-clock text-warning"></i>
-                            </div>
-                            <h3 class="stats-number"><?php echo isset($filters['status']) && $filters['status'] == 'open' ? count($jobs) : 'N/A'; ?></h3>
-                            <p class="stats-label">Open Jobs</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="modern-card stats-card">
-                        <div class="card-body text-center">
-                            <div class="stats-icon">
-                                <i class="fas fa-check-circle text-success"></i>
-                            </div>
-                            <h3 class="stats-number"><?php echo isset($filters['status']) && $filters['status'] == 'completed' ? count($jobs) : 'N/A'; ?></h3>
-                            <p class="stats-label">Completed</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="modern-card stats-card">
-                        <div class="card-body text-center">
-                            <div class="stats-icon">
-                                <i class="fas fa-times-circle text-danger"></i>
-                            </div>
-                            <h3 class="stats-number"><?php echo isset($filters['status']) && $filters['status'] == 'cancelled' ? count($jobs) : 'N/A'; ?></h3>
-                            <p class="stats-label">Cancelled</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Filter Section -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="modern-card">
-                        <div class="card-body">
-                            <form method="GET" action="<?php echo base_url('admin/jobs'); ?>" class="row g-3">
-                                <div class="col-md-3">
-                                    <label for="search" class="form-label">Search</label>
-                                    <input type="text" class="form-control modern-input" id="search" name="search" 
-                                           value="<?php echo isset($view_filters['search']) ? htmlspecialchars($view_filters['search']) : ''; ?>" 
-                                           placeholder="Search jobs, hosts...">
-                                </div>
-                                <div class="col-md-2">
-                                    <label for="status" class="form-label">Status</label>
-                                    <select class="form-control modern-select" id="status" name="status">
-                                        <option value="">All Status</option>
-                                        <option value="open" <?php echo (isset($view_filters['status']) && $view_filters['status'] == 'open') ? 'selected' : ''; ?>>Open</option>
-                                        <option value="active" <?php echo (isset($view_filters['status']) && $view_filters['status'] == 'active') ? 'selected' : ''; ?>>Active</option>
-                                        <option value="assigned" <?php echo (isset($view_filters['status']) && $view_filters['status'] == 'assigned') ? 'selected' : ''; ?>>Assigned</option>
-                                        <option value="completed" <?php echo (isset($view_filters['status']) && $view_filters['status'] == 'completed') ? 'selected' : ''; ?>>Completed</option>
-                                        <option value="cancelled" <?php echo (isset($view_filters['status']) && $view_filters['status'] == 'cancelled') ? 'selected' : ''; ?>>Cancelled</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label for="sort" class="form-label">Sort By</label>
-                                    <select class="form-control modern-select" id="sort" name="sort">
-                                        <option value="created_at_desc" <?php echo (isset($view_filters['sort']) && $view_filters['sort'] == 'created_at_desc') ? 'selected' : ''; ?>>Newest First</option>
-                                        <option value="created_at_asc" <?php echo (isset($view_filters['sort']) && $view_filters['sort'] == 'created_at_asc') ? 'selected' : ''; ?>>Oldest First</option>
-                                        <option value="title_asc" <?php echo (isset($view_filters['sort']) && $view_filters['sort'] == 'title_asc') ? 'selected' : ''; ?>>Title A-Z</option>
-                                        <option value="title_desc" <?php echo (isset($view_filters['sort']) && $view_filters['sort'] == 'title_desc') ? 'selected' : ''; ?>>Title Z-A</option>
-                                        <option value="suggested_price_desc" <?php echo (isset($view_filters['sort']) && $view_filters['sort'] == 'suggested_price_desc') ? 'selected' : ''; ?>>Price High-Low</option>
-                                        <option value="suggested_price_asc" <?php echo (isset($view_filters['sort']) && $view_filters['sort'] == 'suggested_price_asc') ? 'selected' : ''; ?>>Price Low-High</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">&nbsp;</label>
-                                    <div class="d-flex gap-2">
-                                        <button type="submit" class="btn btn-modern btn-primary">
-                                            <i class="fas fa-search me-2"></i>Filter
-                                        </button>
-                                        <a href="<?php echo base_url('admin/jobs'); ?>" class="btn btn-modern btn-secondary">
-                                            <i class="fas fa-times me-2"></i>Clear
-                                        </a>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Jobs Table -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="modern-card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-list text-info me-2"></i>
-                                All Jobs
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <?php if (!empty($jobs)): ?>
-                                <div class="table-responsive">
-                                    <table class="table table-modern">
-                                        <thead>
-                                            <tr>
-                                                <th>Job Details</th>
-                                                <th>Host</th>
-                                                <th>Date & Time</th>
-                                                <th>Price</th>
-                                                <th>Status</th>
-                                                <th>Created</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($jobs as $job): ?>
-                                                <tr>
-                                                    <td>
-                                                        <div class="job-info">
-                                                            <strong><?php echo htmlspecialchars($job->title); ?></strong>
-                                                            <small class="text-muted d-block"><?php echo htmlspecialchars(substr($job->address, 0, 40)); ?>...</small>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="host-info">
-                                                            <strong><?php echo htmlspecialchars($job->host_username); ?></strong>
-                                                            <small class="text-muted d-block"><?php echo htmlspecialchars($job->host_first_name . ' ' . $job->host_last_name); ?></small>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <span class="date-badge">
-                                                            <?php 
-                                                            $job_date = isset($job->scheduled_date) ? $job->scheduled_date : '';
-                                                            $job_time = isset($job->scheduled_time) ? $job->scheduled_time : '';
-                                                            
-                                                            if ($job_date && $job_time) {
-                                                                $datetime = $job_date . ' ' . $job_time;
-                                                                echo date('M j, Y g:i A', strtotime($datetime));
-                                                            } else {
-                                                                echo 'Not scheduled';
-                                                            }
-                                                            ?>
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="price-badge">
-                                                            $<?php echo number_format($job->suggested_price, 2); ?>
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="status-badge status-<?php echo $job->status; ?>">
-                                                            <?php echo ucfirst($job->status); ?>
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="text-muted">
-                                                            <?php echo time_ago($job->created_at); ?>
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <div class="btn-group" role="group">
-                                                            <a href="<?php echo base_url('admin/view_job/' . $job->id); ?>" 
-                                                               class="btn btn-sm btn-outline-primary" 
-                                                               title="View Details">
-                                                                <i class="fas fa-eye"></i>
-                                                            </a>
-                                                            <a href="<?php echo base_url('admin/edit_job/' . $job->id); ?>" 
-                                                               class="btn btn-sm btn-outline-warning" 
-                                                               title="Edit Job">
-                                                                <i class="fas fa-edit"></i>
-                                                            </a>
-                                                            <?php if ($job->status != 'cancelled'): ?>
-                                                            <button type="button" 
-                                                                    class="btn btn-sm btn-outline-danger cancel-job-btn" 
-                                                                    data-job-id="<?php echo $job->id; ?>"
-                                                                    data-job-title="<?php echo htmlspecialchars($job->title); ?>"
-                                                                    title="Cancel Job">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                            <?php endif; ?>
-                                                            <?php if ($job->status == 'cancelled'): ?>
-                                                            <button type="button" 
-                                                                    class="btn btn-sm btn-outline-danger delete-job-btn" 
-                                                                    data-job-id="<?php echo $job->id; ?>"
-                                                                    data-job-title="<?php echo htmlspecialchars($job->title); ?>"
-                                                                    title="Delete Job">
-                                                                <i class="fas fa-trash"></i>
-                                                            </button>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- Pagination -->
-                                <?php if ($pagination['total_pages'] > 1): ?>
-                                    <div class="pagination-wrapper mt-4">
-                                        <nav aria-label="Jobs pagination">
-                                            <ul class="pagination modern-pagination justify-content-center">
-                                                <?php if ($pagination['has_prev']): ?>
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="<?php echo base_url('admin/jobs?' . http_build_query(array_merge($_GET, ['page' => $pagination['prev_page']]))); ?>">
-                                                            <i class="fas fa-chevron-left"></i>
-                                                        </a>
-                                                    </li>
-                                                <?php endif; ?>
-                                                
-                                                <?php for ($i = max(1, $pagination['current_page'] - 2); $i <= min($pagination['total_pages'], $pagination['current_page'] + 2); $i++): ?>
-                                                    <li class="page-item <?php echo $i == $pagination['current_page'] ? 'active' : ''; ?>">
-                                                        <a class="page-link" href="<?php echo base_url('admin/jobs?' . http_build_query(array_merge($_GET, ['page' => $i]))); ?>">
-                                                            <?php echo $i; ?>
-                                                        </a>
-                                                    </li>
-                                                <?php endfor; ?>
-                                                
-                                                <?php if ($pagination['has_next']): ?>
-                                                    <li class="page-item">
-                                                        <a class="page-link" href="<?php echo base_url('admin/jobs?' . http_build_query(array_merge($_GET, ['page' => $pagination['next_page']]))); ?>">
-                                                            <i class="fas fa-chevron-right"></i>
-                                                        </a>
-                                                    </li>
-                                                <?php endif; ?>
-                                            </ul>
-                                        </nav>
-                                        
-                                        <div class="pagination-info text-center mt-2">
-                                            <small class="text-muted">
-                                                Showing <?php echo (($pagination['current_page'] - 1) * $pagination['per_page']) + 1; ?> to 
-                                                <?php echo min($pagination['current_page'] * $pagination['per_page'], $pagination['total_items']); ?> 
-                                                of <?php echo $pagination['total_items']; ?> jobs
-                                            </small>
-                                        </div>
-                                    </div>
-                                <?php endif; ?>
-                            <?php else: ?>
-                                <div class="empty-state">
-                                    <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                                    <h5>No jobs found</h5>
-                                    <p class="text-muted">No jobs match your current filters.</p>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </section>
-</div>
-
 <script>
 $(document).ready(function() {
-    // Cancel job functionality
-    $('.cancel-job-btn').on('click', function() {
-        const jobId = $(this).data('job-id');
-        const jobTitle = $(this).data('job-title');
-        
-        if (confirm(`Are you sure you want to cancel the job "${jobTitle}"? This action cannot be undone.`)) {
-            // Show loading state
-            $(this).prop('disabled', true);
-            $(this).html('<i class="fas fa-spinner fa-spin"></i>');
-            
-            // Make AJAX request to cancel job
-            $.ajax({
-                url: '<?php echo base_url('admin/cancel_job'); ?>',
-                method: 'POST',
-                data: {
-                    job_id: jobId,
-                    <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
-                },
-                success: function(response) {
-                    console.log('Cancel job response:', response);
-                    if (response.success) {
-                        alert('Job cancelled successfully!');
-                        location.reload();
-                    } else {
-                        alert('Error cancelling job: ' + (response.message || 'Unknown error'));
-                        $('.cancel-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-times"></i>');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.log('Cancel job error:', xhr.responseText, status, error);
-                    alert('Error cancelling job. Please try again.');
-                    $('.cancel-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-times"></i>');
-                }
-            });
-        }
+    // Auto-submit form on filter change
+    $('#status, #host, #sort').on('change', function() {
+        $('#filterForm').submit();
     });
     
-    // Delete job functionality
-    $('.delete-job-btn').on('click', function() {
-        const jobId = $(this).data('job-id');
-        const jobTitle = $(this).data('job-title');
-        
-        console.log('Delete job clicked - Job ID:', jobId, 'Job Title:', jobTitle);
-        
-        if (confirm(`Are you sure you want to permanently delete the job "${jobTitle}"? This action cannot be undone.`)) {
-            // Show loading state
-            $(this).prop('disabled', true);
-            $(this).html('<i class="fas fa-spinner fa-spin"></i>');
-            
-            // Prepare data for AJAX request
-            const ajaxData = {
-                job_id: jobId,
-                <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
-            };
-            
-            console.log('AJAX data being sent:', ajaxData);
-            console.log('CSRF token name:', '<?php echo $this->security->get_csrf_token_name(); ?>');
-            console.log('CSRF token value:', '<?php echo $this->security->get_csrf_hash(); ?>');
-            
-            // Make AJAX request to delete job
-            $.ajax({
-                url: '<?php echo base_url('admin/delete_job'); ?>',
-                method: 'POST',
-                data: ajaxData,
-                dataType: 'json',
-                success: function(response) {
-                    console.log('Delete job response:', response);
-                    console.log('Response type:', typeof response);
-                    console.log('Response success:', response.success);
-                    
-                    if (response && response.success) {
-                        alert('Job deleted successfully!');
-                        location.reload();
-                    } else {
-                        const errorMsg = (response && response.message) ? response.message : 'Unknown error';
-                        console.log('Delete failed with message:', errorMsg);
-                        alert('Error deleting job: ' + errorMsg);
-                        $('.delete-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-trash"></i>');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.log('Delete job AJAX error:', xhr.responseText, status, error);
-                    console.log('XHR status:', xhr.status);
-                    console.log('XHR responseText:', xhr.responseText);
-                    alert('Error deleting job. Please try again.');
-                    $('.delete-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-trash"></i>');
-                }
-            });
-        }
+    // Add loading state to form submission
+    $('#filterForm').on('submit', function() {
+        $('.btn-modern').prop('disabled', true);
+        $('.btn-modern i').removeClass().addClass('fas fa-spinner fa-spin');
+    });
+    
+    // Add animation to table rows
+    $('.modern-table tbody tr').each(function(index) {
+        $(this).css('opacity', '0').delay(index * 50).animate({
+            opacity: 1
+        }, 500);
+    });
+    
+    // Cancel job button click handler
+    $(document).on('click', '.cancel-job-btn', function(e) {
+        e.preventDefault();
+        var jobId = $(this).data('job-id');
+        var jobTitle = $(this).data('job-title');
+        cancelJob(jobId, jobTitle);
+    });
+    
+    // Delete job button click handler
+    $(document).on('click', '.delete-job-btn', function(e) {
+        e.preventDefault();
+        var jobId = $(this).data('job-id');
+        var jobTitle = $(this).data('job-title');
+        deleteJob(jobId, jobTitle);
     });
 });
+
+// Job action functions
+function cancelJob(jobId, jobTitle) {
+    if (confirm('Are you sure you want to cancel job "' + jobTitle + '"?\n\nThis action cannot be undone.')) {
+        // Show loading state
+        $('.cancel-job-btn[data-job-id="' + jobId + '"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+        
+        // Make AJAX request
+        $.ajax({
+            url: '<?php echo base_url('admin/cancel_job'); ?>',
+            type: 'POST',
+            data: {
+                job_id: jobId
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Show success message and reload page
+                    alert('Job cancelled successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                    // Reset button
+                    $('.cancel-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-times"></i>');
+                }
+            },
+            error: function() {
+                alert('An error occurred while cancelling the job.');
+                // Reset button
+                $('.cancel-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-times"></i>');
+            }
+        });
+    }
+}
+
+function deleteJob(jobId, jobTitle) {
+    if (confirm('Are you sure you want to permanently delete job "' + jobTitle + '"?\n\nThis action cannot be undone and will permanently remove all job data.')) {
+        // Show loading state
+        $('.delete-job-btn[data-job-id="' + jobId + '"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+        
+        // Make AJAX request
+        $.ajax({
+            url: '<?php echo base_url('admin/delete_job'); ?>',
+            type: 'POST',
+            data: {
+                job_id: jobId
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Show success message and reload page
+                    alert('Job deleted successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                    // Reset button
+                    $('.delete-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-trash"></i>');
+                }
+            },
+            error: function() {
+                alert('An error occurred while deleting the job.');
+                // Reset button
+                $('.delete-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-trash"></i>');
+            }
+        });
+    }
+}
 </script>

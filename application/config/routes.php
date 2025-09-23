@@ -86,6 +86,9 @@ $route['cleaner/jobs'] = 'cleaner/jobs';
 $route['cleaner/job/(:num)'] = 'cleaner/job/$1';
 $route['cleaner/make_offer/(:num)'] = 'cleaner/make_offer/$1';
 $route['cleaner/offers'] = 'cleaner/offers';
+$route['cleaner/accept_counter_offer/(:num)'] = 'cleaner/accept_counter_offer/$1';
+$route['cleaner/reject_counter_offer/(:num)'] = 'cleaner/reject_counter_offer/$1';
+$route['cleaner/make_counter_offer/(:num)'] = 'cleaner/make_counter_offer/$1';
 $route['cleaner/earnings'] = 'cleaner/earnings';
 
 // Test route
@@ -93,6 +96,9 @@ $route['test_db'] = 'test_db';
 
 // Admin Job Management routes
 $route['admin/jobs'] = 'admin/jobs';
+$route['admin/my_jobs'] = 'admin/my_jobs';
+$route['admin/create_job'] = 'admin/create_job';
+$route['admin/process_create_job'] = 'admin/process_create_job';
 $route['admin/view_job/(:num)'] = 'admin/view_job/$1';
 $route['admin/edit_job/(:num)'] = 'admin/edit_job/$1';
 $route['admin/process_edit_job/(:num)'] = 'admin/process_edit_job/$1';

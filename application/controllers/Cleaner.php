@@ -245,4 +245,238 @@ class Cleaner extends MY_Controller
         
         redirect('cleaner/job/' . $job_id);
     }
+
+    /**
+     * View My Offers
+     * Show all offers made by the cleaner
+     */
+    public function offers()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Check if offers table exists
+        if (!$this->db->table_exists('offers')) {
+            $data = [
+                'title' => 'My Offers',
+                'page_icon' => 'fas fa-handshake',
+                'breadcrumbs' => [
+                    ['title' => 'Dashboard', 'url' => 'cleaner'],
+                    ['title' => 'My Offers', 'url' => '', 'active' => true]
+                ],
+                'offers' => [],
+                'user_info' => $this->M_users->get_user_by_id($user_id)
+            ];
+        } else {
+            // Get offers data
+            $offers = $this->M_offers->get_offers_by_cleaner($user_id);
+            
+            $data = [
+                'title' => 'My Offers',
+                'page_icon' => 'fas fa-handshake',
+                'breadcrumbs' => [
+                    ['title' => 'Dashboard', 'url' => 'cleaner'],
+                    ['title' => 'My Offers', 'url' => '', 'active' => true]
+                ],
+                'offers' => $offers,
+                'user_info' => $this->M_users->get_user_by_id($user_id)
+            ];
+        }
+        
+        // Load the cleaner sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        
+        // Load the offers content as a string
+        $data['body'] = $this->load->view('cleaner/offers', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Accept Host's Counter Offer
+     * Allow cleaner to accept a counter offer from the host
+     */
+    public function accept_counter_offer($offer_id)
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+        
+        $user_id = $this->auth_user_id;
+        
+        // Check if offers table exists
+        if (!$this->db->table_exists('offers')) {
+            $this->session->set_flashdata('text', 'Marketplace functionality not available yet.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/offers');
+        }
+        
+        // Get offer details
+        $offer = $this->M_offers->get_offer_by_id($offer_id);
+        
+        if (!$offer || $offer->cleaner_id != $user_id) {
+            show_404();
+        }
+        
+        // Check if offer has a counter offer
+        if (!$offer->counter_amount || $offer->counter_amount <= 0) {
+            $this->session->set_flashdata('text', 'No counter offer available to accept.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/offers');
+        }
+        
+        // Update offer to accepted
+        $update_data = [
+            'status' => 'accepted',
+            'accepted_at' => date('Y-m-d H:i:s'),
+            'final_amount' => $offer->counter_amount
+        ];
+        
+        if ($this->M_offers->update_offer($offer_id, $update_data)) {
+            // Update job status to assigned
+            $this->M_jobs->update_job_status($offer->job_id, 'assigned');
+            
+            $this->session->set_flashdata('text', 'Counter offer accepted successfully!');
+            $this->session->set_flashdata('type', 'success');
+        } else {
+            $this->session->set_flashdata('text', 'Failed to accept counter offer. Please try again.');
+            $this->session->set_flashdata('type', 'error');
+        }
+        
+        redirect('cleaner/offers');
+    }
+
+    /**
+     * Reject Host's Counter Offer
+     * Allow cleaner to reject a counter offer from the host
+     */
+    public function reject_counter_offer($offer_id)
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+        
+        $user_id = $this->auth_user_id;
+        
+        // Check if offers table exists
+        if (!$this->db->table_exists('offers')) {
+            $this->session->set_flashdata('text', 'Marketplace functionality not available yet.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/offers');
+        }
+        
+        // Get offer details
+        $offer = $this->M_offers->get_offer_by_id($offer_id);
+        
+        if (!$offer || $offer->cleaner_id != $user_id) {
+            show_404();
+        }
+        
+        // Check if offer has a counter offer
+        if (!$offer->counter_amount || $offer->counter_amount <= 0) {
+            $this->session->set_flashdata('text', 'No counter offer available to reject.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/offers');
+        }
+        
+        // Update offer to rejected
+        $update_data = [
+            'status' => 'rejected',
+            'rejected_at' => date('Y-m-d H:i:s'),
+            'rejection_reason' => 'Cleaner rejected counter offer'
+        ];
+        
+        if ($this->M_offers->update_offer($offer_id, $update_data)) {
+            $this->session->set_flashdata('text', 'Counter offer rejected successfully.');
+            $this->session->set_flashdata('type', 'success');
+        } else {
+            $this->session->set_flashdata('text', 'Failed to reject counter offer. Please try again.');
+            $this->session->set_flashdata('type', 'error');
+        }
+        
+        redirect('cleaner/offers');
+    }
+
+    /**
+     * Make Counter Offer
+     * Allow cleaner to make a counter offer to the host
+     */
+    public function make_counter_offer($offer_id)
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+        
+        $user_id = $this->auth_user_id;
+        
+        // Check if offers table exists
+        if (!$this->db->table_exists('offers')) {
+            $this->session->set_flashdata('text', 'Marketplace functionality not available yet.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/offers');
+        }
+        
+        // Get offer details
+        $offer = $this->M_offers->get_offer_by_id($offer_id);
+        
+        if (!$offer || $offer->cleaner_id != $user_id) {
+            show_404();
+        }
+        
+        // Set validation rules
+        $this->form_validation->set_rules('counter_amount', 'Counter Offer Amount', 'required|decimal|greater_than[0]');
+        $this->form_validation->set_rules('counter_message', 'Message', 'trim|max_length[500]');
+        
+        if ($this->form_validation->run() === FALSE) {
+            $this->session->set_flashdata('text', 'Please correct the errors below.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/offers');
+        }
+        
+        // Update offer with counter offer
+        $update_data = [
+            'counter_amount' => $this->input->post('counter_amount'),
+            'counter_message' => $this->input->post('counter_message'),
+            'counter_offered_at' => date('Y-m-d H:i:s'),
+            'status' => 'counter_offered'
+        ];
+        
+        if ($this->M_offers->update_offer($offer_id, $update_data)) {
+            $this->session->set_flashdata('text', 'Counter offer submitted successfully!');
+            $this->session->set_flashdata('type', 'success');
+        } else {
+            $this->session->set_flashdata('text', 'Failed to submit counter offer. Please try again.');
+            $this->session->set_flashdata('type', 'error');
+        }
+        
+        redirect('cleaner/offers');
+    }
+
+    /**
+     * View Earnings
+     * Show cleaner's earnings and payment history
+     */
+    public function earnings()
+    {
+        $user_id = $this->auth_user_id;
+        
+        $data = [
+            'title' => 'My Earnings',
+            'page_icon' => 'fas fa-dollar-sign',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'Earnings', 'url' => '', 'active' => true]
+            ],
+            'user_info' => $this->M_users->get_user_by_id($user_id)
+        ];
+        
+        // Load the cleaner sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        
+        // Load the earnings content as a string
+        $data['body'] = $this->load->view('cleaner/earnings', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
 }

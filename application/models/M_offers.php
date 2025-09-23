@@ -14,20 +14,6 @@ class M_offers extends CI_Model
     }
 
 
-    /**
-     * Get offer by ID
-     */
-    public function get_offer_by_id($offer_id)
-    {
-        $this->db->select('o.*, u.username as cleaner_username, u.email as cleaner_email, j.title as job_title');
-        $this->db->from('offers o');
-        $this->db->join('users u', 'o.cleaner_id = u.user_id');
-        $this->db->join('jobs j', 'o.job_id = j.id');
-        $this->db->where('o.id', $offer_id);
-        
-        $query = $this->db->get();
-        return $query->row();
-    }
 
     /**
      * Get offers for a specific job
@@ -49,31 +35,6 @@ class M_offers extends CI_Model
         return $query->result();
     }
 
-    /**
-     * Get offers by cleaner
-     */
-    public function get_offers_by_cleaner($cleaner_id, $status = null)
-    {
-        // Check if required tables exist
-        if (!$this->db->table_exists('offers') || !$this->db->table_exists('jobs')) {
-            return [];
-        }
-        
-        $this->db->select('o.*, j.title as job_title, j.address, j.date_time, u.username as host_username');
-        $this->db->from('offers o');
-        $this->db->join('jobs j', 'o.job_id = j.id');
-        $this->db->join('users u', 'j.host_id = u.user_id');
-        $this->db->where('o.cleaner_id', $cleaner_id);
-        
-        if ($status) {
-            $this->db->where('o.status', $status);
-        }
-        
-        $this->db->order_by('o.created_at', 'DESC');
-        
-        $query = $this->db->get();
-        return $query->result();
-    }
 
     /**
      * Get pending offers for host
@@ -230,16 +191,6 @@ class M_offers extends CI_Model
         return rand(1000, 9999);
     }
 
-    /**
-     * Update offer
-     */
-    public function update_offer($offer_id, $data)
-    {
-        $data['updated_at'] = date('Y-m-d H:i:s');
-        
-        $this->db->where('id', $offer_id);
-        return $this->db->update('offers', $data);
-    }
 
     /**
      * Delete offer (if still pending)
@@ -315,5 +266,63 @@ class M_offers extends CI_Model
 
         $this->db->insert('offers', $data);
         return $this->db->insert_id();
+    }
+
+    /**
+     * Get offer by ID with job and user details
+     */
+    public function get_offer_by_id($offer_id)
+    {
+        // Check if offers table exists
+        if (!$this->db->table_exists('offers')) {
+            return false;
+        }
+
+        $this->db->select('o.*, j.title as job_title, j.address, j.suggested_price, u.username as cleaner_username, u.email as cleaner_email, h.username as host_username, h.email as host_email');
+        $this->db->from('offers o');
+        $this->db->join('jobs j', 'o.job_id = j.id');
+        $this->db->join('users u', 'o.cleaner_id = u.user_id');
+        $this->db->join('users h', 'j.host_id = h.user_id');
+        $this->db->where('o.id', $offer_id);
+        
+        $query = $this->db->get();
+        return $query->row();
+    }
+
+    /**
+     * Update offer status and details
+     */
+    public function update_offer($offer_id, $data)
+    {
+        // Check if offers table exists
+        if (!$this->db->table_exists('offers')) {
+            return false;
+        }
+
+        $data['updated_at'] = date('Y-m-d H:i:s');
+        
+        $this->db->where('id', $offer_id);
+        return $this->db->update('offers', $data);
+    }
+
+    /**
+     * Get offers by cleaner with job details
+     */
+    public function get_offers_by_cleaner($cleaner_id)
+    {
+        // Check if required tables exist
+        if (!$this->db->table_exists('offers') || !$this->db->table_exists('jobs')) {
+            return [];
+        }
+
+        $this->db->select('o.*, j.title as job_title, j.address, j.suggested_price, j.status as job_status, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name');
+        $this->db->from('offers o');
+        $this->db->join('jobs j', 'o.job_id = j.id');
+        $this->db->join('users u', 'j.host_id = u.user_id');
+        $this->db->where('o.cleaner_id', $cleaner_id);
+        $this->db->order_by('o.created_at', 'DESC');
+        
+        $query = $this->db->get();
+        return $query->result();
     }
 }

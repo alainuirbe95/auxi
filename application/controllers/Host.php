@@ -565,6 +565,9 @@ class Host extends MY_Controller
      */
     public function delete_job()
     {
+        // Set JSON header
+        header('Content-Type: application/json');
+        
         // Check if user is logged in and is a host
         if (!$this->require_min_level(6)) {
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -572,6 +575,9 @@ class Host extends MY_Controller
         }
         
         $job_id = $this->input->post('job_id');
+        
+        // Debug: Log the request
+        log_message('debug', 'Host delete_job - Job ID: ' . $job_id . ', Auth User ID: ' . $this->auth_user_id);
         
         if (!$job_id) {
             echo json_encode(['success' => false, 'message' => 'Job ID is required']);

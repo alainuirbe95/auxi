@@ -148,13 +148,42 @@
           <li class="nav-header modern-nav-header">JOB MANAGEMENT</li>
 
           <!-- Job Management -->
-          <li class="nav-item">
-            <a href="<?php echo base_url('admin/jobs'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'admin/jobs') ? 'active' : ''; ?>">
+          <li class="nav-item has-submenu">
+            <a href="#" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'admin/jobs') !== false || strpos(uri_string(), 'admin/my_jobs') !== false || strpos(uri_string(), 'admin/create_job') !== false) ? 'active' : ''; ?>">
               <div class="nav-icon-container">
                 <i class="nav-icon fas fa-clipboard-list"></i>
               </div>
-              <span class="nav-text">All Jobs</span>
+              <span class="nav-text">Job Management</span>
+              <div class="nav-arrow-container">
+                <i class="nav-arrow fas fa-chevron-right"></i>
+              </div>
             </a>
+            <ul class="nav nav-treeview modern-submenu">
+              <li class="nav-item">
+                <a href="<?php echo base_url('admin/jobs'); ?>" class="nav-link modern-submenu-link <?php echo (uri_string() == 'admin/jobs') ? 'active' : ''; ?>">
+                  <div class="submenu-icon">
+                    <i class="fas fa-list"></i>
+                  </div>
+                  <span>All Jobs</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="<?php echo base_url('admin/my_jobs'); ?>" class="nav-link modern-submenu-link <?php echo (strpos(uri_string(), 'admin/my_jobs') !== false) ? 'active' : ''; ?>">
+                  <div class="submenu-icon">
+                    <i class="fas fa-user-circle"></i>
+                  </div>
+                  <span>My Jobs</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="<?php echo base_url('admin/create_job'); ?>" class="nav-link modern-submenu-link <?php echo (strpos(uri_string(), 'admin/create_job') !== false) ? 'active' : ''; ?>">
+                  <div class="submenu-icon">
+                    <i class="fas fa-plus-circle"></i>
+                  </div>
+                  <span>Create Job</span>
+                </a>
+              </li>
+            </ul>
           </li>
 
           <!-- Divider -->

@@ -345,8 +345,7 @@ $(document).ready(function() {
                 url: '<?php echo base_url('host/cancel_job'); ?>',
                 method: 'POST',
                 data: {
-                    job_id: jobId,
-                    <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
+                    job_id: jobId
                 },
                 success: function(response) {
                     if (response.success) {
@@ -385,22 +384,36 @@ $(document).ready(function() {
                 url: '<?php echo base_url('host/delete_job'); ?>',
                 method: 'POST',
                 data: {
-                    job_id: jobId,
-                    <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
+                    job_id: jobId
                 },
                 success: function(response) {
                     console.log('Delete job response:', response);
-                    if (response.success) {
+                    if (response && response.success) {
                         alert('Job deleted successfully!');
                         location.reload();
                     } else {
-                        alert('Error deleting job: ' + (response.message || 'Unknown error'));
+                        alert('Error deleting job: ' + (response && response.message ? response.message : 'Unknown error'));
                         $('.delete-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-trash"></i>');
                     }
                 },
                 error: function(xhr, status, error) {
                     console.log('Delete job error:', xhr.responseText, status, error);
-                    alert('Error deleting job. Please try again.');
+                    let errorMessage = 'Error deleting job. Please try again.';
+                    
+                    // Try to parse error response
+                    if (xhr.responseText) {
+                        try {
+                            const errorResponse = JSON.parse(xhr.responseText);
+                            if (errorResponse.message) {
+                                errorMessage = 'Error: ' + errorResponse.message;
+                            }
+                        } catch (e) {
+                            // If not JSON, show the raw response
+                            errorMessage = 'Error: ' + xhr.responseText;
+                        }
+                    }
+                    
+                    alert(errorMessage);
                     $('.delete-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-trash"></i>');
                 }
             });

@@ -213,6 +213,7 @@ class M_jobs extends CI_Model
                 'total_jobs' => 0,
                 'active_jobs' => 0,
                 'completed_jobs' => 0,
+                'cancelled_jobs' => 0,
                 'total_spent' => 0
             ];
         }
@@ -223,17 +224,26 @@ class M_jobs extends CI_Model
         $this->db->where('host_id', $host_id);
         $stats['total_jobs'] = $this->db->count_all_results('jobs');
         
-        // Active jobs
+        // Active jobs (open + assigned)
+        $this->db->reset_query();
         $this->db->where('host_id', $host_id);
-        $this->db->where('status', 'active');
+        $this->db->where_in('status', ['open', 'assigned']);
         $stats['active_jobs'] = $this->db->count_all_results('jobs');
         
         // Completed jobs
+        $this->db->reset_query();
         $this->db->where('host_id', $host_id);
         $this->db->where('status', 'completed');
         $stats['completed_jobs'] = $this->db->count_all_results('jobs');
         
+        // Cancelled jobs
+        $this->db->reset_query();
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'cancelled');
+        $stats['cancelled_jobs'] = $this->db->count_all_results('jobs');
+        
         // Total spent
+        $this->db->reset_query();
         $this->db->select('SUM(final_price) as total_spent');
         $this->db->where('host_id', $host_id);
         $this->db->where('status', 'completed');
@@ -243,6 +253,45 @@ class M_jobs extends CI_Model
         
         return $stats;
     }
+
+    /**
+     * Get admin job statistics
+     */
+    public function get_admin_stats()
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return [
+                'total_jobs' => 0,
+                'active_jobs' => 0,
+                'completed_jobs' => 0,
+                'cancelled_jobs' => 0
+            ];
+        }
+        
+        $stats = [];
+        
+        // Total jobs
+        $stats['total_jobs'] = $this->db->count_all('jobs');
+        
+        // Active jobs (open + assigned) - reset query builder
+        $this->db->reset_query();
+        $this->db->where_in('status', ['open', 'assigned']);
+        $stats['active_jobs'] = $this->db->count_all_results('jobs');
+        
+        // Completed jobs - reset query builder
+        $this->db->reset_query();
+        $this->db->where('status', 'completed');
+        $stats['completed_jobs'] = $this->db->count_all_results('jobs');
+        
+        // Cancelled jobs - reset query builder
+        $this->db->reset_query();
+        $this->db->where('status', 'cancelled');
+        $stats['cancelled_jobs'] = $this->db->count_all_results('jobs');
+        
+        return $stats;
+    }
+
 
     /**
      * Get jobs with offers count

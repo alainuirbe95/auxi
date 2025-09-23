@@ -898,6 +898,20 @@ class M_users extends CI_Model {
         return $this->db->update('users');
     }
 
+    /**
+     * Get users by auth level
+     */
+    public function get_users_by_level($auth_level)
+    {
+        $this->db->select('user_id, username, first_name, last_name, email');
+        $this->db->where('auth_level', $auth_level);
+        $this->db->where('banned', '0'); // Only active users
+        $this->db->order_by('first_name', 'ASC');
+        
+        $query = $this->db->get('users');
+        return $query->result();
+    }
+
 }
 
 /* End of file M_users.php */
