@@ -158,7 +158,7 @@ class M_jobs extends CI_Model
             $this->db->group_by('j.id');
         }
         
-        $this->db->where('j.status', 'active');
+        $this->db->where('j.status', 'open');
         
         // Apply filters
         if (!empty($filters['search'])) {
@@ -494,7 +494,7 @@ class M_jobs extends CI_Model
 
         $this->db->from('jobs j');
         $this->db->join('users u', 'j.host_id = u.user_id');
-        $this->db->where('j.status', 'active');
+        $this->db->where('j.status', 'open');
 
         // Apply filters
         if (!empty($filters['search'])) {

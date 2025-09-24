@@ -78,45 +78,51 @@ class M_offers extends CI_Model
     }
 
     /**
-     * Accept an offer
+     * Accept an offer (enhanced system)
      */
     public function accept_offer($offer_id, $host_id)
     {
         // Start transaction
         $this->db->trans_start();
         
-        // Update offer status
+        // Get offer details
+        $offer = $this->get_offer_by_id($offer_id);
+        if (!$offer) {
+            $this->db->trans_rollback();
+            return false;
+        }
+        
+        // Verify host owns the job
+        if ($offer->host_id != $host_id) {
+            $this->db->trans_rollback();
+            return false;
+        }
+        
+        // Update offer status to accepted
         $this->db->where('id', $offer_id);
         $this->db->update('offers', [
             'status' => 'accepted',
             'updated_at' => date('Y-m-d H:i:s')
         ]);
         
-        // Reject all other offers for the same job
-        $offer = $this->get_offer_by_id($offer_id);
+        // Decline all other offers for the same job
         $this->db->where('job_id', $offer->job_id);
         $this->db->where('id !=', $offer_id);
         $this->db->update('offers', [
-            'status' => 'rejected',
+            'status' => 'declined',
             'updated_at' => date('Y-m-d H:i:s')
         ]);
         
-        // Create job assignment
-        $this->db->insert('job_assignments', [
-            'job_id' => $offer->job_id,
-            'cleaner_id' => $offer->cleaner_id,
-            'qr_code' => $this->generate_qr_code(),
-            'passcode' => $this->generate_passcode(),
-            'status' => 'assigned',
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ]);
+        // Determine final price
+        $final_price = ($offer->offer_type === 'accept') ? $offer->amount : $offer->counter_price;
         
-        // Update job status to assigned
+        // Update job with assignment details
         $this->db->where('id', $offer->job_id);
         $this->db->update('jobs', [
             'status' => 'assigned',
-            'final_price' => $offer->amount,
+            'assigned_cleaner_id' => $offer->cleaner_id,
+            'accepted_price' => $final_price,
+            'assignment_date' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ]);
         
@@ -242,7 +248,7 @@ class M_offers extends CI_Model
     }
 
     /**
-     * Create a new offer
+     * Create a new offer (accept or counter)
      * @param array $offer_data
      * @return int|false
      */
@@ -253,19 +259,45 @@ class M_offers extends CI_Model
             return false;
         }
 
+        // Check if cleaner has already made a pending offer for this job
+        $existing_offer = $this->db->where('job_id', $offer_data['job_id'])
+                                  ->where('cleaner_id', $offer_data['cleaner_id'])
+                                  ->where('status', 'pending')
+                                  ->get('offers')
+                                  ->row();
+
+        if ($existing_offer) {
+            log_message('info', 'Cleaner ' . $offer_data['cleaner_id'] . ' has already made a pending offer for job ' . $offer_data['job_id']);
+            return false; // Cleaner has already made a pending offer
+        }
+
+        // Set expiration time for counter offers (6 hours from now)
+        if (isset($offer_data['offer_type']) && $offer_data['offer_type'] === 'counter') {
+            $offer_data['expires_at'] = date('Y-m-d H:i:s', strtotime('+6 hours'));
+        }
+
         $data = [
             'job_id' => $offer_data['job_id'],
             'cleaner_id' => $offer_data['cleaner_id'],
-            'offer_type' => $offer_data['offer_type'],
+            'offer_type' => $offer_data['offer_type'] ?? 'counter',
             'amount' => $offer_data['amount'],
-            'status' => $offer_data['status'],
-            'expires_at' => $offer_data['expires_at'],
+            'counter_price' => isset($offer_data['counter_price']) ? $offer_data['counter_price'] : null,
+            'original_price' => $offer_data['original_price'] ?? null,
+            'status' => 'pending',
+            'expires_at' => $offer_data['expires_at'] ?? null,
+            'message' => $offer_data['message'] ?? null,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
 
-        $this->db->insert('offers', $data);
-        return $this->db->insert_id();
+        $result = $this->db->insert('offers', $data);
+        
+        if ($result) {
+            log_message('info', 'Offer created successfully for job ' . $offer_data['job_id'] . ' by cleaner ' . $offer_data['cleaner_id']);
+            return $this->db->insert_id();
+        }
+
+        return false;
     }
 
     /**
@@ -324,5 +356,156 @@ class M_offers extends CI_Model
         
         $query = $this->db->get();
         return $query->result();
+    }
+
+    /**
+     * Get jobs available for cleaners in their city
+     */
+    public function get_available_jobs_for_cleaner($cleaner_id, $city, $limit = 20, $offset = 0)
+    {
+        // Check if required tables exist
+        if (!$this->db->table_exists('jobs') || !$this->db->table_exists('offers')) {
+            return [];
+        }
+
+        $this->db->select('j.*, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.host_id = u.user_id');
+        $this->db->where('j.status', 'open');
+        $this->db->where('j.city', $city);
+        
+        // Exclude jobs where cleaner has already made an offer
+        $this->db->where("j.id NOT IN (SELECT job_id FROM offers WHERE cleaner_id = {$cleaner_id} AND status IN ('pending', 'accepted', 'declined'))");
+        
+        $this->db->order_by('j.created_at', 'DESC');
+        $this->db->limit($limit, $offset);
+        
+        $query = $this->db->get();
+        return $query->result();
+    }
+
+    /**
+     * Update expired counter offers to declined status
+     */
+    public function expire_counter_offers()
+    {
+        // Check if offers table exists
+        if (!$this->db->table_exists('offers')) {
+            return false;
+        }
+
+        $this->db->where('offer_type', 'counter');
+        $this->db->where('status', 'pending');
+        $this->db->where('expires_at <=', date('Y-m-d H:i:s'));
+        
+        return $this->db->update('offers', [
+            'status' => 'expired',
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+    }
+
+    /**
+     * Allow cleaner to accept original price after counter offer expires
+     */
+    public function accept_original_price($job_id, $cleaner_id)
+    {
+        // Check if offers table exists
+        if (!$this->db->table_exists('offers')) {
+            return false;
+        }
+
+        // Check if cleaner has an expired counter offer for this job
+        $expired_offer = $this->db->where('job_id', $job_id)
+                                 ->where('cleaner_id', $cleaner_id)
+                                 ->where('offer_type', 'counter')
+                                 ->where('status', 'expired')
+                                 ->get('offers')
+                                 ->row();
+
+        if (!$expired_offer) {
+            return false; // No expired counter offer found
+        }
+
+        // Create new accept offer
+        $offer_data = [
+            'job_id' => $job_id,
+            'cleaner_id' => $cleaner_id,
+            'offer_type' => 'accept',
+            'amount' => $expired_offer->original_price,
+            'original_price' => $expired_offer->original_price,
+            'message' => 'Accepting original price after counter offer expired'
+        ];
+
+        return $this->create_offer($offer_data);
+    }
+
+    /**
+     * Get offer statistics for host
+     */
+    public function get_host_offer_stats($host_id)
+    {
+        // Check if required tables exist
+        if (!$this->db->table_exists('offers') || !$this->db->table_exists('jobs')) {
+            return [
+                'total_offers' => 0,
+                'pending_offers' => 0,
+                'accepted_offers' => 0,
+                'declined_offers' => 0,
+                'expired_offers' => 0
+            ];
+        }
+
+        $stats = [];
+
+        // Total offers for host's jobs
+        $this->db->select('COUNT(o.id) as total_offers');
+        $this->db->from('offers o');
+        $this->db->join('jobs j', 'o.job_id = j.id');
+        $this->db->where('j.host_id', $host_id);
+        $query = $this->db->get();
+        $result = $query->row();
+        $stats['total_offers'] = $result->total_offers;
+
+        // Pending offers
+        $this->db->select('COUNT(o.id) as pending_offers');
+        $this->db->from('offers o');
+        $this->db->join('jobs j', 'o.job_id = j.id');
+        $this->db->where('j.host_id', $host_id);
+        $this->db->where('o.status', 'pending');
+        $query = $this->db->get();
+        $result = $query->row();
+        $stats['pending_offers'] = $result->pending_offers;
+
+        // Accepted offers
+        $this->db->select('COUNT(o.id) as accepted_offers');
+        $this->db->from('offers o');
+        $this->db->join('jobs j', 'o.job_id = j.id');
+        $this->db->where('j.host_id', $host_id);
+        $this->db->where('o.status', 'accepted');
+        $query = $this->db->get();
+        $result = $query->row();
+        $stats['accepted_offers'] = $result->accepted_offers;
+
+        // Declined offers
+        $this->db->select('COUNT(o.id) as declined_offers');
+        $this->db->from('offers o');
+        $this->db->join('jobs j', 'o.job_id = j.id');
+        $this->db->where('j.host_id', $host_id);
+        $this->db->where('o.status', 'declined');
+        $query = $this->db->get();
+        $result = $query->row();
+        $stats['declined_offers'] = $result->declined_offers;
+
+        // Expired offers
+        $this->db->select('COUNT(o.id) as expired_offers');
+        $this->db->from('offers o');
+        $this->db->join('jobs j', 'o.job_id = j.id');
+        $this->db->where('j.host_id', $host_id);
+        $this->db->where('o.status', 'expired');
+        $query = $this->db->get();
+        $result = $query->row();
+        $stats['expired_offers'] = $result->expired_offers;
+
+        return $stats;
     }
 }

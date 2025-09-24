@@ -72,19 +72,6 @@ if (!function_exists('time_ago')) {
     transform: scale(1.05);
 }
 
-.page-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    margin: 0;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    display: flex;
-    align-items: center;
-}
-
-.page-title i {
-    margin-right: 0.5rem;
-    font-size: 1.2rem;
-}
 
 .header-right {
     display: flex;
@@ -195,9 +182,6 @@ if (!function_exists('time_ago')) {
         display: block !important;
     }
     
-    .page-title {
-        font-size: 1.2rem;
-    }
     
     .header-right {
         gap: 0.75rem;
@@ -222,14 +206,6 @@ if (!function_exists('time_ago')) {
         padding: 0.5rem 0;
     }
     
-    .page-title {
-        font-size: 1.1rem;
-    }
-    
-    .page-title i {
-        font-size: 1rem;
-        margin-right: 0.4rem;
-    }
     
     .header-right {
         flex-direction: column;
@@ -268,9 +244,6 @@ if (!function_exists('time_ago')) {
         margin-bottom: 0.4rem;
     }
     
-    .page-title {
-        font-size: 1rem;
-    }
     
     .header-right {
         width: 100%;
@@ -300,10 +273,6 @@ if (!function_exists('time_ago')) {
                     <button type="button" class="mobile-menu-btn d-lg-none" id="mobileSidebarToggle">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <h1 class="page-title">
-                        <i class="fas fa-<?php echo isset($page_icon) ? $page_icon : 'tachometer-alt'; ?>"></i>
-                        <?php echo isset($title) ? $title : 'Dashboard'; ?>
-                    </h1>
                 </div>
             </div>
             <div class="col-md-6">
@@ -311,7 +280,7 @@ if (!function_exists('time_ago')) {
                     <!-- User Info -->
                     <div class="user-info">
                         <i class="fas fa-user-circle"></i>
-                        <span class="user-name">Welcome, <?php echo $this->session->userdata('username') ?: 'Admin'; ?></span>
+                        <span class="user-name"><?php echo $this->session->userdata('username') ?: 'Admin'; ?></span>
                     </div>
                     
                     <!-- Logout Button -->
@@ -333,7 +302,14 @@ if (!function_exists('time_ago')) {
                                 <?php foreach ($breadcrumbs as $breadcrumb): ?>
                                     <li class="breadcrumb-item <?php echo isset($breadcrumb['active']) && $breadcrumb['active'] ? 'active' : ''; ?>">
                                         <?php if (isset($breadcrumb['url']) && !isset($breadcrumb['active'])): ?>
-                                            <a href="<?php echo $breadcrumb['url']; ?>"><?php echo $breadcrumb['title']; ?></a>
+                                            <?php 
+                                            // Handle both relative and absolute URLs consistently
+                                            $url = $breadcrumb['url'];
+                                            if (!empty($url) && !filter_var($url, FILTER_VALIDATE_URL) && strpos($url, 'http') !== 0) {
+                                                $url = base_url($url);
+                                            }
+                                            ?>
+                                            <a href="<?php echo $url; ?>"><?php echo $breadcrumb['title']; ?></a>
                                         <?php else: ?>
                                             <?php echo $breadcrumb['title']; ?>
                                         <?php endif; ?>

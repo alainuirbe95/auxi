@@ -23,6 +23,10 @@ class App extends MY_Controller {
     }
 
     public function login() {
+        // Load tokens library for CSRF protection
+        $this->load->library('tokens');
+        $this->tokens->name = config_item('login_token_name');
+        
         $view["body"] = $this->load->view("app/login", NULL, TRUE);
         $this->parser->parse("admin/template/body_format_2", $view);
     }

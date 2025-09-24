@@ -67,6 +67,16 @@
           </a>
         </li>
 
+        <!-- Ignored Jobs -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('cleaner/ignored_jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/ignored_jobs') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-eye-slash"></i>
+            </div>
+            <span class="nav-text">Ignored Jobs</span>
+          </a>
+        </li>
+
         <!-- Divider -->
         <li class="nav-header modern-nav-header">MY WORK</li>
 
@@ -157,7 +167,7 @@
 <style>
 /* Modern Sidebar Styles */
 .modern-sidebar {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);

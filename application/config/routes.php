@@ -90,6 +90,10 @@ $route['cleaner/accept_counter_offer/(:num)'] = 'cleaner/accept_counter_offer/$1
 $route['cleaner/reject_counter_offer/(:num)'] = 'cleaner/reject_counter_offer/$1';
 $route['cleaner/make_counter_offer/(:num)'] = 'cleaner/make_counter_offer/$1';
 $route['cleaner/earnings'] = 'cleaner/earnings';
+$route['cleaner/ignore_job'] = 'cleaner/ignore_job';
+$route['cleaner/ignored_jobs'] = 'cleaner/ignored_jobs';
+$route['cleaner/unignore_job'] = 'cleaner/unignore_job';
+$route['cleaner/toggle_favorite'] = 'cleaner/toggle_favorite';
 
 // Test route
 $route['test_db'] = 'test_db';
@@ -104,6 +108,13 @@ $route['admin/edit_job/(:num)'] = 'admin/edit_job/$1';
 $route['admin/process_edit_job/(:num)'] = 'admin/process_edit_job/$1';
 $route['admin/cancel_job'] = 'admin/cancel_job';
 $route['admin/delete_job'] = 'admin/delete_job';
+
+// Flag Management Routes
+$route['admin/flags'] = 'admin/flags';
+$route['admin/resolve_flag'] = 'admin/resolve_flag';
+$route['admin/dismiss_flag'] = 'admin/dismiss_flag';
+$route['admin/flag_job'] = 'admin/flag_job';
+$route['host/flag_job'] = 'host/flag_job';
 
 // Redirect root URL based on authentication
 $route['^$'] = 'app/redirect_user';

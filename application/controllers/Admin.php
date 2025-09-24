@@ -12,6 +12,7 @@ class Admin extends MY_Controller {
         $this->load->helper('Breadcrumb_helper');
 
         $this->load->model('M_users');
+        $this->load->model('M_job_flags');
 
         $this->init_session_auto(9);
         
@@ -1539,6 +1540,161 @@ class Admin extends MY_Controller {
             echo json_encode(['success' => true, 'message' => 'Job deleted successfully']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to delete job. Check logs for details.']);
+        }
+    }
+
+    /**
+     * Flag Management - List all active flags
+     */
+    public function flags()
+    {
+        // Get filter parameters
+        $page = $this->input->get('page') ?: 1;
+        $per_page = 20;
+        $offset = ($page - 1) * $per_page;
+
+        // Get active flags
+        $flags = $this->M_job_flags->get_active_flags($per_page, $offset);
+        $total_flags = $this->M_job_flags->count_active_flags();
+
+        // Get flag statistics
+        $stats = $this->M_job_flags->get_flag_stats();
+
+        // Calculate pagination
+        $total_pages = ceil($total_flags / $per_page);
+        $pagination = [
+            'current_page' => $page,
+            'total_pages' => $total_pages,
+            'per_page' => $per_page,
+            'total_items' => $total_flags,
+            'has_prev' => $page > 1,
+            'has_next' => $page < $total_pages,
+            'prev_page' => $page > 1 ? $page - 1 : null,
+            'next_page' => $page < $total_pages ? $page + 1 : null
+        ];
+
+        $data = [
+            'title' => 'Flag Management',
+            'page_icon' => 'fas fa-flag',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin/dashboard'],
+                ['title' => 'Flag Management', 'url' => '', 'active' => true]
+            ],
+            'flags' => $flags,
+            'stats' => $stats,
+            'pagination' => $pagination
+        ];
+
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+
+        // Load the flags management content as a string
+        $data['body'] = $this->load->view('admin/flags/flags_management', $data, TRUE);
+
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Resolve a flag (AJAX)
+     */
+    public function resolve_flag()
+    {
+        // Set JSON header
+        header('Content-Type: application/json');
+
+        // Check if user is logged in and is an admin
+        if (!$this->require_min_level(9)) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            return;
+        }
+
+        $flag_id = $this->input->post('flag_id');
+        $resolution_notes = $this->input->post('resolution_notes');
+
+        if (!$flag_id) {
+            echo json_encode(['success' => false, 'message' => 'Flag ID is required']);
+            return;
+        }
+
+        $result = $this->M_job_flags->resolve_flag($flag_id, $this->auth_user_id, $resolution_notes);
+
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Flag resolved successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to resolve flag']);
+        }
+    }
+
+    /**
+     * Dismiss a flag (AJAX)
+     */
+    public function dismiss_flag()
+    {
+        // Set JSON header
+        header('Content-Type: application/json');
+
+        // Check if user is logged in and is an admin
+        if (!$this->require_min_level(9)) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            return;
+        }
+
+        $flag_id = $this->input->post('flag_id');
+        $resolution_notes = $this->input->post('resolution_notes');
+
+        if (!$flag_id) {
+            echo json_encode(['success' => false, 'message' => 'Flag ID is required']);
+            return;
+        }
+
+        $result = $this->M_job_flags->dismiss_flag($flag_id, $this->auth_user_id, $resolution_notes);
+
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Flag dismissed successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to dismiss flag']);
+        }
+    }
+
+    /**
+     * Flag a job (AJAX) - Available to hosts, cleaners, and admins
+     */
+    public function flag_job()
+    {
+        // Set JSON header
+        header('Content-Type: application/json');
+
+        // Check if user is logged in
+        if (!$this->auth_user_id) {
+            echo json_encode(['success' => false, 'message' => 'Not authenticated']);
+            return;
+        }
+
+        $job_id = $this->input->post('job_id');
+        $flag_reason = $this->input->post('flag_reason');
+        $flag_details = $this->input->post('flag_details');
+
+        if (!$job_id) {
+            echo json_encode(['success' => false, 'message' => 'Job ID is required']);
+            return;
+        }
+
+        // Determine user type based on auth level
+        $user_type = 'host'; // default
+        $auth_level = $this->session->userdata('auth_level');
+        if ($auth_level == 3) {
+            $user_type = 'cleaner';
+        } elseif ($auth_level == 9) {
+            $user_type = 'admin';
+        }
+
+        $result = $this->M_job_flags->flag_job($job_id, $this->auth_user_id, $user_type, $flag_reason, $flag_details);
+
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Job flagged successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to flag job or you have already flagged this job']);
         }
     }
 

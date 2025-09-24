@@ -183,6 +183,14 @@
                   <span>Create Job</span>
                 </a>
               </li>
+              <li class="nav-item">
+                <a href="<?php echo base_url('admin/flags'); ?>" class="nav-link modern-submenu-link <?php echo (strpos(uri_string(), 'admin/flags') !== false) ? 'active' : ''; ?>">
+                  <div class="submenu-icon">
+                    <i class="fas fa-flag"></i>
+                  </div>
+                  <span>Flag Management</span>
+                </a>
+              </li>
             </ul>
           </li>
 
