@@ -39,7 +39,7 @@ if (!function_exists('time_ago')) {
 }
 
 .job-header-section {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 20px;
     padding: 2rem;
     margin-bottom: 2rem;
@@ -111,7 +111,7 @@ if (!function_exists('time_ago')) {
 .job-main {
     background: white;
     border-radius: 20px;
-    padding: 2rem;
+    padding: 1.5rem;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
@@ -122,17 +122,22 @@ if (!function_exists('time_ago')) {
 }
 
 .section-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: #333;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
 
+.section-title:first-child {
+    margin-top: 0;
+}
+
 .section-title i {
-    color: #43e97b;
+    color: #667eea;
 }
 
 .job-description-full {
@@ -151,22 +156,22 @@ if (!function_exists('time_ago')) {
 
 .requirements-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
 }
 
 .requirement-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
     background: white;
-    border-radius: 10px;
-    border-left: 4px solid #43e97b;
+    border-radius: 8px;
+    border-left: 3px solid #667eea;
 }
 
 .requirement-item i {
-    color: #43e97b;
+    color: #667eea;
     width: 20px;
 }
 
@@ -181,7 +186,7 @@ if (!function_exists('time_ago')) {
 .host-avatar-large {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -222,7 +227,7 @@ if (!function_exists('time_ago')) {
 .host-stat-number {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #43e97b;
+    color: #667eea;
     margin-bottom: 0.25rem;
 }
 
@@ -265,7 +270,7 @@ if (!function_exists('time_ago')) {
 }
 
 .form-input:focus {
-    border-color: #43e97b;
+    border-color: #667eea;
     outline: none;
     box-shadow: 0 0 0 3px rgba(67, 233, 123, 0.1);
 }
@@ -280,13 +285,13 @@ if (!function_exists('time_ago')) {
 }
 
 .form-select:focus {
-    border-color: #43e97b;
+    border-color: #667eea;
     outline: none;
     box-shadow: 0 0 0 3px rgba(67, 233, 123, 0.1);
 }
 
 .btn-submit-offer {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
     padding: 1rem 2rem;
@@ -390,20 +395,58 @@ if (!function_exists('time_ago')) {
         <div class="job-meta">
             <div class="job-meta-item">
                 <i class="fas fa-calendar-alt"></i>
-                <span><?php echo isset($job->date_time) ? date('M j, Y g:i A', strtotime($job->date_time)) : 'Flexible Date'; ?></span>
+                <span>
+                    <?php 
+                    if (isset($job->scheduled_date) && isset($job->scheduled_time)) {
+                        $datetime = $job->scheduled_date . ' ' . $job->scheduled_time;
+                        echo date('M j, Y g:i A', strtotime($datetime));
+                    } elseif (isset($job->date_time)) {
+                        echo date('M j, Y g:i A', strtotime($job->date_time));
+                    } else {
+                        echo 'Flexible Date';
+                    }
+                    ?>
+                </span>
             </div>
             <div class="job-meta-item">
                 <i class="fas fa-map-marker-alt"></i>
-                <span><?php echo htmlspecialchars($job->address); ?></span>
+                <span><?php echo htmlspecialchars($job->city . ', ' . $job->state); ?></span>
             </div>
             <div class="job-meta-item">
                 <i class="fas fa-home"></i>
-                <span><?php echo $job->rooms; ?> Rooms</span>
+                <span>
+                    <?php 
+                    $rooms = is_string($job->rooms) ? json_decode($job->rooms, true) : $job->rooms;
+                    if (is_array($rooms)) {
+                        echo htmlspecialchars(implode(', ', $rooms)) . ' Rooms';
+                    } else {
+                        echo htmlspecialchars($job->rooms) . ' Rooms';
+                    }
+                    ?>
+                </span>
             </div>
             <div class="job-meta-item">
                 <i class="fas fa-clock"></i>
                 <span>Posted <?php echo time_ago($job->created_at); ?></span>
             </div>
+            <?php if (isset($job->estimated_duration) && $job->estimated_duration > 0): ?>
+            <div class="job-meta-item">
+                <i class="fas fa-hourglass-half"></i>
+                <span>
+                    <?php 
+                    $hours = floor($job->estimated_duration / 60);
+                    $minutes = $job->estimated_duration % 60;
+                    if ($hours > 0 && $minutes > 0) {
+                        echo $hours . 'h ' . $minutes . 'm estimated';
+                    } elseif ($hours > 0) {
+                        echo $hours . ' hour' . ($hours > 1 ? 's' : '') . ' estimated';
+                    } else {
+                        echo $minutes . ' minutes estimated';
+                    }
+                    ?>
+                </span>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -426,15 +469,33 @@ if (!function_exists('time_ago')) {
                 <div class="requirements-grid">
                     <div class="requirement-item">
                         <i class="fas fa-home"></i>
-                        <span><?php echo $job->rooms; ?> Rooms to Clean</span>
+                        <span>
+                            <?php 
+                            $rooms = is_string($job->rooms) ? json_decode($job->rooms, true) : $job->rooms;
+                            if (is_array($rooms)) {
+                                echo htmlspecialchars(implode(', ', $rooms)) . ' Rooms to Clean';
+                            } else {
+                                echo htmlspecialchars($job->rooms) . ' Rooms to Clean';
+                            }
+                            ?>
+                        </span>
                     </div>
                     <?php if (!empty($job->extras)): ?>
                         <div class="requirement-item">
                             <i class="fas fa-plus"></i>
-                            <span><?php echo htmlspecialchars($job->extras); ?></span>
+                            <span>
+                                <?php 
+                                $extras = is_string($job->extras) ? json_decode($job->extras, true) : $job->extras;
+                                if (is_array($extras)) {
+                                    echo htmlspecialchars(implode(', ', $extras));
+                                } else {
+                                    echo htmlspecialchars($job->extras);
+                                }
+                                ?>
+                            </span>
                         </div>
                     <?php endif; ?>
-                    <?php if ($job->pets == '1'): ?>
+                    <?php if ($job->pets == 1 || $job->pets == '1'): ?>
                         <div class="requirement-item">
                             <i class="fas fa-paw"></i>
                             <span>Pets Present</span>
@@ -480,29 +541,40 @@ if (!function_exists('time_ago')) {
                         Make Your Offer
                     </h3>
                     
-                    <form method="POST" action="<?php echo base_url('cleaner/make_offer/' . $job->id); ?>" class="offer-form">
+                    <form method="POST" action="<?php echo base_url('cleaner/make_offer/' . $job->id); ?>" class="offer-form" id="offerForm">
                         <div class="form-group">
                             <label class="form-label">Offer Type</label>
-                            <select name="offer_type" class="form-select" required>
+                            <select name="offer_type" id="offerType" class="form-select" required>
                                 <option value="">Select Type</option>
-                                <option value="fixed">Fixed Price</option>
-                                <option value="hourly">Hourly Rate</option>
+                                <option value="accept">Accept Suggested Price ($<?php echo number_format($job->suggested_price, 2); ?>)</option>
+                                <option value="counter">Counter Offer</option>
                             </select>
                         </div>
                         
-                        <div class="form-group">
-                            <label class="form-label">Your Price ($)</label>
+                        <div class="form-group" id="priceGroup" style="display: none;">
+                            <label class="form-label">Your Counter Offer ($)</label>
                             <input 
                                 type="number" 
                                 name="amount" 
+                                id="offerAmount"
                                 class="form-input" 
                                 step="0.01" 
                                 min="0" 
-                                placeholder="Enter your price"
-                                required
+                                placeholder="Enter your counter offer"
                             >
                             <small style="color: #666; font-size: 0.85rem;">
                                 Suggested: $<?php echo number_format($job->suggested_price, 2); ?>
+                                <?php if (isset($job->estimated_duration) && $job->estimated_duration > 0): ?>
+                                    | Estimated: <?php 
+                                        $hours = $job->estimated_duration / 60;
+                                        $hourly_rate = $job->suggested_price / $hours;
+                                        echo '$' . number_format($hourly_rate, 2) . '/hour';
+                                        // Debug: uncomment to see values
+                                        // echo ' (Duration: ' . $job->estimated_duration . ' min, Hours: ' . $hours . ')';
+                                    ?>
+                                <?php else: ?>
+                                    | No duration estimate available
+                                <?php endif; ?>
                             </small>
                         </div>
                         
@@ -529,38 +601,62 @@ if (!function_exists('time_ago')) {
 
 <script>
 $(document).ready(function() {
-    // Form validation and submission
-    $('.offer-form').on('submit', function(e) {
-        const $form = $(this);
-        const $submitBtn = $form.find('.btn-submit-offer');
+    // Handle offer type selection
+    $('#offerType').on('change', function() {
+        const offerType = $(this).val();
+        const $priceGroup = $('#priceGroup');
         
-        // Basic validation
-        const offerType = $form.find('[name="offer_type"]').val();
-        const amount = parseFloat($form.find('[name="amount"]').val());
-        
-        if (!offerType) {
-            alert('Please select an offer type.');
-            e.preventDefault();
-            return;
+        if (offerType === 'counter') {
+            $priceGroup.show();
+            $('#offerAmount').prop('required', true);
+        } else {
+            $priceGroup.hide();
+            $('#offerAmount').prop('required', false);
         }
-        
-        if (!amount || amount <= 0) {
-            alert('Please enter a valid amount.');
-            e.preventDefault();
-            return;
-        }
-        
-        // Show loading state
-        $submitBtn.prop('disabled', true);
-        $submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>Submitting Offer...');
-        
-        // If validation passes, form will submit normally
     });
+    
+        // Form validation and submission
+        $('.offer-form').on('submit', function(e) {
+            console.log('Form submission started!');
+            
+            const $form = $(this);
+            const offerType = $form.find('[name="offer_type"]').val();
+            const amount = $form.find('[name="amount"]').val();
+            
+            console.log('Offer Type:', offerType);
+            console.log('Amount:', amount);
+            
+            if (!offerType) {
+                alert('Please select an offer type.');
+                e.preventDefault();
+                return;
+            }
+            
+            // For accept offers, set the amount to suggested price
+            if (offerType === 'accept') {
+                const suggestedPrice = <?php echo $job->suggested_price; ?>;
+                $form.find('[name="amount"]').val(suggestedPrice.toFixed(2));
+            } else if (offerType === 'counter') {
+                // For counter offers, validate amount and format to 2 decimal places
+                const amountValue = parseFloat(amount);
+                if (!amountValue || amountValue <= 0) {
+                    alert('Please enter a valid counter offer amount.');
+                    e.preventDefault();
+                    return;
+                }
+                // Format amount to 2 decimal places
+                $form.find('[name="amount"]').val(amountValue.toFixed(2));
+            }
+            
+            console.log('Form validation passed, submitting...');
+            // Form will submit normally
+        });
     
     // Auto-fill suggested price
     $('[name="amount"]').on('focus', function() {
         if (!$(this).val()) {
-            $(this).val('<?php echo $job->suggested_price; ?>');
+            const suggestedPrice = <?php echo $job->suggested_price; ?>;
+            $(this).val(suggestedPrice.toFixed(2));
         }
     });
 });

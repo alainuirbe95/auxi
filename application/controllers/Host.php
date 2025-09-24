@@ -30,6 +30,9 @@ class Host extends MY_Controller
         if ($this->db->table_exists('offers')) {
             $this->load->model('M_offers');
         }
+        if ($this->db->table_exists('job_flags')) {
+            $this->load->model('M_job_flags');
+        }
         
         // Check if user is logged in and is a host
         if (!$this->require_min_level(6)) { // Host level = 6
@@ -624,4 +627,43 @@ class Host extends MY_Controller
             echo json_encode(['success' => false, 'message' => 'Failed to delete job. Check logs for details.']);
         }
     }
+
+    /**
+     * Flag a job (AJAX) - Available to hosts
+     */
+    public function flag_job()
+    {
+        // Set JSON header
+        header('Content-Type: application/json');
+
+        // Check if user is logged in and is a host
+        if (!$this->require_min_level(6)) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            return;
+        }
+
+        // Check if job_flags table exists
+        if (!$this->db->table_exists('job_flags')) {
+            echo json_encode(['success' => false, 'message' => 'Flagging system not available']);
+            return;
+        }
+
+        $job_id = $this->input->post('job_id');
+        $flag_reason = $this->input->post('flag_reason');
+        $flag_details = $this->input->post('flag_details');
+
+        if (!$job_id) {
+            echo json_encode(['success' => false, 'message' => 'Job ID is required']);
+            return;
+        }
+
+        $result = $this->M_job_flags->flag_job($job_id, $this->auth_user_id, 'host', $flag_reason, $flag_details);
+
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Job flagged successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to flag job or you have already flagged this job']);
+        }
+    }
+
 }

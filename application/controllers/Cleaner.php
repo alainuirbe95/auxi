@@ -29,6 +29,8 @@ class Cleaner extends MY_Controller
         $this->load->model('M_users');
         $this->load->model('M_jobs');
         $this->load->model('M_offers');
+        $this->load->model('M_ignored_jobs');
+        $this->load->model('M_favorites');
         
         // Clear flash messages
         $this->session->unset_userdata('text');
@@ -101,18 +103,31 @@ class Cleaner extends MY_Controller
         
         // Load jobs if tables exist
         if ($this->db->table_exists('jobs')) {
-            $data['jobs'] = $this->M_jobs->get_active_jobs($filters, $per_page, $offset);
-            $data['total_jobs'] = $this->M_jobs->count_active_jobs($filters);
+            // Get jobs with favorites status, excluding ignored ones
+            if ($this->db->table_exists('job_favorites')) {
+                $data['jobs'] = $this->M_favorites->get_jobs_with_favorites($user_id, $filters, $per_page, $offset);
+                $data['total_jobs'] = $this->M_jobs->count_active_jobs($filters);
+            } else {
+                // Fallback to regular job loading
+                if ($this->db->table_exists('ignored_jobs')) {
+                    $data['jobs'] = $this->M_ignored_jobs->get_available_jobs_excluding_ignored($user_id, $filters, $per_page, $offset);
+                } else {
+                    $data['jobs'] = $this->M_jobs->get_active_jobs($filters, $per_page, $offset);
+                }
+                $data['total_jobs'] = $this->M_jobs->count_active_jobs($filters);
+            }
             $data['total_pages'] = ceil($data['total_jobs'] / $per_page);
             
-            // Check which jobs the cleaner has already applied to
+            // Check which jobs the cleaner has already applied to and add favorite status
             if ($this->db->table_exists('offers')) {
                 foreach ($data['jobs'] as $job) {
                     $job->has_applied = $this->M_offers->cleaner_has_offered($user_id, $job->id);
+                    $job->is_favorited = $this->db->table_exists('job_favorites') ? $this->M_favorites->is_job_favorited($user_id, $job->id) : false;
                 }
             } else {
                 foreach ($data['jobs'] as $job) {
                     $job->has_applied = false;
+                    $job->is_favorited = $this->db->table_exists('job_favorites') ? $this->M_favorites->is_job_favorited($user_id, $job->id) : false;
                 }
             }
         } else {
@@ -146,7 +161,7 @@ class Cleaner extends MY_Controller
         
         $job = $this->M_jobs->get_job_by_id($job_id);
         
-        if (!$job || $job->status !== 'active') {
+        if (!$job || $job->status !== 'open') {
             show_404();
         }
         
@@ -191,6 +206,12 @@ class Cleaner extends MY_Controller
         
         $user_id = $this->auth_user_id;
         
+        if (!$user_id) {
+            $this->session->set_flashdata('text', 'You must be logged in to make an offer.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('app/login');
+        }
+        
         // Check if required tables exist
         if (!$this->db->table_exists('jobs') || !$this->db->table_exists('offers')) {
             $this->session->set_flashdata('text', 'Marketplace functionality not available yet.');
@@ -201,7 +222,7 @@ class Cleaner extends MY_Controller
         // Get job details
         $job = $this->M_jobs->get_job_by_id($job_id);
         
-        if (!$job || $job->status !== 'active') {
+        if (!$job || $job->status !== 'open') {
             show_404();
         }
         
@@ -213,24 +234,53 @@ class Cleaner extends MY_Controller
         }
         
         // Set validation rules
-        $this->form_validation->set_rules('offer_type', 'Offer Type', 'required|in_list[fixed,hourly]');
-        $this->form_validation->set_rules('amount', 'Amount', 'required|decimal|greater_than[0]');
+        $this->form_validation->set_rules('offer_type', 'Offer Type', 'required|in_list[accept,counter]');
+        
+        // Validate amount based on offer type
+        $offer_type = $this->input->post('offer_type');
+        if ($offer_type === 'counter') {
+            $this->form_validation->set_rules('amount', 'Counter Offer Amount', 'required|decimal|greater_than[0]');
+        } else if ($offer_type === 'accept') {
+            // For accept offers, amount is optional (will use suggested price if not provided)
+            $this->form_validation->set_rules('amount', 'Amount', 'decimal|greater_than[0]');
+        }
         
         if ($this->form_validation->run() === FALSE) {
-            $this->session->set_flashdata('text', 'Please correct the errors below.');
+            $errors = $this->form_validation->error_array();
+            $this->session->set_flashdata('text', 'Please correct the errors below: ' . implode(', ', $errors));
             $this->session->set_flashdata('type', 'error');
             redirect('cleaner/job/' . $job_id);
         }
         
-        // Prepare offer data
+        // Prepare offer data based on offer type
+        $amount = $this->input->post('amount');
+        
+        // For accept offers, use the suggested price if amount is not provided
+        if ($offer_type === 'accept' && empty($amount)) {
+            $amount = number_format($job->suggested_price, 2, '.', '');
+        } else if (!empty($amount)) {
+            // Format amount to 2 decimal places if provided
+            $amount = number_format((float)$amount, 2, '.', '');
+        }
+        
         $offer_data = [
             'job_id' => $job_id,
             'cleaner_id' => $user_id,
-            'offer_type' => $this->input->post('offer_type'),
-            'amount' => $this->input->post('amount'),
-            'status' => 'pending',
-            'expires_at' => date('Y-m-d H:i:s', strtotime('+7 days')) // Offers expire in 7 days
+            'offer_type' => $offer_type,
+            'amount' => $amount,
+            'original_price' => $job->suggested_price,
+            'status' => 'pending'
         ];
+        
+        // Set expiration and counter price for counter offers
+        if ($offer_type === 'counter') {
+            $offer_data['expires_at'] = date('Y-m-d H:i:s', strtotime('+6 hours'));
+            $offer_data['counter_price'] = $amount;
+            $offer_data['counter_offered_at'] = date('Y-m-d H:i:s');
+        } else {
+            // Accept offers don't expire
+            $offer_data['expires_at'] = null;
+        }
         
         // Create the offer
         $offer_id = $this->M_offers->create_offer($offer_data);
@@ -239,7 +289,13 @@ class Cleaner extends MY_Controller
             $this->session->set_flashdata('text', 'Your offer has been submitted successfully!');
             $this->session->set_flashdata('type', 'success');
         } else {
-            $this->session->set_flashdata('text', 'Failed to submit offer. Please try again.');
+            // Get database error for debugging
+            $db_error = $this->db->error();
+            $error_message = 'Failed to submit offer. ';
+            if (!empty($db_error['message'])) {
+                $error_message .= 'Database error: ' . $db_error['message'];
+            }
+            $this->session->set_flashdata('text', $error_message);
             $this->session->set_flashdata('type', 'error');
         }
         
@@ -435,10 +491,10 @@ class Cleaner extends MY_Controller
         
         // Update offer with counter offer
         $update_data = [
-            'counter_amount' => $this->input->post('counter_amount'),
+            'counter_price' => $this->input->post('counter_amount'),
             'counter_message' => $this->input->post('counter_message'),
             'counter_offered_at' => date('Y-m-d H:i:s'),
-            'status' => 'counter_offered'
+            'status' => 'pending'  // Keep as pending since it's waiting for host response
         ];
         
         if ($this->M_offers->update_offer($offer_id, $update_data)) {
@@ -478,5 +534,168 @@ class Cleaner extends MY_Controller
         
         // Load the layout with the content
         $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Ignore a job
+     */
+    public function ignore_job()
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+
+        $user_id = $this->auth_user_id;
+        $job_id = $this->input->post('job_id');
+        $reason = $this->input->post('reason');
+
+        if (!$job_id) {
+            $this->session->set_flashdata('text', 'Invalid job ID.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/jobs');
+        }
+
+        // Check if job exists and is open
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        if (!$job || $job->status !== 'open') {
+            $this->session->set_flashdata('text', 'Job not found or not available.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/jobs');
+        }
+
+        // Ignore the job
+        if ($this->M_ignored_jobs->ignore_job($user_id, $job_id, $reason)) {
+            $this->session->set_flashdata('text', 'Job ignored successfully.');
+            $this->session->set_flashdata('type', 'success');
+        } else {
+            $this->session->set_flashdata('text', 'Failed to ignore job. It may already be ignored.');
+            $this->session->set_flashdata('type', 'error');
+        }
+
+        redirect('cleaner/jobs');
+    }
+
+    /**
+     * View ignored jobs
+     */
+    public function ignored_jobs()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Pagination
+        $page = $this->input->get('page') ? (int)$this->input->get('page') : 1;
+        $per_page = 12;
+        $offset = ($page - 1) * $per_page;
+        
+        $data = [
+            'title' => 'Ignored Jobs',
+            'page_icon' => 'fas fa-eye-slash',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'Ignored Jobs', 'url' => '', 'active' => true]
+            ],
+            'page' => $page,
+            'per_page' => $per_page
+        ];
+        
+        // Load ignored jobs if table exists
+        if ($this->db->table_exists('ignored_jobs')) {
+            $data['jobs'] = $this->M_ignored_jobs->get_ignored_jobs($user_id, $per_page, $offset);
+            $data['total_jobs'] = $this->M_ignored_jobs->count_ignored_jobs($user_id);
+            $data['total_pages'] = ceil($data['total_jobs'] / $per_page);
+        } else {
+            $data['jobs'] = [];
+            $data['total_jobs'] = 0;
+            $data['total_pages'] = 0;
+        }
+        
+        // Load the cleaner sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        
+        // Load the ignored jobs content as a string
+        $data['body'] = $this->load->view('cleaner/ignored_jobs', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Unignore a job
+     */
+    public function unignore_job()
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+
+        $user_id = $this->auth_user_id;
+        $job_id = $this->input->post('job_id');
+
+        if (!$job_id) {
+            $this->session->set_flashdata('text', 'Invalid job ID.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/ignored_jobs');
+        }
+
+        // Unignore the job
+        if ($this->M_ignored_jobs->unignore_job($user_id, $job_id)) {
+            $this->session->set_flashdata('text', 'Job removed from ignored list.');
+            $this->session->set_flashdata('type', 'success');
+        } else {
+            $this->session->set_flashdata('text', 'Failed to remove job from ignored list.');
+            $this->session->set_flashdata('type', 'error');
+        }
+
+        redirect('cleaner/ignored_jobs');
+    }
+
+    /**
+     * Toggle job favorite status
+     */
+    public function toggle_favorite()
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+
+        $user_id = $this->auth_user_id;
+        $job_id = $this->input->post('job_id');
+
+        if (!$job_id) {
+            $this->session->set_flashdata('text', 'Invalid job ID.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/jobs');
+        }
+
+        // Check if job exists and is open
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        if (!$job || $job->status !== 'open') {
+            $this->session->set_flashdata('text', 'Job not found or not available.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/jobs');
+        }
+
+        // Toggle favorite status
+        if ($this->M_favorites->is_job_favorited($user_id, $job_id)) {
+            // Remove from favorites
+            if ($this->M_favorites->remove_favorite($user_id, $job_id)) {
+                $this->session->set_flashdata('text', 'Job removed from favorites.');
+                $this->session->set_flashdata('type', 'success');
+            } else {
+                $this->session->set_flashdata('text', 'Failed to remove job from favorites.');
+                $this->session->set_flashdata('type', 'error');
+            }
+        } else {
+            // Add to favorites
+            if ($this->M_favorites->add_favorite($user_id, $job_id)) {
+                $this->session->set_flashdata('text', 'Job added to favorites.');
+                $this->session->set_flashdata('type', 'success');
+            } else {
+                $this->session->set_flashdata('text', 'Failed to add job to favorites.');
+                $this->session->set_flashdata('type', 'error');
+            }
+        }
+
+        redirect('cleaner/jobs');
     }
 }

@@ -150,13 +150,42 @@ if (!function_exists('time_ago')) {
     position: relative;
 }
 
+.job-card.favorited {
+    border-left: 4px solid #ffc107;
+}
+
+.job-card.applied {
+    border-left: 4px solid #28a745;
+}
+
+.applied-indicator {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background: rgba(40, 167, 69, 0.9);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    z-index: 5;
+}
+
+.applied-indicator i {
+    font-size: 0.9rem;
+}
+
 .job-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
 .job-header {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 1.5rem;
     color: white;
     position: relative;
@@ -210,7 +239,7 @@ if (!function_exists('time_ago')) {
 }
 
 .job-detail i {
-    color: #43e97b;
+    color: #667eea;
     width: 16px;
 }
 
@@ -227,7 +256,7 @@ if (!function_exists('time_ago')) {
 .host-avatar {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -277,7 +306,7 @@ if (!function_exists('time_ago')) {
 }
 
 .btn-apply {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
 }
@@ -294,6 +323,63 @@ if (!function_exists('time_ago')) {
     color: white;
     border: none;
     cursor: not-allowed;
+}
+
+.btn-ignore {
+    background: #dc3545;
+    color: white;
+    border: none;
+}
+
+.btn-ignore:hover {
+    background: #c82333;
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+/* Favorite Star Styles */
+.job-favorite {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+}
+
+.favorite-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.favorite-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.favorite-btn i {
+    color: #ddd;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.favorite-btn.favorited i {
+    color: #ffc107;
+    text-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+}
+
+.favorite-btn:hover i {
+    color: #ffc107;
+    transform: scale(1.1);
 }
 
 .pagination-section {
@@ -337,14 +423,14 @@ if (!function_exists('time_ago')) {
 }
 
 .page-link:hover {
-    background: #43e97b;
+    background: #667eea;
     color: white;
     text-decoration: none;
-    border-color: #43e97b;
+    border-color: #667eea;
 }
 
 .page-item.active .page-link {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border-color: transparent;
 }
@@ -492,13 +578,28 @@ if (!function_exists('time_ago')) {
     <?php if (!empty($jobs)): ?>
         <div class="jobs-grid">
             <?php foreach ($jobs as $job): ?>
-                <div class="job-card">
+                <div class="job-card <?php echo $job->has_applied ? 'applied' : ''; ?>">
                     <div class="job-header">
+                        <?php if ($job->has_applied): ?>
+                            <div class="applied-indicator">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Applied</span>
+                            </div>
+                        <?php endif; ?>
                         <h3 class="job-title"><?php echo htmlspecialchars($job->title); ?></h3>
                         <div class="job-price">$<?php echo number_format($job->suggested_price, 2); ?></div>
                         <div class="job-date">
                             <i class="fas fa-clock me-1"></i>
-                            <?php echo isset($job->date_time) ? date('M j, Y g:i A', strtotime($job->date_time)) : 'Flexible'; ?>
+                            <?php 
+                            if (isset($job->scheduled_date) && isset($job->scheduled_time)) {
+                                $datetime = $job->scheduled_date . ' ' . $job->scheduled_time;
+                                echo date('M j, Y g:i A', strtotime($datetime));
+                            } elseif (isset($job->date_time)) {
+                                echo date('M j, Y g:i A', strtotime($job->date_time));
+                            } else {
+                                echo 'Flexible';
+                            }
+                            ?>
                         </div>
                     </div>
                     
@@ -510,19 +611,37 @@ if (!function_exists('time_ago')) {
                         <div class="job-details">
                             <div class="job-detail">
                                 <i class="fas fa-map-marker-alt"></i>
-                                <span><?php echo htmlspecialchars($job->address); ?></span>
+                                <span><?php echo htmlspecialchars($job->city . ', ' . $job->state); ?></span>
                             </div>
                             <div class="job-detail">
                                 <i class="fas fa-home"></i>
-                                <span><?php echo $job->rooms; ?> rooms</span>
+                                <span>
+                                    <?php 
+                                    $rooms = is_string($job->rooms) ? json_decode($job->rooms, true) : $job->rooms;
+                                    if (is_array($rooms)) {
+                                        echo htmlspecialchars(implode(', ', $rooms)) . ' rooms';
+                                    } else {
+                                        echo htmlspecialchars($job->rooms) . ' rooms';
+                                    }
+                                    ?>
+                                </span>
                             </div>
                             <?php if (!empty($job->extras)): ?>
                                 <div class="job-detail">
                                     <i class="fas fa-plus"></i>
-                                    <span><?php echo htmlspecialchars($job->extras); ?></span>
+                                    <span>
+                                        <?php 
+                                        $extras = is_string($job->extras) ? json_decode($job->extras, true) : $job->extras;
+                                        if (is_array($extras)) {
+                                            echo htmlspecialchars(implode(', ', $extras));
+                                        } else {
+                                            echo htmlspecialchars($job->extras);
+                                        }
+                                        ?>
+                                    </span>
                                 </div>
                             <?php endif; ?>
-                            <?php if ($job->pets == '1'): ?>
+                            <?php if ($job->pets == 1 || $job->pets == '1'): ?>
                                 <div class="job-detail">
                                     <i class="fas fa-paw"></i>
                                     <span>Pets present</span>
@@ -544,21 +663,30 @@ if (!function_exists('time_ago')) {
                         </div>
                         
                         <div class="job-actions">
-                            <a href="<?php echo base_url('cleaner/job/' . $job->id); ?>" class="btn-job btn-view">
-                                <i class="fas fa-eye me-1"></i>
-                                View Details
-                            </a>
                             <?php if (!$job->has_applied): ?>
                                 <a href="<?php echo base_url('cleaner/job/' . $job->id); ?>" class="btn-job btn-apply">
                                     <i class="fas fa-handshake me-1"></i>
                                     Make Offer
                                 </a>
                             <?php else: ?>
-                                <button class="btn-job btn-applied" disabled>
-                                    <i class="fas fa-check me-1"></i>
-                                    Applied
-                                </button>
+                                <a href="<?php echo base_url('cleaner/job/' . $job->id); ?>" class="btn-job btn-view">
+                                    <i class="fas fa-eye me-1"></i>
+                                    View Details
+                                </a>
                             <?php endif; ?>
+                            <button class="btn-job btn-ignore" onclick="ignoreJob(<?php echo $job->id; ?>)">
+                                <i class="fas fa-eye-slash me-1"></i>
+                                Ignore
+                            </button>
+                        </div>
+                        
+                        <!-- Favorite Star -->
+                        <div class="job-favorite">
+                            <button class="favorite-btn <?php echo $job->is_favorited ? 'favorited' : ''; ?>" 
+                                    onclick="toggleFavorite(<?php echo $job->id; ?>)"
+                                    title="<?php echo $job->is_favorited ? 'Remove from favorites' : 'Add to favorites'; ?>">
+                                <i class="fas fa-star"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -609,7 +737,7 @@ if (!function_exists('time_ago')) {
             <p>
                 <?php if (!empty(array_filter($filters))): ?>
                     No jobs match your current filters. Try adjusting your search criteria or 
-                    <a href="<?php echo base_url('cleaner/jobs'); ?>" style="color: #43e97b; text-decoration: none;">clear all filters</a>.
+                    <a href="<?php echo base_url('cleaner/jobs'); ?>" style="color: #667eea; text-decoration: none;">clear all filters</a>.
                 <?php else: ?>
                     There are currently no active cleaning jobs available. Check back later for new opportunities!
                 <?php endif; ?>
@@ -637,4 +765,40 @@ $(document).ready(function() {
         }
     });
 });
+
+// Ignore job function
+function ignoreJob(jobId) {
+    if (confirm('Are you sure you want to ignore this job? You can view ignored jobs later.')) {
+        // Create a form to submit the ignore request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '<?php echo base_url('cleaner/ignore_job'); ?>';
+        
+        const jobIdInput = document.createElement('input');
+        jobIdInput.type = 'hidden';
+        jobIdInput.name = 'job_id';
+        jobIdInput.value = jobId;
+        
+        form.appendChild(jobIdInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Toggle favorite function
+function toggleFavorite(jobId) {
+    // Create a form to submit the favorite request
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '<?php echo base_url('cleaner/toggle_favorite'); ?>';
+    
+    const jobIdInput = document.createElement('input');
+    jobIdInput.type = 'hidden';
+    jobIdInput.name = 'job_id';
+    jobIdInput.value = jobId;
+    
+    form.appendChild(jobIdInput);
+    document.body.appendChild(form);
+    form.submit();
+}
 </script>
