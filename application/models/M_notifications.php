@@ -164,7 +164,7 @@ class M_notifications extends CI_Model {
             $host_id,
             'offer_received',
             'New Offer Received',
-            "You received a new offer from {$cleaner_name} for \${$offer_amount}",
+            "You received a new offer from {$cleaner_name} for $" . number_format($offer_amount, 2),
             ['job_id' => $job_id, 'cleaner_name' => $cleaner_name, 'offer_amount' => $offer_amount]
         );
     }
@@ -216,14 +216,123 @@ class M_notifications extends CI_Model {
         );
     }
 
-    public function notify_job_completed($host_id, $job_id, $job_title, $cleaner_name)
+    public function notify_job_completed($host_id, $job_title, $cleaner_name, $data = [])
     {
         return $this->create_notification(
             $host_id,
             'job_completed',
             'Service Completed',
             "{$cleaner_name} has completed '{$job_title}'",
-            ['job_id' => $job_id, 'job_title' => $job_title, 'cleaner_name' => $cleaner_name]
+            $data,
+            $data['job_id'] ?? null
+        );
+    }
+
+    public function notify_job_inconsistency($host_id, $job_title, $inconsistency_description, $data = [])
+    {
+        return $this->create_notification(
+            $host_id,
+            'job_inconsistency',
+            'Service Issue Reported',
+            "An issue has been reported for '{$job_title}': {$inconsistency_description}",
+            $data,
+            $data['job_id'] ?? null
+        );
+    }
+
+    public function notify_counter_offer($host_id, $job_title, $original_price, $proposed_price, $data = [])
+    {
+        $price_difference = $proposed_price - $original_price;
+        $difference_text = $price_difference > 0 ? "+$" . number_format($price_difference, 2) : "-$" . number_format(abs($price_difference), 2);
+        
+        return $this->create_notification(
+            $host_id,
+            'counter_offer',
+            'Price Adjustment Request',
+            "A price adjustment has been requested for '{$job_title}': {$difference_text} ($" . number_format($original_price, 2) . " → $" . number_format($proposed_price, 2) . ")",
+            $data,
+            $data['job_id'] ?? null
+        );
+    }
+
+    public function notify_counter_offer_resolved($user_id, $job_title, $decision, $final_price, $data = [])
+    {
+        $decision_text = $decision === 'approved' ? 'approved' : 'rejected';
+        
+        return $this->create_notification(
+            $user_id,
+            'counter_offer_resolved',
+            'Price Adjustment ' . ucfirst($decision_text),
+            "Your price adjustment request for '{$job_title}' has been {$decision_text}. Final price: $" . number_format($final_price, 2),
+            $data,
+            $data['job_id'] ?? null
+        );
+    }
+
+    public function notify_job_disputed($cleaner_id, $job_title, $dispute_reason, $data = [])
+    {
+        return $this->create_notification(
+            $cleaner_id,
+            'job_disputed',
+            'Job Disputed',
+            "The job '{$job_title}' has been disputed. Reason: {$dispute_reason}",
+            $data,
+            $data['job_id'] ?? null
+        );
+    }
+
+    public function notify_payment_released($cleaner_id, $job_title, $amount, $data = [])
+    {
+        return $this->create_notification(
+            $cleaner_id,
+            'payment_released',
+            'Payment Released',
+            "Payment of $" . number_format($amount, 2) . " has been released for '{$job_title}'",
+            $data,
+            $data['job_id'] ?? null
+        );
+    }
+
+    public function notify_dispute_resolved($user_id, $job_title, $resolution, $final_amount, $data = [])
+    {
+        $resolution_text = str_replace('_', ' ', $resolution);
+        $resolution_text = ucwords($resolution_text);
+        
+        return $this->create_notification(
+            $user_id,
+            'dispute_resolved',
+            'Dispute Resolved',
+            "The dispute for '{$job_title}' has been resolved in favor of: {$resolution_text}. Amount: $" . number_format($final_amount, 2),
+            $data,
+            $data['job_id'] ?? null
+        );
+    }
+
+
+    /**
+     * Notify dispute resolution with percentage breakdown
+     */
+    public function notify_dispute_resolution($user_id, $job_title, $cleaner_percentage, $host_refund, $cleaner_amount, $resolution_notes = '', $data = [])
+    {
+        $user_type = $data['user_type'] ?? 'unknown';
+        
+        if ($user_type === 'host') {
+            $message = "Dispute resolved for job '{$job_title}'. You will receive a refund of $" . number_format($host_refund, 2) . " (Cleaner receives {$cleaner_percentage}%)";
+        } else {
+            $message = "Dispute resolved for job '{$job_title}'. You will receive $" . number_format($cleaner_amount, 2) . " ({$cleaner_percentage}% of original amount)";
+        }
+        
+        if (!empty($resolution_notes)) {
+            $message .= ". Resolution notes: {$resolution_notes}";
+        }
+        
+        return $this->create_notification(
+            $user_id,
+            'dispute_resolution',
+            'Dispute Resolution',
+            $message,
+            $data,
+            $data['job_id'] ?? null
         );
     }
 }

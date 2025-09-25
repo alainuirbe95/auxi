@@ -366,9 +366,25 @@ if (!function_exists('time_ago')) {
                             }
                             ?>
                         </div>
-                        <div class="assigned-badge">
-                            <i class="fas fa-check-circle"></i>
-                            Assigned
+                        <div class="assigned-badge <?php 
+                            if ($job->status === 'in_progress') echo 'in-progress-badge';
+                            elseif ($job->status === 'completed') echo 'completed-badge';
+                            elseif ($job->status === 'price_adjustment_requested') echo 'price-adjustment-badge';
+                            else echo 'assigned-badge';
+                        ?>">
+                            <?php if ($job->status === 'in_progress'): ?>
+                                <i class="fas fa-clock"></i>
+                                In Progress
+                            <?php elseif ($job->status === 'completed'): ?>
+                                <i class="fas fa-check-circle"></i>
+                                Completed
+                            <?php elseif ($job->status === 'price_adjustment_requested'): ?>
+                                <i class="fas fa-dollar-sign"></i>
+                                Price Adjustment Requested
+                            <?php else: ?>
+                                <i class="fas fa-check-circle"></i>
+                                Assigned
+                            <?php endif; ?>
                         </div>
                     </div>
                     
@@ -379,7 +395,13 @@ if (!function_exists('time_ago')) {
                                 Assignment Details
                             </h6>
                             <small>
-                                Assigned <?php echo time_ago($job->assignment_date); ?> • 
+                                <?php if ($job->status === 'in_progress' && !empty($job->started_at)): ?>
+                                    Started <?php echo time_ago($job->started_at); ?> • 
+                                <?php elseif ($job->status === 'completed' && !empty($job->completed_at)): ?>
+                                    Completed <?php echo time_ago($job->completed_at); ?> • 
+                                <?php else: ?>
+                                    Assigned <?php echo time_ago($job->assignment_date ?? $job->updated_at); ?> • 
+                                <?php endif; ?>
                                 Job ID: #<?php echo $job->id; ?>
                             </small>
                             <?php if (!empty($job->otp_code)): ?>
@@ -511,9 +533,14 @@ if (!function_exists('time_ago')) {
                                     </span>
                                 <?php endif; ?>
                             <?php elseif ($job->status === 'in_progress'): ?>
-                                <span class="btn-job btn-active">
-                                    <i class="fas fa-clock me-1"></i>
-                                    In Progress
+                                <a href="<?php echo base_url('cleaner/jobs-in-progress/complete/' . $job->id); ?>" class="btn-job btn-complete-job">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    Complete Job
+                                </a>
+                            <?php elseif ($job->status === 'completed'): ?>
+                                <span class="btn-job btn-completed">
+                                    <i class="fas fa-check me-1"></i>
+                                    Completed
                                 </span>
                             <?php endif; ?>
                             <a href="<?php echo base_url('cleaner/job/' . $job->id); ?>" class="btn-job btn-view-details">
@@ -554,5 +581,40 @@ if (!function_exists('time_ago')) {
     border: none !important;
     cursor: not-allowed !important;
     opacity: 0.7 !important;
+}
+
+.btn-complete-job {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.btn-complete-job:hover {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%) !important;
+    color: white !important;
+    text-decoration: none !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-completed {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+    color: white !important;
+    border: none !important;
+    cursor: not-allowed !important;
+}
+
+.in-progress-badge {
+    background: rgba(255, 193, 7, 0.9) !important;
+    color: white !important;
+}
+
+.completed-badge {
+    background: rgba(108, 117, 125, 0.9) !important;
+    color: white !important;
+}
+
+.price-adjustment-badge {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important;
+    color: white !important;
 }
 </style>

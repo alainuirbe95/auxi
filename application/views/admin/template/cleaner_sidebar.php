@@ -100,6 +100,26 @@
           </a>
         </li>
 
+            <!-- Jobs in Progress -->
+            <li class="nav-item">
+              <a href="<?php echo base_url('cleaner/jobs-in-progress'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'jobs-in-progress') !== false) ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                  <i class="nav-icon fas fa-tasks"></i>
+                </div>
+                <span class="nav-text">Jobs in Progress</span>
+              </a>
+            </li>
+
+            <!-- My Disputed Jobs -->
+            <li class="nav-item">
+              <a href="<?php echo base_url('cleaner/my-disputed-jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'my-disputed-jobs') !== false) ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                  <i class="nav-icon fas fa-exclamation-triangle"></i>
+                </div>
+                <span class="nav-text">My Disputed Jobs</span>
+              </a>
+            </li>
+
         <!-- Completed Jobs -->
         <li class="nav-item">
           <a href="<?php echo base_url('cleaner/completed'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/completed') !== false) ? 'active' : ''; ?>">

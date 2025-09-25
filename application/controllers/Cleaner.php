@@ -818,16 +818,31 @@ class Cleaner extends MY_Controller
         $job_id = $this->input->post('job_id');
         $otp_code = $this->input->post('otp_code');
 
-        // Attempt to start the job
-        if ($this->M_jobs->start_job_with_otp($job_id, $user_id, $otp_code)) {
-            $this->session->set_flashdata('text', 'Job started successfully! You can now begin the cleaning service.');
-            $this->session->set_flashdata('type', 'success');
-        } else {
-            $this->session->set_flashdata('text', 'Invalid service code or job not found. Please check the code provided by the host.');
+        // Log the attempt for debugging
+        log_message('debug', "Attempting to start job $job_id for user $user_id with OTP: $otp_code");
+
+        // Check if required database fields exist
+        if (!$this->db->field_exists('assigned_cleaner_id', 'jobs')) {
+            log_message('error', 'assigned_cleaner_id field does not exist in jobs table');
+            $this->session->set_flashdata('text', 'Database configuration error. Please contact support.');
             $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/assigned_jobs');
         }
 
-        redirect('cleaner/assigned_jobs');
+        // Attempt to start the job
+        $result = $this->M_jobs->start_job_with_otp($job_id, $user_id, $otp_code);
+        
+        if ($result) {
+            log_message('debug', "Job $job_id started successfully for user $user_id");
+            $this->session->set_flashdata('text', 'Job started successfully! You can now begin the cleaning service.');
+            $this->session->set_flashdata('type', 'success');
+            redirect('cleaner/jobs-in-progress'); // Redirect to jobs in progress page
+        } else {
+            log_message('debug', "Failed to start job $job_id for user $user_id");
+            $this->session->set_flashdata('text', 'Invalid service code or job not found. Please check the code provided by the host.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/assigned_jobs');
+        }
     }
 
     /**

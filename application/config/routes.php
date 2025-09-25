@@ -91,6 +91,39 @@ $route['cleaner/assigned_jobs'] = 'cleaner/assigned_jobs';
 $route['cleaner/start_job'] = 'cleaner/start_job';
 $route['cleaner/start_job_page/(:num)'] = 'cleaner/start_job_page/$1';
 
+// Jobs in Progress routes (Job Completion workflow)
+$route['cleaner/jobs-in-progress'] = 'jobcompletion/index';
+$route['cleaner/jobs-in-progress/complete/(:num)'] = 'jobcompletion/complete_job/$1';
+$route['cleaner/jobs-in-progress/process-completion'] = 'jobcompletion/process_completion';
+$route['cleaner/jobs-in-progress/report-inconsistency'] = 'jobcompletion/report_inconsistency';
+$route['cleaner/jobs-in-progress/inconsistency-form/(:num)'] = 'jobcompletion/show_inconsistency_form/$1';
+$route['cleaner/jobs-in-progress/upload-photos'] = 'jobcompletion/upload_inconsistency_photos';
+$route['cleaner/jobs-in-progress/inconsistencies/(:num)'] = 'jobcompletion/get_inconsistencies/$1';
+
+// Counter Offers routes
+$route['host/counter-offers'] = 'counteroffers/index';
+$route['counter-offers/approve'] = 'counteroffers/approve';
+$route['counter-offers/reject'] = 'counteroffers/reject';
+$route['counter-offers/escalate'] = 'counteroffers/escalate';
+$route['counter-offers/resolve'] = 'counteroffers/resolve';
+$route['counter-offers/details/(:num)'] = 'counteroffers/get_details/$1';
+$route['admin/counter-offers'] = 'counteroffers/moderator_index';
+
+// Disputes routes
+$route['host/completed-jobs'] = 'disputes/index';
+$route['host/disputes'] = 'disputes/index'; // Keep old route for backward compatibility
+$route['host/my-disputed-jobs'] = 'disputes/host_disputes';
+$route['disputes/dispute-job'] = 'disputes/dispute_job';
+$route['disputes/resolve'] = 'disputes/resolve_dispute';
+$route['disputes/resolve-dispute'] = 'disputes/resolve_dispute';
+$route['disputes/close-job'] = 'disputes/close_job';
+$route['disputes/auto-close'] = 'disputes/auto_close_jobs';
+$route['disputes/details/(:num)'] = 'disputes/get_details/$1';
+$route['disputes/get-dispute-details/(:num)'] = 'disputes/get_dispute_details/$1';
+$route['admin/disputes'] = 'disputes/admin_index';
+$route['admin/manage-disputes'] = 'disputes/admin_index';
+$route['cleaner/my-disputed-jobs'] = 'disputes/cleaner_disputes';
+
 // Notification routes
 $route['notifications/get'] = 'notifications/get_notifications';
 $route['notifications/mark_read'] = 'notifications/mark_read';
@@ -125,6 +158,14 @@ $route['admin/resolve_flag'] = 'admin/resolve_flag';
 $route['admin/dismiss_flag'] = 'admin/dismiss_flag';
 $route['admin/flag_job'] = 'admin/flag_job';
 $route['host/flag_job'] = 'host/flag_job';
+
+// Database setup and debugging routes
+$route['database-setup/setup-job-fields'] = 'databasesetup/setup_job_fields';
+$route['database-setup/setup-dispute-fields'] = 'databasesetup/setup_dispute_fields';
+$route['database-setup/debug-job-start'] = 'databasesetup/debug_job_start';
+$route['database-setup/check-logs'] = 'databasesetup/check_logs';
+$route['database-setup/debug-dispute-window'] = 'databasesetup/debug_dispute_window';
+$route['database-setup/setup-dispute-resolution-fields'] = 'databasesetup/setup_dispute_resolution_fields';
 
 // Redirect root URL based on authentication
 $route['^$'] = 'app/redirect_user';

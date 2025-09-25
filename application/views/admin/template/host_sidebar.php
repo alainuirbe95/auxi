@@ -100,6 +100,36 @@
           </a>
         </li>
 
+        <!-- Price Adjustments -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('host/counter-offers'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'counter-offers') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-dollar-sign"></i>
+            </div>
+            <span class="nav-text">Price Adjustments</span>
+          </a>
+        </li>
+
+        <!-- Completed Jobs -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('host/completed-jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'completed-jobs') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-check-circle"></i>
+            </div>
+            <span class="nav-text">Completed Jobs</span>
+          </a>
+        </li>
+
+        <!-- My Disputed Jobs -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('host/my-disputed-jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'my-disputed-jobs') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-exclamation-triangle"></i>
+            </div>
+            <span class="nav-text">My Disputed Jobs</span>
+          </a>
+        </li>
+
         <!-- Divider -->
         <li class="nav-header modern-nav-header">ACCOUNT</li>
 

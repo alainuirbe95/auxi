@@ -192,13 +192,18 @@
         
         <!-- Content Wrapper -->
         <div class="content-wrapper">
+            <!-- Mobile Sidebar Toggle Button -->
+            <button class="mobile-sidebar-toggle" style="display: none; position: fixed; top: 10px; left: 10px; z-index: 1051; background: #007bff; color: white; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px;">
+                <i class="fas fa-bars"></i>
+            </button>
+            
             <!-- Modern Header -->
             <?php 
             $this->load->view("admin/template/modern_header", array(
                 'title' => isset($title) ? $title : 'Dashboard',
                 'page_icon' => isset($page_icon) ? $page_icon : 'tachometer-alt',
                 'breadcrumbs' => isset($breadcrumbs) ? $breadcrumbs : array()
-            )); 
+            ));
             ?>
 
             <!-- Main content -->
@@ -370,5 +375,34 @@
             }
         }
     </style>
+    
+    <!-- Fix for AdminLTE sidebar errors -->
+    <script>
+        $(document).ready(function() {
+            // Prevent AdminLTE sidebar errors by ensuring elements exist
+            if (typeof $.fn.pushMenu !== 'undefined') {
+                try {
+                    // Initialize push menu if elements exist
+                    if ($('.sidebar-toggle').length > 0) {
+                        $('.sidebar-toggle').pushMenu();
+                    }
+                } catch (e) {
+                    console.log('AdminLTE sidebar initialization skipped:', e.message);
+                }
+            }
+            
+            // Simple mobile sidebar toggle functionality
+            $('.mobile-sidebar-toggle').click(function() {
+                $('.app-sidebar').toggleClass('show');
+                $('.sidebar-overlay').toggleClass('show');
+            });
+            
+            // Close sidebar when clicking overlay
+            $('.sidebar-overlay').click(function() {
+                $('.app-sidebar').removeClass('show');
+                $('.sidebar-overlay').removeClass('show');
+            });
+        });
+    </script>
     </body>
 </html>

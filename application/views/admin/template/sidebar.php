@@ -104,6 +104,26 @@
           </a>
         </li>
 
+        <!-- Counter Offers -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('admin/counter-offers'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'counter-offers') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-gavel"></i>
+            </div>
+            <span class="nav-text">Price Adjustments</span>
+          </a>
+        </li>
+
+        <!-- Disputes -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('admin/manage-disputes'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'disputes') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-gavel"></i>
+            </div>
+            <span class="nav-text">Manage Disputes</span>
+          </a>
+        </li>
+
         <!-- Reports & Analytics -->
         <li class="nav-item">
           <a href="#" class="nav-link modern-nav-link">
