@@ -86,6 +86,16 @@ $route['cleaner/jobs'] = 'cleaner/jobs';
 $route['cleaner/job/(:num)'] = 'cleaner/job/$1';
 $route['cleaner/make_offer/(:num)'] = 'cleaner/make_offer/$1';
 $route['cleaner/offers'] = 'cleaner/offers';
+$route['cleaner/rejected_offers'] = 'cleaner/rejected_offers';
+$route['cleaner/assigned_jobs'] = 'cleaner/assigned_jobs';
+$route['cleaner/start_job'] = 'cleaner/start_job';
+$route['cleaner/start_job_page/(:num)'] = 'cleaner/start_job_page/$1';
+
+// Notification routes
+$route['notifications/get'] = 'notifications/get_notifications';
+$route['notifications/mark_read'] = 'notifications/mark_read';
+$route['notifications/mark_all_read'] = 'notifications/mark_all_read';
+$route['notifications/unread_count'] = 'notifications/get_unread_count';
 $route['cleaner/accept_counter_offer/(:num)'] = 'cleaner/accept_counter_offer/$1';
 $route['cleaner/reject_counter_offer/(:num)'] = 'cleaner/reject_counter_offer/$1';
 $route['cleaner/make_counter_offer/(:num)'] = 'cleaner/make_counter_offer/$1';

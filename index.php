@@ -1,5 +1,8 @@
 <?php
 
+// Set timezone to PST as required
+date_default_timezone_set('America/Los_Angeles');
+
 /**
  * CodeIgniter
  *

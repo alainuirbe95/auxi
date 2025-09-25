@@ -306,6 +306,10 @@ class Host extends MY_Controller
      */
     public function accept_offer($offer_id)
     {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+        
         $offer = $this->M_offers->get_offer_by_id($offer_id);
         
         if (!$offer) {
@@ -327,7 +331,7 @@ class Host extends MY_Controller
             $this->session->set_flashdata('type', 'error');
         }
         
-        redirect('host/job/' . $offer->job_id);
+        redirect('host/offers');
     }
 
     /**
@@ -336,6 +340,10 @@ class Host extends MY_Controller
      */
     public function reject_offer($offer_id)
     {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+        
         $offer = $this->M_offers->get_offer_by_id($offer_id);
         
         if (!$offer) {
@@ -356,7 +364,74 @@ class Host extends MY_Controller
             $this->session->set_flashdata('type', 'error');
         }
         
-        redirect('host/job/' . $offer->job_id);
+        redirect('host/offers');
+    }
+
+    /**
+     * View All Offers
+     * Show all offers for host's jobs
+     */
+    public function offers()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Get all jobs with offers for this host
+        $jobs_with_offers = [];
+        $total_offers = 0;
+        $pending_offers = 0;
+        $counter_offers = 0;
+        $accepted_offers = 0;
+        
+        if ($this->db->table_exists('jobs') && $this->db->table_exists('offers')) {
+            // Get all jobs for this host
+            $jobs = $this->M_jobs->get_jobs_by_host($user_id);
+            
+            foreach ($jobs as $job) {
+                $offers = $this->M_offers->get_offers_by_job($job->id);
+                
+                if (!empty($offers)) {
+                    $job->offers = $offers;
+                    $jobs_with_offers[] = $job;
+                    
+                    foreach ($offers as $offer) {
+                        $total_offers++;
+                        
+                        if ($offer->status === 'pending') {
+                            $pending_offers++;
+                        } elseif ($offer->status === 'accepted') {
+                            $accepted_offers++;
+                        }
+                        
+                        if ($offer->offer_type === 'counter') {
+                            $counter_offers++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        $data = [
+            'title' => 'Job Offers Management',
+            'page_icon' => 'fas fa-handshake',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'host'],
+                ['title' => 'Offers', 'url' => '', 'active' => true]
+            ],
+            'jobs_with_offers' => $jobs_with_offers,
+            'total_offers' => $total_offers,
+            'pending_offers' => $pending_offers,
+            'counter_offers' => $counter_offers,
+            'accepted_offers' => $accepted_offers
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        
+        // Load the offers content as a string
+        $data['body'] = $this->load->view('host/offers', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
     }
 
     /**

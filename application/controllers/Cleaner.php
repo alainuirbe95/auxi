@@ -122,11 +122,13 @@ class Cleaner extends MY_Controller
             if ($this->db->table_exists('offers')) {
                 foreach ($data['jobs'] as $job) {
                     $job->has_applied = $this->M_offers->cleaner_has_offered($user_id, $job->id);
+                    $job->has_been_declined = $this->M_offers->cleaner_has_been_declined($user_id, $job->id);
                     $job->is_favorited = $this->db->table_exists('job_favorites') ? $this->M_favorites->is_job_favorited($user_id, $job->id) : false;
                 }
             } else {
                 foreach ($data['jobs'] as $job) {
                     $job->has_applied = false;
+                    $job->has_been_declined = false;
                     $job->is_favorited = $this->db->table_exists('job_favorites') ? $this->M_favorites->is_job_favorited($user_id, $job->id) : false;
                 }
             }
@@ -147,6 +149,40 @@ class Cleaner extends MY_Controller
     }
 
     /**
+     * View Rejected Offers
+     * Show all rejected offers for the cleaner
+     */
+    public function rejected_offers()
+    {
+        $user_id = $this->auth_user_id;
+        
+        if (!$user_id) {
+            $this->session->set_flashdata('text', 'You must be logged in to view rejected offers.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('app/login');
+        }
+        
+        $data = [
+            'title' => 'Rejected Offers',
+            'page_icon' => 'fas fa-times-circle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'Rejected Offers', 'url' => '', 'active' => true]
+            ],
+            'rejected_offers' => $this->M_offers->get_rejected_offers_for_cleaner($user_id)
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        
+        // Load the rejected offers content as a string
+        $data['body'] = $this->load->view('cleaner/rejected_offers', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
      * View Job Details
      * Show detailed information about a specific job
      */
@@ -161,7 +197,25 @@ class Cleaner extends MY_Controller
         
         $job = $this->M_jobs->get_job_by_id($job_id);
         
-        if (!$job || $job->status !== 'open') {
+        if (!$job) {
+            show_404();
+        }
+        
+        // Check if user has access to this job
+        $has_access = false;
+        
+        // Cleaner can view if:
+        // 1. Job is open (for making offers)
+        // 2. Job is assigned to them (for viewing assigned job details)
+        if ($job->status === 'open') {
+            $has_access = true;
+        } elseif ($job->status === 'assigned' && $job->assigned_cleaner_id == $user_id) {
+            $has_access = true;
+        } elseif ($job->status === 'in_progress' && $job->assigned_cleaner_id == $user_id) {
+            $has_access = true;
+        }
+        
+        if (!$has_access) {
             show_404();
         }
         
@@ -697,5 +751,157 @@ class Cleaner extends MY_Controller
         }
 
         redirect('cleaner/jobs');
+    }
+
+    /**
+     * View Assigned Jobs
+     * Show jobs that have been assigned to the cleaner
+     */
+    public function assigned_jobs()
+    {
+        $user_id = $this->auth_user_id;
+        
+        if (!$user_id) {
+            $this->session->set_flashdata('text', 'You must be logged in to view assigned jobs.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('app/login');
+        }
+        
+        $data = [
+            'title' => 'Assigned Jobs',
+            'page_icon' => 'fas fa-clipboard-check',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'Assigned Jobs', 'url' => '', 'active' => true]
+            ],
+            'assigned_jobs' => $this->M_jobs->get_assigned_jobs_for_cleaner($user_id)
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        
+        // Load the assigned jobs content as a string
+        $data['body'] = $this->load->view('cleaner/assigned_jobs', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Start a job with OTP validation
+     */
+    public function start_job()
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+
+        $user_id = $this->auth_user_id;
+        
+        if (!$user_id) {
+            $this->session->set_flashdata('text', 'You must be logged in to start a job.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('app/login');
+        }
+
+        // Validate input
+        $this->form_validation->set_rules('job_id', 'Job ID', 'required|integer');
+        $this->form_validation->set_rules('otp_code', 'Service Code', 'required|exact_length[6]');
+
+        if ($this->form_validation->run() === FALSE) {
+            $errors = $this->form_validation->error_array();
+            $this->session->set_flashdata('text', 'Please correct the errors: ' . implode(', ', $errors));
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/assigned_jobs');
+        }
+
+        $job_id = $this->input->post('job_id');
+        $otp_code = $this->input->post('otp_code');
+
+        // Attempt to start the job
+        if ($this->M_jobs->start_job_with_otp($job_id, $user_id, $otp_code)) {
+            $this->session->set_flashdata('text', 'Job started successfully! You can now begin the cleaning service.');
+            $this->session->set_flashdata('type', 'success');
+        } else {
+            $this->session->set_flashdata('text', 'Invalid service code or job not found. Please check the code provided by the host.');
+            $this->session->set_flashdata('type', 'error');
+        }
+
+        redirect('cleaner/assigned_jobs');
+    }
+
+    /**
+     * Show start job page with OTP form
+     */
+    public function start_job_page($job_id)
+    {
+        $user_id = $this->auth_user_id;
+        
+        if (!$user_id) {
+            $this->session->set_flashdata('text', 'You must be logged in to start a job.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('app/login');
+        }
+
+        // Get job details
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job || $job->assigned_cleaner_id != $user_id || $job->status !== 'assigned') {
+            $this->session->set_flashdata('text', 'Job not found or not assigned to you.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/assigned_jobs');
+        }
+
+        // Check if job can be started (30 minutes before scheduled time)
+        $can_start = false;
+        $start_message = '';
+        
+        if (!empty($job->scheduled_date) && !empty($job->scheduled_time)) {
+            $scheduled_datetime = $job->scheduled_date . ' ' . $job->scheduled_time;
+            $job_start_time = strtotime($scheduled_datetime);
+            $thirty_min_before = $job_start_time - (30 * 60); // 30 minutes before
+            $current_time = time();
+            
+            if ($current_time >= $thirty_min_before) {
+                $can_start = true;
+            } else {
+                $time_diff = $thirty_min_before - $current_time;
+                $hours = floor($time_diff / 3600);
+                $minutes = floor(($time_diff % 3600) / 60);
+                
+                if ($hours > 0) {
+                    $start_message = "Can start in {$hours}h {$minutes}m";
+                } else {
+                    $start_message = "Can start in {$minutes} minutes";
+                }
+            }
+        }
+
+        if (!$can_start) {
+            $this->session->set_flashdata('text', "You cannot start this job yet. {$start_message}.");
+            $this->session->set_flashdata('type', 'error');
+            redirect('cleaner/assigned_jobs');
+        }
+
+        $data = [
+            'title' => 'Start Job - ' . $job->title,
+            'page_icon' => 'fas fa-play-circle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'Assigned Jobs', 'url' => 'cleaner/assigned_jobs'],
+                ['title' => 'Start Job', 'url' => '', 'active' => true]
+            ],
+            'job' => $job,
+            'user_info' => $this->M_users->get_user_by_id($user_id)
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        
+        // Load the start job page content as a string
+        $data['body'] = $this->load->view('cleaner/start_job_page', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
     }
 }

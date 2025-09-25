@@ -160,6 +160,14 @@ class M_jobs extends CI_Model
         
         $this->db->where('j.status', 'open');
         
+        // Filter out past jobs - only show future jobs and current day jobs
+        $today = date('Y-m-d');
+        $this->db->group_start();
+        $this->db->where('j.scheduled_date >', $today);
+        $this->db->or_where('j.scheduled_date', $today);
+        $this->db->or_where('j.scheduled_date IS NULL');
+        $this->db->group_end();
+        
         // Apply filters
         if (!empty($filters['search'])) {
             $this->db->group_start();
@@ -543,5 +551,153 @@ class M_jobs extends CI_Model
         
         $query = $this->db->get();
         return $query->row();
+    }
+
+    /**
+     * Get assigned jobs for a cleaner (only future jobs)
+     */
+    public function get_assigned_jobs_for_cleaner($cleaner_id)
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return [];
+        }
+
+        $this->db->select('j.*, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name, u.email as host_email, u.phone as host_phone');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.host_id = u.user_id');
+        $this->db->where('j.assigned_cleaner_id', $cleaner_id);
+        $this->db->where('j.status', 'assigned');
+        
+        // Only show future jobs or jobs scheduled for today
+        $today = date('Y-m-d');
+        $this->db->group_start();
+        $this->db->where('j.scheduled_date >', $today);
+        $this->db->or_where('j.scheduled_date', $today);
+        $this->db->group_end();
+        
+        $this->db->order_by('j.scheduled_date', 'ASC');
+        $this->db->order_by('j.scheduled_time', 'ASC');
+        
+        $query = $this->db->get();
+        return $query->result();
+    }
+
+    /**
+     * Start a job with OTP validation
+     */
+    public function start_job_with_otp($job_id, $cleaner_id, $otp_code)
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return false;
+        }
+
+        // Get job details
+        $this->db->select('j.*');
+        $this->db->from('jobs j');
+        $this->db->where('j.id', $job_id);
+        $this->db->where('j.assigned_cleaner_id', $cleaner_id);
+        $this->db->where('j.status', 'assigned');
+        $job = $this->db->get()->row();
+
+        if (!$job) {
+            return false;
+        }
+
+        // Validate OTP
+        if ($job->otp_code !== $otp_code) {
+            return false;
+        }
+
+        // Check if OTP is still valid (not used before)
+        if (!empty($job->otp_used_at)) {
+            return false;
+        }
+
+        // Start transaction
+        $this->db->trans_start();
+
+        // Update job status to active and mark OTP as used
+        $this->db->where('id', $job_id);
+        $this->db->update('jobs', [
+            'status' => 'in_progress',
+            'otp_used_at' => date('Y-m-d H:i:s'),
+            'started_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+
+        // Complete transaction
+        $this->db->trans_complete();
+
+        // Send notification if transaction was successful
+        if ($this->db->trans_status()) {
+            // Load notifications model
+            $this->load->model('M_notifications');
+            
+            // Get host information for notification
+            $host_info = $this->get_host_for_job($job_id);
+            
+            if ($host_info) {
+                // Notify host that job has started
+                $this->M_notifications->notify_job_started(
+                    $host_info->host_id,
+                    $host_info->job_title,
+                    $host_info->cleaner_name,
+                    [
+                        'job_id' => $job_id,
+                        'started_at' => date('Y-m-d H:i:s')
+                    ]
+                );
+            }
+        }
+
+        return $this->db->trans_status();
+    }
+
+    /**
+     * Get host information for job notifications
+     */
+    public function get_host_for_job($job_id)
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return false;
+        }
+
+        $this->db->select('j.id as job_id, j.title as job_title, j.host_id, u.first_name as cleaner_first_name, u.last_name as cleaner_last_name');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.assigned_cleaner_id = u.user_id');
+        $this->db->where('j.id', $job_id);
+        
+        $query = $this->db->get();
+        $result = $query->row();
+        
+        if ($result) {
+            $result->cleaner_name = $result->cleaner_first_name . ' ' . $result->cleaner_last_name;
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Get job history for a cleaner (completed jobs)
+     */
+    public function get_completed_jobs_for_cleaner($cleaner_id)
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return [];
+        }
+
+        $this->db->select('j.*, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.host_id = u.user_id');
+        $this->db->where('j.assigned_cleaner_id', $cleaner_id);
+        $this->db->where('j.status', 'completed');
+        $this->db->order_by('j.updated_at', 'DESC');
+        
+        $query = $this->db->get();
+        return $query->result();
     }
 }

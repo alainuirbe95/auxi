@@ -67,6 +67,16 @@
           </a>
         </li>
 
+        <!-- Declined Offers -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('cleaner/rejected_offers'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/rejected_offers') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-times-circle"></i>
+            </div>
+            <span class="nav-text">Declined Offers</span>
+          </a>
+        </li>
+
         <!-- Ignored Jobs -->
         <li class="nav-item">
           <a href="<?php echo base_url('cleaner/ignored_jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/ignored_jobs') !== false) ? 'active' : ''; ?>">
@@ -82,7 +92,7 @@
 
         <!-- Assigned Jobs -->
         <li class="nav-item">
-          <a href="<?php echo base_url('cleaner/assigned'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/assigned') !== false) ? 'active' : ''; ?>">
+          <a href="<?php echo base_url('cleaner/assigned_jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/assigned_jobs') !== false) ? 'active' : ''; ?>">
             <div class="nav-icon-container">
               <i class="nav-icon fas fa-clipboard-check"></i>
             </div>

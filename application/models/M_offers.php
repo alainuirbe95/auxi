@@ -102,6 +102,7 @@ class M_offers extends CI_Model
         $this->db->where('id', $offer_id);
         $this->db->update('offers', [
             'status' => 'accepted',
+            'responded_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ]);
         
@@ -110,24 +111,56 @@ class M_offers extends CI_Model
         $this->db->where('id !=', $offer_id);
         $this->db->update('offers', [
             'status' => 'declined',
+            'responded_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ]);
         
         // Determine final price
         $final_price = ($offer->offer_type === 'accept') ? $offer->amount : $offer->counter_price;
         
-        // Update job with assignment details
+        // Generate OTP for job start
+        $otp_code = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        
+        // Update job with assignment details and OTP
         $this->db->where('id', $offer->job_id);
         $this->db->update('jobs', [
             'status' => 'assigned',
             'assigned_cleaner_id' => $offer->cleaner_id,
             'accepted_price' => $final_price,
             'assignment_date' => date('Y-m-d H:i:s'),
+            'otp_code' => $otp_code,
+            'otp_generated_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ]);
         
         // Complete transaction
         $this->db->trans_complete();
+        
+        // Send notifications if transaction was successful
+        if ($this->db->trans_status()) {
+            // Load notifications model
+            $this->load->model('M_notifications');
+            
+            // Notify cleaner that their offer was accepted
+            $this->M_notifications->notify_offer_accepted(
+                $offer->cleaner_id,
+                $offer->job_id,
+                $offer->job_title,
+                [
+                    'job_id' => $offer->job_id,
+                    'offer_id' => $offer_id,
+                    'final_price' => $final_price
+                ]
+            );
+            
+            // Notify cleaner that job is assigned
+            $this->M_notifications->notify_job_assigned(
+                $offer->cleaner_id,
+                $offer->job_id,
+                $offer->job_title,
+                $otp_code
+            );
+        }
         
         return $this->db->trans_status();
     }
@@ -137,13 +170,71 @@ class M_offers extends CI_Model
      */
     public function reject_offer($offer_id)
     {
+        // Get offer details before updating
+        $offer = $this->get_offer_by_id($offer_id);
+        
         $this->db->where('id', $offer_id);
-        return $this->db->update('offers', [
-            'status' => 'rejected',
+        $result = $this->db->update('offers', [
+            'status' => 'declined',
+            'responded_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ]);
+        
+        // Send notification if update was successful
+        if ($result && $offer) {
+            // Load notifications model
+            $this->load->model('M_notifications');
+            
+            // Notify cleaner that their offer was declined
+            $this->M_notifications->notify_offer_declined(
+                $offer->cleaner_id,
+                $offer->job_id,
+                $offer->job_title
+            );
+        }
+        
+        return $result;
     }
 
+
+    /**
+     * Check if cleaner has been declined for a specific job
+     */
+    public function cleaner_has_been_declined($cleaner_id, $job_id)
+    {
+        // Check if offers table exists
+        if (!$this->db->table_exists('offers')) {
+            return false;
+        }
+
+        $this->db->where('cleaner_id', $cleaner_id);
+        $this->db->where('job_id', $job_id);
+        $this->db->where('status', 'declined');
+        
+        return $this->db->count_all_results('offers') > 0;
+    }
+
+    /**
+     * Get rejected offers for cleaner
+     */
+    public function get_rejected_offers_for_cleaner($cleaner_id)
+    {
+        // Check if required tables exist
+        if (!$this->db->table_exists('offers') || !$this->db->table_exists('jobs')) {
+            return [];
+        }
+        
+        $this->db->select('o.*, j.title as job_title, j.description as job_description, j.suggested_price, j.address, j.city, j.state, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name');
+        $this->db->from('offers o');
+        $this->db->join('jobs j', 'o.job_id = j.id');
+        $this->db->join('users u', 'j.host_id = u.user_id');
+        $this->db->where('o.cleaner_id', $cleaner_id);
+        $this->db->where('o.status', 'declined');
+        $this->db->order_by('o.updated_at', 'DESC');
+        
+        $query = $this->db->get();
+        return $query->result();
+    }
 
     /**
      * Get offer statistics for cleaner
@@ -242,7 +333,7 @@ class M_offers extends CI_Model
 
         $this->db->where('cleaner_id', $cleaner_id);
         $this->db->where('job_id', $job_id);
-        $this->db->where_in('status', ['pending', 'accepted', 'rejected']);
+        $this->db->where_in('status', ['pending', 'accepted', 'declined']);
         
         return $this->db->count_all_results('offers') > 0;
     }
@@ -310,7 +401,7 @@ class M_offers extends CI_Model
             return false;
         }
 
-        $this->db->select('o.*, j.title as job_title, j.address, j.suggested_price, u.username as cleaner_username, u.email as cleaner_email, h.username as host_username, h.email as host_email');
+        $this->db->select('o.*, j.title as job_title, j.address, j.suggested_price, j.host_id, u.username as cleaner_username, u.email as cleaner_email, h.username as host_username, h.email as host_email');
         $this->db->from('offers o');
         $this->db->join('jobs j', 'o.job_id = j.id');
         $this->db->join('users u', 'o.cleaner_id = u.user_id');

@@ -158,6 +158,11 @@ if (!function_exists('time_ago')) {
     border-left: 4px solid #28a745;
 }
 
+.job-card.declined {
+    border-left: 4px solid #dc3545;
+    opacity: 0.8;
+}
+
 .applied-indicator {
     position: absolute;
     top: 1rem;
@@ -175,7 +180,25 @@ if (!function_exists('time_ago')) {
     z-index: 5;
 }
 
-.applied-indicator i {
+.declined-indicator {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background: rgba(220, 53, 69, 0.9);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+    z-index: 5;
+}
+
+.applied-indicator i,
+.declined-indicator i {
     font-size: 0.9rem;
 }
 
@@ -578,9 +601,14 @@ if (!function_exists('time_ago')) {
     <?php if (!empty($jobs)): ?>
         <div class="jobs-grid">
             <?php foreach ($jobs as $job): ?>
-                <div class="job-card <?php echo $job->has_applied ? 'applied' : ''; ?>">
+                <div class="job-card <?php echo $job->has_applied ? 'applied' : ''; ?> <?php echo $job->has_been_declined ? 'declined' : ''; ?>">
                     <div class="job-header">
-                        <?php if ($job->has_applied): ?>
+                        <?php if ($job->has_been_declined): ?>
+                            <div class="declined-indicator">
+                                <i class="fas fa-times-circle"></i>
+                                <span>Declined</span>
+                            </div>
+                        <?php elseif ($job->has_applied): ?>
                             <div class="applied-indicator">
                                 <i class="fas fa-check-circle"></i>
                                 <span>Applied</span>
@@ -663,16 +691,21 @@ if (!function_exists('time_ago')) {
                         </div>
                         
                         <div class="job-actions">
-                            <?php if (!$job->has_applied): ?>
+                            <?php if (!$job->has_applied && !$job->has_been_declined): ?>
                                 <a href="<?php echo base_url('cleaner/job/' . $job->id); ?>" class="btn-job btn-apply">
                                     <i class="fas fa-handshake me-1"></i>
                                     Make Offer
                                 </a>
-                            <?php else: ?>
+                            <?php elseif ($job->has_applied): ?>
                                 <a href="<?php echo base_url('cleaner/job/' . $job->id); ?>" class="btn-job btn-view">
                                     <i class="fas fa-eye me-1"></i>
                                     View Details
                                 </a>
+                            <?php elseif ($job->has_been_declined): ?>
+                                <span class="btn-job btn-applied" style="background: #dc3545;">
+                                    <i class="fas fa-times-circle me-1"></i>
+                                    Declined
+                                </span>
                             <?php endif; ?>
                             <button class="btn-job btn-ignore" onclick="ignoreJob(<?php echo $job->id; ?>)">
                                 <i class="fas fa-eye-slash me-1"></i>

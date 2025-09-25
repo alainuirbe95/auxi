@@ -106,6 +106,14 @@ class M_favorites extends CI_Model
         $this->db->join('users u', 'j.host_id = u.user_id');
         $this->db->where('j.status', 'open');
         
+        // Filter out past jobs - only show future jobs and current day jobs
+        $today = date('Y-m-d');
+        $this->db->group_start();
+        $this->db->where('j.scheduled_date >', $today);
+        $this->db->or_where('j.scheduled_date', $today);
+        $this->db->or_where('j.scheduled_date IS NULL');
+        $this->db->group_end();
+        
         if (!empty($ignored_job_ids)) {
             $this->db->where_not_in('j.id', $ignored_job_ids);
         }
