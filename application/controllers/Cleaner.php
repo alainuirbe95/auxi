@@ -43,6 +43,24 @@ class Cleaner extends MY_Controller
     {
         $user_id = $this->auth_user_id;
         
+        // Get cleaner statistics
+        $stats = [
+            'total_jobs' => $this->M_jobs->get_total_jobs_for_cleaner($user_id),
+            'active_jobs' => $this->M_jobs->get_active_jobs_for_cleaner($user_id),
+            'completed_jobs' => $this->M_jobs->get_completed_jobs_count_for_cleaner($user_id),
+            'disputed_jobs' => $this->M_jobs->get_disputed_jobs_count_for_cleaner($user_id),
+            'closed_jobs' => $this->M_jobs->get_closed_jobs_count_for_cleaner($user_id),
+            'pending_offers' => $this->M_offers->get_pending_offers_count_for_cleaner($user_id),
+            'total_earnings' => $this->M_jobs->get_total_earnings_for_cleaner($user_id),
+            'potential_earnings' => $this->M_jobs->get_potential_earnings_for_cleaner($user_id)
+        ];
+        
+        // Get recent jobs data
+        $recent_jobs = $this->M_jobs->get_recent_jobs_for_cleaner($user_id, 5);
+        $assigned_jobs = $this->M_jobs->get_assigned_jobs_for_cleaner($user_id);
+        $pending_disputes = $this->M_jobs->get_cleaner_disputed_jobs($user_id);
+        $pending_price_adjustments = $this->M_jobs->get_pending_price_adjustments_for_cleaner($user_id);
+        
         // Get dashboard data
         $data = [
             'title' => 'Cleaner Dashboard',
@@ -50,7 +68,12 @@ class Cleaner extends MY_Controller
             'breadcrumbs' => [
                 ['title' => 'Dashboard', 'url' => '', 'active' => true]
             ],
-            'user_info' => $this->M_users->get_user_by_id($user_id)
+            'user_info' => $this->M_users->get_user_by_id($user_id),
+            'stats' => $stats,
+            'recent_jobs' => $recent_jobs,
+            'assigned_jobs' => $assigned_jobs,
+            'pending_disputes' => $pending_disputes,
+            'pending_price_adjustments' => $pending_price_adjustments
         ];
         
         // Load the cleaner sidebar content as a string
@@ -584,8 +607,38 @@ class Cleaner extends MY_Controller
             $end_date = date('Y-m-d'); // Today
         }
         
-        // Get earnings data
-        $earnings_data = $this->M_jobs->get_cleaner_earnings($user_id, $start_date, $end_date);
+        // Get closed jobs only with dispute information
+        $closed_jobs = $this->M_jobs->get_closed_jobs_for_cleaner($user_id, $start_date, $end_date);
+        
+        // Get dispute and price adjustment information for each job
+        $jobs_with_details = [];
+        foreach ($closed_jobs as $job) {
+            $job_details = $job;
+            $job_details->dispute_info = null;
+            $job_details->price_adjustments = [];
+            
+            // Get dispute information if applicable
+            if ($job->dispute_resolution) {
+                $job_details->dispute_info = [
+                    'disputed_at' => $job->disputed_at,
+                    'dispute_reason' => $job->dispute_reason,
+                    'dispute_resolution' => $job->dispute_resolution,
+                    'dispute_resolution_notes' => $job->dispute_resolution_notes,
+                    'dispute_resolved_at' => $job->dispute_resolved_at,
+                    'payment_amount' => $job->payment_amount
+                ];
+            }
+            
+            // Get price adjustment requests if applicable
+            if ($job->status === 'price_adjustment_requested') {
+                $this->load->model('M_counter_offers');
+                $job_details->price_adjustments = $this->M_counter_offers->get_counter_offers_for_job($job->id);
+            }
+            
+            $jobs_with_details[] = $job_details;
+        }
+        
+        // Get earnings summary
         $earnings_summary = $this->M_jobs->get_cleaner_earnings_summary($user_id);
         
         $data = [
@@ -596,7 +649,7 @@ class Cleaner extends MY_Controller
                 ['title' => 'Earnings', 'url' => '', 'active' => true]
             ],
             'user_info' => $this->M_users->get_user_by_id($user_id),
-            'earnings_data' => $earnings_data,
+            'closed_jobs' => $jobs_with_details,
             'earnings_summary' => $earnings_summary,
             'start_date' => $start_date,
             'end_date' => $end_date,
@@ -1044,7 +1097,7 @@ class Cleaner extends MY_Controller
             show_error('User not authenticated. Please login again.', 401);
         }
         
-        // Get completed jobs for this cleaner
+        // Get completed jobs for this cleaner (only completed status)
         $completed_jobs = $this->M_jobs->get_completed_jobs_for_cleaner($user_id);
         
         // Get dispute and price adjustment information for each job
@@ -1075,6 +1128,11 @@ class Cleaner extends MY_Controller
             $jobs_with_details[] = $job_details;
         }
         
+        // Get summary statistics
+        $total_jobs = $this->M_jobs->get_completed_jobs_count_for_cleaner($user_id);
+        $potential_earnings = $this->M_jobs->get_potential_earnings_for_cleaner($user_id);
+        $disputed_count = $this->M_jobs->get_disputed_jobs_count_for_cleaner($user_id);
+        
         // Prepare view data
         $data = [
             'title' => 'Completed Jobs',
@@ -1084,7 +1142,10 @@ class Cleaner extends MY_Controller
                 ['title' => 'Completed Jobs', 'url' => '', 'active' => true]
             ],
             'completed_jobs' => $jobs_with_details,
-            'user_id' => $user_id
+            'user_id' => $user_id,
+            'total_jobs' => $total_jobs,
+            'potential_earnings' => $potential_earnings,
+            'disputed_count' => $disputed_count
         ];
         
         // Load sidebar

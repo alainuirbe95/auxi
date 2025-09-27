@@ -44,71 +44,126 @@
     opacity: 0.9;
 }
 
+/* Statistics Cards */
+.stats-row {
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.stat-card.total .stat-number { color: #667eea; }
+.stat-card.earnings .stat-number { color: #28a745; }
+.stat-card.disputed .stat-number { color: #ffc107; }
+
+
 /* Table Styles */
 .jobs-table-container {
     background: white;
     border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    margin-bottom: 2rem;
 }
 
 .table-header {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    padding: 1.5rem 2rem;
+    padding: 1.5rem;
     border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .table-header h5 {
     margin: 0;
+    color: #333;
+    font-weight: 600;
+}
+
+.sort-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.table-responsive::-webkit-scrollbar {
+    width: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #28a745;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #218838;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    background: #f8f9fa;
+    border: none;
+    font-weight: 600;
     color: #495057;
-    font-weight: 600;
+    padding: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
-.enhanced-table {
-    width: 100%;
-    margin: 0;
-    border-collapse: collapse;
-    font-size: 0.95rem;
-}
-
-.enhanced-table thead {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    color: white;
-}
-
-.enhanced-table thead th {
-    padding: 1rem 1.5rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
+.table td {
     border: none;
-    white-space: nowrap;
-}
-
-.enhanced-table tbody tr {
-    border-bottom: 1px solid #e9ecef;
-    transition: all 0.3s ease;
-}
-
-.enhanced-table tbody tr:hover {
-    background-color: #f8f9fa;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.enhanced-table tbody td {
-    padding: 1.25rem 1.5rem;
+    padding: 1rem;
     vertical-align: middle;
-    border: none;
+    border-bottom: 1px solid #f1f3f4;
 }
 
-/* Status Badge Styles */
+.table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* Status Badges */
 .status-badge {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    border-radius: 25px;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -116,552 +171,422 @@
 }
 
 .status-completed {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    background: #d4edda;
+    color: #155724;
 }
 
 .status-disputed {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    background: #fff3cd;
+    color: #856404;
 }
 
 .status-closed {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+/* Action Buttons */
+.btn-details {
+    background: #6c757d;
     color: white;
-    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
-}
-
-/* Job Title Styling */
-.job-title {
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 1.1rem;
-    margin-bottom: 0.25rem;
-}
-
-.job-description {
-    color: #6c757d;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.job-address {
-    color: #495057;
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-/* Price Styling */
-.price-amount {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #28a745;
-}
-
-.price-label {
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
     font-size: 0.8rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
 }
 
-/* Date Styling */
-.date-info {
-    text-align: center;
+.btn-details:hover {
+    background: #5a6268;
+    color: white;
+    transform: translateY(-1px);
 }
 
-.date-label {
-    font-size: 0.8rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.25rem;
-}
-
-.date-value {
-    font-weight: 600;
-    color: #495057;
-    font-size: 0.9rem;
-}
-
-/* Host Info Styling */
-.host-info {
-    text-align: center;
-}
-
-.host-name {
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 0.95rem;
-    margin-bottom: 0.25rem;
-}
-
-.host-username {
-    color: #6c757d;
-    font-size: 0.8rem;
-    font-style: italic;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: #6c757d;
-}
-
-.empty-state i {
-    font-size: 4rem;
-    color: #dee2e6;
-    margin-bottom: 1rem;
-}
-
-.empty-state h4 {
-    color: #495057;
-    margin-bottom: 0.5rem;
-}
-
-.empty-state p {
-    font-size: 1.1rem;
-    margin-bottom: 0;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .enhanced-table {
-        font-size: 0.8rem;
-    }
-    
-    .enhanced-table thead th,
-    .enhanced-table tbody td {
-        padding: 0.75rem 0.5rem;
-    }
-    
-    .job-title {
-        font-size: 1rem;
-    }
-    
-    .price-amount {
-        font-size: 1rem;
-    }
-}
-
-/* Scrollable table container */
-.scrollable-table {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.scrollable-table::-webkit-scrollbar {
-    height: 8px;
-}
-
-.scrollable-table::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.scrollable-table::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
-}
-
-.scrollable-table::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-
-/* Expandable Details Styling */
-.details-row {
+/* Job Details Row */
+.job-details-row {
     background: #f8f9fa;
 }
 
 .job-details-content {
     padding: 1.5rem;
-    background: white;
-    border-radius: 10px;
-    margin: 1rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-top: 1px solid #dee2e6;
 }
 
-.details-section {
-    border-left: 4px solid #667eea;
-    padding-left: 1rem;
+.job-details-content h6 {
+    color: #495057;
+    font-weight: 600;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
 }
 
-/* Price Adjustment Styling */
-.price-adjustment-item {
-    background: #fff8e1;
-    border-left: 4px solid #ff9800 !important;
+.job-details-content .table-sm td {
+    padding: 0.5rem 0.75rem;
+    border: none;
 }
 
-.price-adjustment-item strong {
-    color: #e65100;
+.job-details-content .table-sm td:first-child {
+    width: 30%;
+    font-weight: 600;
+    color: #6c757d;
 }
 
-/* Dispute Information Styling */
-.dispute-reason-box {
-    background: #ffebee;
-    border-color: #f44336 !important;
-    max-height: 150px;
-    overflow-y: auto;
-}
-
-.resolution-notes-box {
-    max-height: 150px;
-    overflow-y: auto;
-}
-
-.price-info {
-    text-align: center;
-}
-
-.dispute-payment-info {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 0.5rem;
-    margin-top: 0.25rem;
-}
-
-.dispute-payment-info small {
-    font-size: 0.75rem;
-    line-height: 1.2;
-}
-
-/* Badge Styling */
-.badge {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-}
-
-.badge-warning {
-    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-    color: white;
-}
-
-.badge-success {
-    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
-    color: white;
-}
-
-/* Button Styling */
-.btn-outline-info {
-    border-color: #17a2b8;
-    color: #17a2b8;
+.price-adjustments .adjustment-item {
+    border: 1px solid #e9ecef;
     transition: all 0.3s ease;
 }
 
-.btn-outline-info:hover {
-    background: #17a2b8;
-    border-color: #17a2b8;
-    color: white;
-    transform: translateY(-1px);
+.price-adjustments .adjustment-item:hover {
+    background: #e9ecef !important;
+    transform: translateX(5px);
+}
+
+/* No Data State */
+.no-data {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #666;
+}
+
+.no-data i {
+    font-size: 4rem;
+    color: #ddd;
+    margin-bottom: 1rem;
+}
+
+.no-data h3 {
+    color: #999;
+    margin-bottom: 1rem;
+}
+
+.no-data p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .page-header {
+        padding: 1.5rem;
+    }
+    
+    .page-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .sort-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    
+    .table-responsive {
+        max-height: 500px;
+    }
+    
+    .table th, .table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .stat-card {
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .container-fluid {
+        padding: 0 10px;
+    }
+    
+    .page-header {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    
+    .table th, .table td {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.8rem;
+    }
+    
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.6rem;
+    }
 }
 </style>
 
-<div class="container-fluid">
+<div class="completed-jobs-container">
     <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="page-header">
-                <h2>
-                    <i class="fas fa-check-circle me-2"></i>
-                    Completed Jobs
-                </h2>
-                <p>View all your successfully completed cleaning jobs</p>
+    <div class="page-header">
+        <h2>
+            <i class="fas fa-check-circle me-2"></i>
+            Completed Jobs
+        </h2>
+        <p class="mb-0">View and manage all your completed cleaning jobs</p>
+    </div>
+
+    <!-- Statistics Row -->
+    <div class="row stats-row">
+        <div class="col-lg-4 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card total">
+                <div class="stat-number"><?php echo $total_jobs; ?></div>
+                <div class="stat-label">Total Completed</div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card earnings">
+                <div class="stat-number">$<?php echo number_format($potential_earnings, 2); ?></div>
+                <div class="stat-label">Potential Earnings</div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card disputed">
+                <div class="stat-number"><?php echo $disputed_count; ?></div>
+                <div class="stat-label">Disputed Jobs</div>
             </div>
         </div>
     </div>
 
+
     <!-- Jobs Table -->
-    <div class="row">
-        <div class="col-12">
-            <div class="jobs-table-container">
-                <div class="table-header">
-                    <h5>
-                        <i class="fas fa-clipboard-check me-2"></i>
-                        Your Completed Jobs (<?php echo count($completed_jobs); ?>)
-                    </h5>
+    <?php if (!empty($completed_jobs)): ?>
+        <div class="jobs-table-container">
+            <div class="table-header">
+                <h5>
+                    <i class="fas fa-list me-2"></i>
+                    Completed Jobs
+                </h5>
+                <div class="sort-controls">
+                    <small class="text-muted">
+                        <?php echo count($completed_jobs); ?> jobs completed
+                    </small>
                 </div>
-                
-                <?php if (!empty($completed_jobs)): ?>
-                <div class="scrollable-table">
-                    <table class="enhanced-table">
-                        <thead>
-                            <tr>
-                                <th>Job Details</th>
-                                <th>Host</th>
-                                <th>Price</th>
-                                <th>Completed Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($completed_jobs as $job): ?>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Job Title</th>
+                            <th>Host</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Completed</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($completed_jobs as $job): ?>
                             <tr>
                                 <td>
-                                    <div class="job-title"><?php echo htmlspecialchars($job->title); ?></div>
-                                    <div class="job-description"><?php echo htmlspecialchars($job->description); ?></div>
-                                    <div class="job-address">
-                                        <i class="fas fa-map-marker-alt me-1"></i>
-                                        <?php echo htmlspecialchars($job->address . ', ' . $job->city . ', ' . $job->state); ?>
-                                    </div>
+                                    <div class="fw-bold"><?php echo htmlspecialchars($job->title); ?></div>
+                                    <small class="text-muted">
+                                        <?php echo htmlspecialchars(substr($job->description, 0, 50)) . (strlen($job->description) > 50 ? '...' : ''); ?>
+                                    </small>
                                 </td>
-                                <td class="host-info">
-                                    <div class="host-name">
-                                        <?php echo htmlspecialchars($job->host_first_name . ' ' . $job->host_last_name); ?>
-                                    </div>
-                                    <div class="host-username">
-                                        @<?php echo htmlspecialchars($job->host_username); ?>
-                                    </div>
+                                <td>
+                                    <div><?php echo htmlspecialchars($job->host_name); ?></div>
+                                    <small class="text-muted"><?php echo htmlspecialchars($job->host_email); ?></small>
                                 </td>
                                 <td>
                                     <div class="price-info">
-                                        <!-- Show original suggested price -->
-                                        <div class="price-amount">
+                                        <span class="fw-bold text-success">
                                             $<?php echo number_format($job->suggested_price, 2); ?>
-                                        </div>
-                                        <div class="price-label">Original Price</div>
-                                        
-                                        <!-- Show final price if different -->
-                                        <?php if ($job->final_price && $job->final_price != $job->suggested_price): ?>
-                                            <small class="text-success d-block">
-                                                Final: $<?php echo number_format($job->final_price, 2); ?>
-                                            </small>
-                                        <?php elseif ($job->accepted_price && $job->accepted_price != $job->suggested_price): ?>
-                                            <small class="text-success d-block">
-                                                Agreed: $<?php echo number_format($job->accepted_price, 2); ?>
+                                        </span>
+                                        <?php if ($job->dispute_info && $job->dispute_info['payment_amount']): ?>
+                                            <br><small class="text-info">
+                                                Final: $<?php echo number_format($job->dispute_info['payment_amount'], 2); ?>
                                             </small>
                                         <?php endif; ?>
-                                        
-                                        <?php if ($job->dispute_info && $job->dispute_info['dispute_resolution']): ?>
-                                            <!-- Dispute Resolution Payment Info -->
-                                            <?php 
-                                            $original_amount = $job->final_price ?: $job->accepted_price;
-                                            $cleaner_amount = $job->dispute_info['payment_amount'] ?: 0;
-                                            $host_refund = $original_amount - $cleaner_amount;
-                                            ?>
-                                            <div class="dispute-payment-info mt-1">
-                                                <small class="text-warning d-block">
-                                                    <strong>Dispute Resolution:</strong>
-                                                </small>
-                                                <small class="text-success d-block">
-                                                    Received: $<?php echo number_format($cleaner_amount, 2); ?>
-                                                </small>
-                                                <small class="text-muted d-block">
-                                                    Host Refund: $<?php echo number_format($host_refund, 2); ?>
-                                                </small>
-                                            </div>
-                                        <?php elseif ($job->status === 'closed' && $job->payment_amount): ?>
-                                            <!-- Regular Payment Info -->
-                                            <small class="text-info d-block">
-                                                Paid: $<?php echo number_format($job->payment_amount, 2); ?>
+                                        <?php if ($job->dispute_info): ?>
+                                            <br><small class="text-warning">
+                                                <i class="fas fa-exclamation-triangle"></i> Disputed
                                             </small>
                                         <?php endif; ?>
-                                    </div>
-                                </td>
-                                <td class="date-info">
-                                    <div class="date-label">Completed</div>
-                                    <div class="date-value">
-                                        <?php echo date('M j, Y', strtotime($job->completed_at)); ?>
-                                    </div>
-                                    <div class="date-value" style="font-size: 0.8rem; color: #6c757d;">
-                                        <?php echo date('g:i A', strtotime($job->completed_at)); ?>
+                                        <?php if ($job->status === 'closed' && $job->dispute_resolution): ?>
+                                            <br><small class="text-muted">
+                                                <i class="fas fa-check-circle"></i> Resolved
+                                            </small>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                                 <td>
-                                    <?php
-                                    $status_class = 'status-completed';
-                                    $status_text = 'Completed';
-                                    $dispute_info = '';
-                                    
-                                    // Check job status and dispute resolution
-                                    if ($job->status === 'disputed') {
-                                        $status_class = 'status-disputed';
-                                        $status_text = 'Disputed';
-                                    } elseif ($job->status === 'closed') {
-                                        if ($job->dispute_resolution) {
-                                            $status_class = 'status-disputed';
-                                            $status_text = 'Dispute Resolved';
-                                            $dispute_info = '<br><small class="text-muted">Resolved: ' . date('M j, Y', strtotime($job->dispute_resolved_at)) . '</small>';
-                                        } else {
-                                            $status_class = 'status-closed';
-                                            $status_text = 'Closed';
-                                        }
-                                    } elseif ($job->status === 'completed') {
-                                        $status_class = 'status-completed';
-                                        $status_text = 'Completed';
-                                    }
-                                    ?>
-                                    <span class="status-badge <?php echo $status_class; ?>">
-                                        <?php echo $status_text; ?>
+                                    <span class="status-badge status-<?php echo $job->status; ?>">
+                                        <?php echo ucfirst(str_replace('_', ' ', $job->status)); ?>
                                     </span>
-                                    <?php echo $dispute_info; ?>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-info" onclick="toggleJobDetails(<?php echo $job->id; ?>)">
-                                        <i class="fas fa-info-circle"></i> Details
+                                    <?php if ($job->completed_at): ?>
+                                        <div><?php echo date('M j, Y', strtotime($job->completed_at)); ?></div>
+                                        <small class="text-muted"><?php echo date('g:i A', strtotime($job->completed_at)); ?></small>
+                                    <?php else: ?>
+                                        <span class="text-muted">Not set</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <button class="btn btn-details toggle-details" 
+                                            data-job-id="<?php echo $job->id; ?>"
+                                            onclick="toggleJobDetails(<?php echo $job->id; ?>)">
+                                        <i class="fas fa-chevron-down me-1"></i>
+                                        Details
                                     </button>
                                 </td>
                             </tr>
-                            
                             <!-- Expandable Details Row -->
-                            <tr id="details-<?php echo $job->id; ?>" class="details-row" style="display: none;">
+                            <tr class="job-details-row" id="details-<?php echo $job->id; ?>" style="display: none;">
                                 <td colspan="6">
                                     <div class="job-details-content">
-                                        
-                                        <!-- Price Adjustment Requests -->
-                                        <?php if (!empty($job->price_adjustments)): ?>
-                                        <div class="details-section mb-3">
-                                            <h6 class="text-warning mb-2">
-                                                <i class="fas fa-dollar-sign me-2"></i>
-                                                Price Adjustment Requests
-                                            </h6>
-                                            <?php foreach ($job->price_adjustments as $adjustment): ?>
-                                                <div class="price-adjustment-item border rounded p-3 mb-2">
-                                                    <div class="row">
-                                                        <div class="col-md-8">
-                                                            <strong>Requested Amount:</strong> $<?php echo number_format($adjustment->requested_amount, 2); ?><br>
-                                                            <strong>Reason:</strong> <?php echo htmlspecialchars($adjustment->price_reason); ?><br>
-                                                            <small class="text-muted">
-                                                                <i class="fas fa-clock me-1"></i>
-                                                                Requested: <?php echo date('M j, Y g:i A', strtotime($adjustment->created_at)); ?>
-                                                            </small>
-                                                        </div>
-                                                        <div class="col-md-4 text-end">
-                                                            <span class="badge badge-warning">
-                                                                <?php echo ucfirst($adjustment->status); ?>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        </div>
-                                        <?php endif; ?>
-
-                                        <!-- Dispute Information -->
-                                        <?php if (!empty($job->dispute_info) || $job->status === 'disputed' || ($job->status === 'closed' && $job->dispute_resolution)): ?>
-                                        <div class="details-section">
-                                            <h6 class="text-danger mb-2">
-                                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                                Dispute Information
-                                            </h6>
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <h6 class="text-primary mb-2">Dispute Details</h6>
-                                                    <?php 
-                                                    // Use dispute_info array if available, otherwise use job properties directly
-                                                    $disputed_at = !empty($job->dispute_info) ? $job->dispute_info['disputed_at'] : $job->disputed_at;
-                                                    $dispute_reason = !empty($job->dispute_info) ? $job->dispute_info['dispute_reason'] : $job->dispute_reason;
-                                                    ?>
-                                                    <p><strong>Disputed On:</strong> <?php echo $disputed_at ? date('M j, Y g:i A', strtotime($disputed_at)) : 'Not available'; ?></p>
-                                                    <p><strong>Reason:</strong></p>
-                                                    <div class="dispute-reason-box p-3 bg-light border rounded mb-3">
-                                                        <small><?php echo $dispute_reason ? nl2br(htmlspecialchars($dispute_reason)) : 'No reason provided'; ?></small>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <?php 
-                                                    // Check if dispute is resolved
-                                                    $is_resolved = !empty($job->dispute_info) ? $job->dispute_info['dispute_resolution'] : $job->dispute_resolution;
-                                                    $resolved_at = !empty($job->dispute_info) ? $job->dispute_info['dispute_resolved_at'] : $job->dispute_resolved_at;
-                                                    $resolution_notes = !empty($job->dispute_info) ? $job->dispute_info['dispute_resolution_notes'] : $job->dispute_resolution_notes;
-                                                    ?>
-                                                    <?php if ($is_resolved): ?>
-                                                        <h6 class="text-success mb-2">Resolution</h6>
-                                                        <p><strong>Resolved On:</strong> <?php echo $resolved_at ? date('M j, Y g:i A', strtotime($resolved_at)) : 'Not available'; ?></p>
-                                                        
-                                                        <?php 
-                                                        // Get the resolution type
-                                                        $resolution_type = !empty($job->dispute_info) ? $job->dispute_info['dispute_resolution'] : $job->dispute_resolution;
-                                                        $resolution_badge_class = 'badge-success';
-                                                        $resolution_text = 'Resolved';
-                                                        
-                                                        if ($resolution_type === 'resolved_in_favor_cleaner') {
-                                                            $resolution_badge_class = 'badge-success';
-                                                            $resolution_text = 'Resolved in Your Favor';
-                                                        } elseif ($resolution_type === 'resolved_in_favor_host') {
-                                                            $resolution_badge_class = 'badge-warning';
-                                                            $resolution_text = 'Resolved in Host\'s Favor';
-                                                        } elseif ($resolution_type === 'compromise') {
-                                                            $resolution_badge_class = 'badge-info';
-                                                            $resolution_text = 'Compromise Resolution';
-                                                        }
-                                                        ?>
-                                                        
-                                                        <p><strong>Status:</strong> <span class="badge <?php echo $resolution_badge_class; ?>"><?php echo $resolution_text; ?></span></p>
-                                                        <?php if ($resolution_notes): ?>
-                                                            <p><strong>Resolution Notes:</strong></p>
-                                                            <div class="resolution-notes-box p-3 bg-success bg-opacity-10 border border-success rounded">
-                                                                <small><?php echo nl2br(htmlspecialchars($resolution_notes)); ?></small>
-                                                            </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="mb-3">
+                                                    <i class="fas fa-info-circle text-primary me-2"></i>
+                                                    Job Information
+                                                </h6>
+                                                <table class="table table-sm table-borderless">
+                                                    <tr>
+                                                        <td><strong>Title:</strong></td>
+                                                        <td><?php echo htmlspecialchars($job->title); ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Description:</strong></td>
+                                                        <td><?php echo htmlspecialchars($job->description); ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Original Price:</strong></td>
+                                                        <td class="text-success fw-bold">$<?php echo number_format($job->suggested_price, 2); ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Status:</strong></td>
+                                                        <td><span class="status-badge status-<?php echo $job->status; ?>"><?php echo ucfirst(str_replace('_', ' ', $job->status)); ?></span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Completed:</strong></td>
+                                                        <td><?php echo $job->completed_at ? date('M j, Y g:i A', strtotime($job->completed_at)) : 'Not set'; ?></td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6 class="mb-3">
+                                                    <i class="fas fa-user text-info me-2"></i>
+                                                    Host Information
+                                                </h6>
+                                                <table class="table table-sm table-borderless">
+                                                    <tr>
+                                                        <td><strong>Name:</strong></td>
+                                                        <td><?php echo htmlspecialchars($job->host_name); ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Email:</strong></td>
+                                                        <td><?php echo htmlspecialchars($job->host_email); ?></td>
+                                                    </tr>
+                                                </table>
+                                                
+                                                <?php if ($job->dispute_info): ?>
+                                                    <h6 class="mb-3 mt-4">
+                                                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                                        Dispute Information
+                                                    </h6>
+                                                    <table class="table table-sm table-borderless">
+                                                        <tr>
+                                                            <td><strong>Disputed At:</strong></td>
+                                                            <td><?php echo $job->dispute_info['disputed_at'] ? date('M j, Y g:i A', strtotime($job->dispute_info['disputed_at'])) : 'N/A'; ?></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><strong>Reason:</strong></td>
+                                                            <td><?php echo $job->dispute_info['dispute_reason'] ? htmlspecialchars($job->dispute_info['dispute_reason']) : 'N/A'; ?></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><strong>Resolution:</strong></td>
+                                                            <td><?php echo $job->dispute_info['dispute_resolution'] ? ucfirst(str_replace('_', ' ', $job->dispute_info['dispute_resolution'])) : 'Pending'; ?></td>
+                                                        </tr>
+                                                        <?php if ($job->dispute_info['dispute_resolution_notes']): ?>
+                                                            <tr>
+                                                                <td><strong>Notes:</strong></td>
+                                                                <td><?php echo htmlspecialchars($job->dispute_info['dispute_resolution_notes']); ?></td>
+                                                            </tr>
                                                         <?php endif; ?>
-                                                    <?php else: ?>
-                                                        <h6 class="text-warning mb-2">Under Review</h6>
-                                                        <p><strong>Status:</strong> <span class="badge badge-warning">Under Review</span></p>
-                                                        <p class="text-muted">A moderator is reviewing the dispute and will provide a resolution soon.</p>
-                                                    <?php endif; ?>
-                                                </div>
+                                                        <?php if ($job->dispute_info['payment_amount']): ?>
+                                                            <tr>
+                                                                <td><strong>Final Payment:</strong></td>
+                                                                <td class="text-success fw-bold">$<?php echo number_format($job->dispute_info['payment_amount'], 2); ?></td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                        <?php if ($job->dispute_info['dispute_resolved_at']): ?>
+                                                            <tr>
+                                                                <td><strong>Resolved At:</strong></td>
+                                                                <td><?php echo date('M j, Y g:i A', strtotime($job->dispute_info['dispute_resolved_at'])); ?></td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                    </table>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($job->price_adjustments)): ?>
+                                                    <h6 class="mb-3 mt-4">
+                                                        <i class="fas fa-dollar-sign text-success me-2"></i>
+                                                        Price Adjustments
+                                                    </h6>
+                                                    <div class="price-adjustments">
+                                                        <?php foreach ($job->price_adjustments as $adjustment): ?>
+                                                            <div class="adjustment-item mb-2 p-2 bg-light rounded">
+                                                                <div class="d-flex justify-content-between">
+                                                                    <span class="fw-bold">$<?php echo number_format($adjustment->requested_amount, 2); ?></span>
+                                                                    <small class="text-muted"><?php echo date('M j, Y', strtotime($adjustment->created_at)); ?></small>
+                                                                </div>
+                                                                <?php if ($adjustment->reason): ?>
+                                                                    <div class="text-muted small"><?php echo htmlspecialchars($adjustment->reason); ?></div>
+                                                                <?php endif; ?>
+                                                                <div class="mt-1">
+                                                                    <span class="badge badge-<?php echo $adjustment->status === 'pending' ? 'warning' : ($adjustment->status === 'approved' ? 'success' : 'danger'); ?>">
+                                                                        <?php echo ucfirst($adjustment->status); ?>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
-                                        <?php endif; ?>
-
-                                        <?php if (empty($job->price_adjustments) && empty($job->dispute_info) && $job->status !== 'disputed' && !($job->status === 'closed' && $job->dispute_resolution)): ?>
-                                        <div class="text-center text-muted py-3">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            No additional details available for this job.
-                                        </div>
-                                        <?php endif; ?>
-                                        
                                     </div>
                                 </td>
                             </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-clipboard-check"></i>
-                    <h4>No Completed Jobs Yet</h4>
-                    <p>You haven't completed any jobs yet. Start by browsing available jobs and completing your first assignment!</p>
-                    <a href="<?php echo base_url('cleaner'); ?>" class="btn btn-primary mt-3">
-                        <i class="fas fa-search me-2"></i>
-                        Browse Available Jobs
-                    </a>
-                </div>
-                <?php endif; ?>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
+    <?php else: ?>
+        <div class="no-data">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>No Completed Jobs Found</h3>
+            <p>
+                You haven't completed any jobs yet. Once you complete your first job, it will appear here.
+            </p>
+        </div>
+    <?php endif; ?>
 </div>
 
-<script>
-$(document).ready(function() {
-    // Add any additional JavaScript functionality here if needed
-    console.log('Completed Jobs page loaded');
-});
 
-// Toggle job details
+<script>
+// Toggle job details row
 function toggleJobDetails(jobId) {
     const detailsRow = document.getElementById('details-' + jobId);
-    const button = event.target.closest('button');
-    const icon = button.querySelector('i');
+    const toggleButton = document.querySelector(`[data-job-id="${jobId}"]`);
+    const chevronIcon = toggleButton.querySelector('i');
     
-    if (detailsRow.style.display === 'none') {
+    if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {
+        // Show details
         detailsRow.style.display = 'table-row';
-        icon.className = 'fas fa-chevron-up';
-        button.innerHTML = '<i class="fas fa-chevron-up"></i> Hide';
+        chevronIcon.classList.remove('fa-chevron-down');
+        chevronIcon.classList.add('fa-chevron-up');
+        toggleButton.innerHTML = '<i class="fas fa-chevron-up me-1"></i>Hide Details';
     } else {
+        // Hide details
         detailsRow.style.display = 'none';
-        icon.className = 'fas fa-info-circle';
-        button.innerHTML = '<i class="fas fa-info-circle"></i> Details';
+        chevronIcon.classList.remove('fa-chevron-up');
+        chevronIcon.classList.add('fa-chevron-down');
+        toggleButton.innerHTML = '<i class="fas fa-chevron-down me-1"></i>Details';
     }
 }
 </script>

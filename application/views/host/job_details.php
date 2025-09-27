@@ -61,6 +61,49 @@
                                             </div>
                                         </div>
                                         
+                                        <!-- OTP Information for Assigned Jobs -->
+                                        <?php if ($job->status === 'assigned' && !empty($job->otp_code)): ?>
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="alert alert-info" style="border-left: 4px solid #17a2b8;">
+                                                    <h6 class="alert-heading">
+                                                        <i class="fas fa-key me-2"></i>
+                                                        Service Code (OTP) for Cleaner
+                                                    </h6>
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <div>
+                                                            <p class="mb-2">Share this code with your assigned cleaner to start the service:</p>
+                                                            <div class="otp-display">
+                                                                <span class="otp-code" style="
+                                                                    display: inline-block;
+                                                                    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+                                                                    color: white;
+                                                                    font-size: 1.5rem;
+                                                                    font-weight: 700;
+                                                                    padding: 0.75rem 1.5rem;
+                                                                    border-radius: 10px;
+                                                                    letter-spacing: 0.2em;
+                                                                    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+                                                                    font-family: monospace;
+                                                                "><?php echo $job->otp_code; ?></span>
+                                                            </div>
+                                                            <small class="text-muted mt-2 d-block">
+                                                                <i class="fas fa-info-circle me-1"></i>
+                                                                The cleaner will need this code to start the job. Share it securely when they arrive.
+                                                            </small>
+                                                        </div>
+                                                        <div class="ms-3">
+                                                            <button class="btn btn-outline-info btn-sm" onclick="copyToClipboard('<?php echo $job->otp_code; ?>')">
+                                                                <i class="fas fa-copy me-1"></i>
+                                                                Copy Code
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
+                                        
                                         <!-- Additional Job Details -->
                                         <div class="row mt-3">
                                             <div class="col-sm-6">
@@ -387,3 +430,41 @@
     background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
 }
 </style>
+
+<script>
+function copyToClipboard(text) {
+    // Create a temporary input element
+    const tempInput = document.createElement('input');
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    
+    // Select and copy the text
+    tempInput.select();
+    tempInput.setSelectionRange(0, 99999); // For mobile devices
+    
+    try {
+        document.execCommand('copy');
+        
+        // Show success message
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+        button.classList.remove('btn-outline-info');
+        button.classList.add('btn-success');
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-info');
+        }, 2000);
+        
+    } catch (err) {
+        console.error('Failed to copy text: ', err);
+        alert('Failed to copy to clipboard. Please copy manually: ' + text);
+    }
+    
+    // Remove the temporary input
+    document.body.removeChild(tempInput);
+}
+</script>

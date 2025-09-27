@@ -39,7 +39,7 @@ if (!function_exists('time_ago')) {
 }
 
 .assigned-header {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #6f42c1 0%, #9c27b0 100%);
     border-radius: 20px;
     padding: 2rem;
     margin-bottom: 2rem;
@@ -62,7 +62,7 @@ if (!function_exists('time_ago')) {
 
 .jobs-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
     gap: 2rem;
     margin-bottom: 3rem;
 }
@@ -74,7 +74,7 @@ if (!function_exists('time_ago')) {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
     position: relative;
-    border-left: 4px solid #28a745; /* Green border for assigned */
+    border-left: 4px solid #6f42c1; /* Purple border for assigned */
 }
 
 .job-card:hover {
@@ -86,7 +86,7 @@ if (!function_exists('time_ago')) {
     position: absolute;
     top: 1rem;
     right: 1rem;
-    background: rgba(40, 167, 69, 0.9);
+    background: rgba(111, 66, 193, 0.9);
     color: white;
     padding: 0.5rem 0.75rem;
     border-radius: 20px;
@@ -95,59 +95,84 @@ if (!function_exists('time_ago')) {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    box-shadow: 0 2px 8px rgba(111, 66, 193, 0.3);
     z-index: 5;
 }
 
+.in-progress-badge {
+    background: rgba(255, 193, 7, 0.9) !important;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3) !important;
+}
+
+.completed-badge {
+    background: rgba(40, 167, 69, 0.9) !important;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3) !important;
+}
+
+.price-adjustment-badge {
+    background: rgba(220, 53, 69, 0.9) !important;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3) !important;
+}
+
 .job-header {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    padding: 1.5rem;
-    color: white;
+    padding: 2rem 2rem 1rem 2rem;
     position: relative;
 }
 
 .job-title {
     font-size: 1.25rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    color: #333;
+    margin: 0 0 1rem 0;
     line-height: 1.3;
 }
 
 .job-price {
-    font-size: 1.5rem;
-    font-weight: 800;
-    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #6f42c1 0%, #9c27b0 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 15px;
+    text-align: center;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);
 }
 
-.job-price .accepted-price {
-    color: #fff3cd;
-    font-size: 1rem;
-    font-weight: 600;
+.job-price .price-amount {
+    font-size: 1.5rem;
+    font-weight: 800;
+    display: block;
+}
+
+.accepted-price {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-top: 0.25rem;
 }
 
 .job-date {
+    color: #666;
     font-size: 0.9rem;
-    opacity: 0.9;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .job-body {
-    padding: 1.5rem;
+    padding: 0 2rem 2rem 2rem;
 }
 
 .job-description {
     color: #666;
     line-height: 1.6;
-    margin-bottom: 1rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
 }
 
 .job-details {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    gap: 0.75rem;
     margin-bottom: 1.5rem;
 }
 
@@ -155,46 +180,57 @@ if (!function_exists('time_ago')) {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.9rem;
     color: #666;
+    font-size: 0.9rem;
 }
 
 .job-detail i {
-    color: #28a745;
+    color: #6f42c1;
     width: 16px;
 }
 
+.job-detail span {
+    flex: 1;
+    word-break: break-word;
+}
+
 .job-host {
-    background: #f8f9fa;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     padding: 1rem;
-    border-radius: 10px;
+    border-radius: 15px;
     margin-bottom: 1.5rem;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1rem;
 }
 
 .host-avatar {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
+    background: linear-gradient(135deg, #6f42c1 0%, #9c27b0 100%);
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
     font-weight: 700;
     font-size: 1.1rem;
 }
 
+.host-info {
+    flex: 1;
+}
+
 .host-info h6 {
-    margin: 0;
-    font-weight: 600;
+    margin: 0 0 0.25rem 0;
     color: #333;
+    font-weight: 600;
 }
 
 .host-info small {
     color: #666;
+    display: block;
+    margin-bottom: 0.5rem;
 }
 
 .host-contact {
@@ -204,7 +240,7 @@ if (!function_exists('time_ago')) {
 }
 
 .host-contact a {
-    color: #28a745;
+    color: #6f42c1;
     text-decoration: none;
     font-size: 0.8rem;
     display: flex;
@@ -213,7 +249,7 @@ if (!function_exists('time_ago')) {
 }
 
 .host-contact a:hover {
-    color: #20c997;
+    color: #9c27b0;
     text-decoration: underline;
 }
 
@@ -235,13 +271,13 @@ if (!function_exists('time_ago')) {
 }
 
 .btn-start-job {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #6f42c1 0%, #9c27b0 100%);
     color: white;
     border: none;
 }
 
 .btn-start-job:hover {
-    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+    background: linear-gradient(135deg, #5a32a3 0%, #8e24aa 100%);
     color: white;
     text-decoration: none;
     transform: translateY(-1px);
@@ -264,12 +300,12 @@ if (!function_exists('time_ago')) {
     padding: 1rem;
     border-radius: 10px;
     margin-bottom: 1rem;
-    border-left: 4px solid #28a745;
+    border-left: 4px solid #6f42c1;
 }
 
 .assignment-info h6 {
     margin: 0 0 0.5rem 0;
-    color: #28a745;
+    color: #6f42c1;
     font-weight: 600;
 }
 
@@ -277,36 +313,68 @@ if (!function_exists('time_ago')) {
     color: #666;
 }
 
-.otp-info {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(40, 167, 69, 0.2);
-}
-
-.otp-code {
-    text-align: center;
-    margin-top: 0.5rem;
-}
-
-.otp-number {
-    display: inline-block;
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    font-size: 1.5rem;
-    font-weight: 700;
-    padding: 0.75rem 1.5rem;
+.address-info {
+    background: linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%);
+    padding: 1rem;
     border-radius: 10px;
-    letter-spacing: 0.2em;
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid #ff9800;
 }
 
-.otp-note {
-    display: block;
+.address-info h6 {
+    margin: 0 0 0.5rem 0;
+    color: #ff9800;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.address-info .address-details {
     color: #666;
-    font-size: 0.85rem;
-    line-height: 1.4;
-    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.sensitive-info {
+    background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%);
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    border-left: 4px solid #e91e63;
+}
+
+.sensitive-info h6 {
+    margin: 0 0 0.5rem 0;
+    color: #e91e63;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sensitive-info .info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(233, 30, 99, 0.1);
+}
+
+.sensitive-info .info-item:last-child {
+    border-bottom: none;
+}
+
+.sensitive-info .info-label {
+    font-weight: 600;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.sensitive-info .info-value {
+    color: #333;
+    font-size: 0.9rem;
+    font-family: monospace;
 }
 
 .no-jobs {
@@ -349,6 +417,45 @@ if (!function_exists('time_ago')) {
     .host-contact {
         flex-direction: column;
     }
+    
+    .job-header, .job-body {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+.btn-active {
+    background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%) !important;
+    color: white !important;
+    border: none !important;
+    cursor: not-allowed !important;
+}
+
+.btn-disabled {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+    color: white !important;
+    border: none !important;
+    cursor: not-allowed !important;
+}
+
+.btn-complete-job {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.btn-complete-job:hover {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%) !important;
+    color: white !important;
+    text-decoration: none !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-completed {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+    color: white !important;
+    border: none !important;
+    cursor: not-allowed !important;
 }
 </style>
 
@@ -371,7 +478,7 @@ if (!function_exists('time_ago')) {
                     <div class="job-header">
                         <h3 class="job-title"><?php echo htmlspecialchars($job->title); ?></h3>
                         <div class="job-price">
-                            $<?php echo number_format($job->accepted_price, 2); ?>
+                            <span class="price-amount">$<?php echo number_format($job->accepted_price, 2); ?></span>
                             <div class="accepted-price">Accepted Price</div>
                         </div>
                         <div class="job-date">
@@ -423,20 +530,42 @@ if (!function_exists('time_ago')) {
                                 <?php endif; ?>
                                 Job ID: #<?php echo $job->id; ?>
                             </small>
-                            <?php if (!empty($job->otp_code)): ?>
-                                <div class="otp-info">
-                                    <h6>
-                                        <i class="fas fa-key me-1"></i>
-                                        Service Code (OTP)
-                                    </h6>
-                                    <div class="otp-code">
-                                        <span class="otp-number"><?php echo $job->otp_code; ?></span>
-                                        <small class="otp-note">
-                                            Share this code with the host when you arrive to start the service
-                                        </small>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
+                        </div>
+                        
+                        <!-- Address Information -->
+                        <div class="address-info">
+                            <h6>
+                                <i class="fas fa-map-marker-alt"></i>
+                                Service Address
+                            </h6>
+                            <div class="address-details">
+                                <strong><?php echo htmlspecialchars($job->address); ?></strong><br>
+                                <?php echo htmlspecialchars($job->city . ', ' . $job->state . ' ' . $job->zip_code); ?><br>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Full address will be provided by the host upon arrival
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Sensitive Information -->
+                        <div class="sensitive-info">
+                            <h6>
+                                <i class="fas fa-shield-alt"></i>
+                                Service Information
+                            </h6>
+                            <div class="info-item">
+                                <span class="info-label">Access Instructions:</span>
+                                <span class="info-value"><?php echo !empty($job->access_instructions) ? htmlspecialchars($job->access_instructions) : 'Contact host'; ?></span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Special Requirements:</span>
+                                <span class="info-value"><?php echo !empty($job->special_requirements) ? htmlspecialchars($job->special_requirements) : 'None'; ?></span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Emergency Contact:</span>
+                                <span class="info-value"><?php echo !empty($job->emergency_contact) ? htmlspecialchars($job->emergency_contact) : 'Host contact'; ?></span>
+                            </div>
                         </div>
                         
                         <p class="job-description">
@@ -444,10 +573,6 @@ if (!function_exists('time_ago')) {
                         </p>
                         
                         <div class="job-details">
-                            <div class="job-detail">
-                                <i class="fas fa-map-marker-alt"></i>
-                                <span><?php echo htmlspecialchars($job->city . ', ' . $job->state); ?></span>
-                            </div>
                             <div class="job-detail">
                                 <i class="fas fa-home"></i>
                                 <span>
@@ -578,64 +703,10 @@ if (!function_exists('time_ago')) {
             <h3>No Assigned Jobs</h3>
             <p>
                 You don't have any assigned jobs yet. 
-                <a href="<?php echo base_url('cleaner/jobs'); ?>" style="color: #28a745; text-decoration: none;">Browse available jobs</a> 
+                <a href="<?php echo base_url('cleaner/jobs'); ?>" style="color: #6f42c1; text-decoration: none;">Browse available jobs</a> 
                 and make offers to get started!
             </p>
         </div>
     <?php endif; ?>
 </div>
-
-
-<style>
-.btn-active {
-    background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%) !important;
-    color: white !important;
-    border: none !important;
-    cursor: not-allowed !important;
-}
-
-.btn-disabled {
-    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
-    color: white !important;
-    border: none !important;
-    cursor: not-allowed !important;
-    opacity: 0.7 !important;
-}
-
-.btn-complete-job {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
-    color: white !important;
-    border: none !important;
-}
-
-.btn-complete-job:hover {
-    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%) !important;
-    color: white !important;
-    text-decoration: none !important;
-    transform: translateY(-1px) !important;
-}
-
-.btn-completed {
-    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
-    color: white !important;
-    border: none !important;
-    cursor: not-allowed !important;
-}
-
-.in-progress-badge {
-    background: rgba(255, 193, 7, 0.9) !important;
-    color: white !important;
-}
-
-.completed-badge {
-    background: rgba(108, 117, 125, 0.9) !important;
-    color: white !important;
-}
-
-.price-adjustment-badge {
-    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important;
-    color: white !important;
-}
-</style>
-    </div>
 </div>

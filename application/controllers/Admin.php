@@ -9,7 +9,7 @@ class Admin extends MY_Controller {
         $this->load->library('grocery_CRUD');
 
         $this->load->helper('form');
-        $this->load->helper('Breadcrumb_helper');
+        // $this->load->helper('Breadcrumb_helper'); // Removed - helper deleted
 
         $this->load->model('M_users');
         $this->load->model('M_job_flags');

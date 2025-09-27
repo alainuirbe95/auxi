@@ -344,14 +344,46 @@
 
 /* Mobile responsive */
 @media (max-width: 991.98px) {
-  .modern-sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+  .app-sidebar.modern-sidebar {
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s ease !important;
+    z-index: 1050 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    width: 280px !important;
+    overflow-y: auto !important;
   }
   
-  .modern-sidebar.show {
-    transform: translateX(0);
+  .app-sidebar.modern-sidebar.show {
+    transform: translateX(0) !important;
   }
+  
+  /* Ensure sidebar is above other content */
+  .app-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    width: 280px !important;
+    z-index: 1050 !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Make sure the modern sidebar gradient shows */
+  .app-sidebar.modern-sidebar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  }
+}
+
+/* Sidebar Wrapper - Enable Scrolling */
+.sidebar-wrapper {
+  height: calc(100vh - 120px) !important;
+  height: calc(-webkit-fill-available - 120px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 0.5rem;
 }
 
 /* Custom scrollbar */
@@ -406,7 +438,48 @@ $(document).ready(function() {
     // Close sidebar on mobile when clicking a nav link
     $('.modern-nav-link').on('click', function() {
         if ($(window).width() <= 991.98) {
-            $('.modern-sidebar').removeClass('show');
+            $('.app-sidebar').removeClass('show');
+            $('.sidebar-overlay').removeClass('show');
+        }
+    });
+    
+    // Enhanced mobile sidebar toggle with debug logging
+    $('.mobile-sidebar-toggle').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('Cleaner mobile toggle clicked');
+        
+        var $sidebar = $('.app-sidebar');
+        var $overlay = $('.sidebar-overlay');
+        
+        console.log('Before toggle - Sidebar classes:', $sidebar.attr('class'));
+        console.log('Before toggle - Overlay classes:', $overlay.attr('class'));
+        console.log('Before toggle - Sidebar has show class:', $sidebar.hasClass('show'));
+        console.log('Before toggle - Overlay has show class:', $overlay.hasClass('show'));
+        
+        $sidebar.toggleClass('show');
+        $overlay.toggleClass('show');
+        
+        console.log('After toggle - Sidebar classes:', $sidebar.attr('class'));
+        console.log('After toggle - Overlay classes:', $overlay.attr('class'));
+        console.log('After toggle - Sidebar has show class:', $sidebar.hasClass('show'));
+        console.log('After toggle - Overlay has show class:', $overlay.hasClass('show'));
+    });
+    
+    // Close sidebar when clicking overlay
+    $('.sidebar-overlay').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        $('.app-sidebar').removeClass('show');
+        $('.sidebar-overlay').removeClass('show');
+    });
+    
+    // Handle window resize
+    $(window).on('resize', function() {
+        if ($(window).width() >= 992) {
+            $('.app-sidebar').removeClass('show');
             $('.sidebar-overlay').removeClass('show');
         }
     });

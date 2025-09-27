@@ -207,6 +207,32 @@ if (!function_exists('time_ago')) {
 
 .offers-list {
     margin-top: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 10px;
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #667eea #f1f1f1;
+}
+
+.offers-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.offers-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.offers-list::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.offers-list::-webkit-scrollbar-thumb:hover {
+    background: #5a6fd8;
 }
 
 .offer-item {
@@ -410,6 +436,35 @@ if (!function_exists('time_ago')) {
     
     .offer-actions {
         flex-direction: column;
+    }
+    
+    /* Adjust offers list for mobile */
+    .offers-list {
+        max-height: 300px;
+        padding-right: 5px;
+    }
+    
+    .offers-list::-webkit-scrollbar {
+        width: 4px;
+    }
+}
+
+@media (max-width: 576px) {
+    .offers-list {
+        max-height: 250px;
+    }
+    
+    .job-card {
+        margin: 0 10px;
+    }
+    
+    .job-body {
+        padding: 1rem;
+    }
+    
+    .offer-item {
+        padding: 1rem;
+        margin-bottom: 0.75rem;
     }
 }
 </style>
@@ -699,6 +754,51 @@ $(document).ready(function() {
         const $btn = $(this);
         if (!$btn.hasClass('btn-view')) {
             $btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Processing...');
+        }
+    });
+    
+    // Enhance offers list scrolling
+    $('.offers-list').each(function() {
+        const $list = $(this);
+        const $items = $list.find('.offer-item');
+        
+        // Add scroll indicator if there are many items
+        if ($items.length > 3) {
+            $list.css('position', 'relative');
+            
+            // Add scroll hint
+            if ($list.scrollHeight > $list.height()) {
+                $list.after('<div class="scroll-hint text-center text-muted mt-2" style="font-size: 0.8rem;"><i class="fas fa-chevron-up me-1"></i>Scroll to see more offers<i class="fas fa-chevron-down ms-1"></i></div>');
+            }
+        }
+        
+        // Smooth scroll behavior
+        $list.css('scroll-behavior', 'smooth');
+        
+        // Add scroll event listener
+        $list.on('scroll', function() {
+            const $hint = $(this).next('.scroll-hint');
+            if ($hint.length) {
+                if ($(this).scrollTop() > 50) {
+                    $hint.fadeOut();
+                } else {
+                    $hint.fadeIn();
+                }
+            }
+        });
+    });
+    
+    // Add keyboard navigation for offers
+    $('.offers-list').on('keydown', function(e) {
+        const $list = $(this);
+        const scrollAmount = 100;
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            $list.scrollTop($list.scrollTop() + scrollAmount);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            $list.scrollTop($list.scrollTop() - scrollAmount);
         }
     });
 });

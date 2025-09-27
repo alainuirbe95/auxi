@@ -599,4 +599,14 @@ class M_offers extends CI_Model
 
         return $stats;
     }
+    
+    /**
+     * Get pending offers count for cleaner
+     */
+    public function get_pending_offers_count_for_cleaner($cleaner_id)
+    {
+        $this->db->where('cleaner_id', $cleaner_id);
+        $this->db->where('status', 'pending');
+        return $this->db->count_all_results('offers');
+    }
 }

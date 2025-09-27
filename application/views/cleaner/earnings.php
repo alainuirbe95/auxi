@@ -103,59 +103,29 @@
     outline: none;
 }
 
-.date-filter-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.btn-filter {
+.filter-btn {
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    border: none;
     color: white;
-    padding: 0.75rem 1.5rem;
+    border: none;
+    padding: 0.75rem 2rem;
     border-radius: 10px;
     font-weight: 600;
+    font-size: 1rem;
     transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
 }
 
-.btn-filter:hover {
+.filter-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
-    color: white;
-    text-decoration: none;
-}
-
-.btn-reset {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    border: none;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.btn-reset:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(108, 117, 125, 0.3);
-    color: white;
-    text-decoration: none;
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
 }
 
 /* Summary Cards */
 .summary-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
@@ -170,11 +140,6 @@
     overflow: hidden;
 }
 
-.summary-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
-
 .summary-card::before {
     content: '';
     position: absolute;
@@ -185,78 +150,60 @@
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
 }
 
-.summary-card.total::before {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-}
-
-.summary-card.period::before {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-}
-
-.summary-card.monthly::before {
-    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-}
-
-.summary-card.average::before {
-    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+.summary-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
 }
 
 .summary-card-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.8;
-}
-
-.summary-card.total .summary-card-icon {
-    color: #007bff;
-}
-
-.summary-card.period .summary-card-icon {
-    color: #28a745;
-}
-
-.summary-card.monthly .summary-card-icon {
-    color: #ffc107;
-}
-
-.summary-card.average .summary-card-icon {
-    color: #17a2b8;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: white;
+    font-size: 1.5rem;
 }
 
 .summary-card-title {
     font-size: 0.9rem;
-    color: #6c757d;
+    color: #666;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 0.5rem;
-    font-weight: 600;
 }
 
 .summary-card-value {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #2c3e50;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #333;
     margin-bottom: 0.5rem;
 }
 
 .summary-card-subtitle {
-    font-size: 0.85rem;
-    color: #6c757d;
+    font-size: 0.8rem;
+    color: #999;
 }
 
-/* Earnings Table */
-.earnings-table-container {
+/* Table Styles */
+.jobs-table-container {
     background: white;
     border-radius: 15px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    margin-bottom: 2rem;
 }
 
 .table-header {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     padding: 1.5rem 2rem;
     border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .table-header h5 {
@@ -265,198 +212,155 @@
     font-weight: 600;
 }
 
-.enhanced-table {
-    width: 100%;
-    margin: 0;
-    border-collapse: collapse;
-    font-size: 0.95rem;
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-.enhanced-table thead {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    color: white;
+.table-responsive::-webkit-scrollbar {
+    width: 6px;
 }
 
-.enhanced-table thead th {
-    padding: 1rem 1.5rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    border: none;
-    white-space: nowrap;
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
 }
 
-.enhanced-table tbody tr {
-    border-bottom: 1px solid #e9ecef;
-    transition: all 0.3s ease;
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #28a745;
+    border-radius: 10px;
 }
 
-.enhanced-table tbody tr:hover {
-    background-color: #f8f9fa;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #218838;
 }
 
-.enhanced-table tbody td {
-    padding: 1.25rem 1.5rem;
-    vertical-align: middle;
-    border: none;
-}
-
-/* Job Title Styling */
-.job-title {
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 1.1rem;
-    margin-bottom: 0.25rem;
-}
-
-.job-description {
-    color: #6c757d;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.job-address {
-    color: #495057;
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-/* Price Styling */
-.price-amount {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #28a745;
-}
-
-.price-label {
-    font-size: 0.8rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Date Styling */
-.date-info {
-    text-align: center;
-}
-
-.date-label {
-    font-size: 0.8rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.25rem;
-}
-
-.date-value {
-    font-weight: 600;
-    color: #495057;
-    font-size: 0.9rem;
-}
-
-/* Host Info Styling */
-.host-info {
-    text-align: center;
-}
-
-.host-name {
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 0.95rem;
-    margin-bottom: 0.25rem;
-}
-
-.host-username {
-    color: #6c757d;
-    font-size: 0.8rem;
-    font-style: italic;
-}
-
-/* Status Badge Styles */
-.status-badge {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    border-radius: 25px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.status-completed {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-}
-
-.status-disputed {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
-}
-
-.status-closed {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    color: white;
-    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: #6c757d;
-}
-
-.empty-state i {
-    font-size: 4rem;
-    color: #dee2e6;
-    margin-bottom: 1rem;
-}
-
-.empty-state h4 {
-    color: #495057;
-    margin-bottom: 0.5rem;
-}
-
-.empty-state p {
-    font-size: 1.1rem;
+.table {
     margin-bottom: 0;
 }
 
-/* Scrollable table container */
-.scrollable-table {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+.table th {
+    background: #f8f9fa;
+    border: none;
+    font-weight: 600;
+    color: #495057;
+    padding: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
-.scrollable-table::-webkit-scrollbar {
-    height: 8px;
+.table td {
+    border: none;
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f3f4;
 }
 
-.scrollable-table::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
+.table tbody tr:hover {
+    background: #f8f9fa;
 }
 
-.scrollable-table::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
+/* Action Buttons */
+.btn-details {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
 }
 
-.scrollable-table::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+.btn-details:hover {
+    background: #5a6268;
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* Job Details Row */
+.job-details-row {
+    background: #f8f9fa;
+}
+
+.job-details-content {
+    padding: 1.5rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.job-details-content h6 {
+    color: #495057;
+    font-weight: 600;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.job-details-content .table-sm td {
+    padding: 0.5rem 0.75rem;
+    border: none;
+}
+
+.job-details-content .table-sm td:first-child {
+    width: 30%;
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.price-info {
+    text-align: right;
+}
+
+.price-info .fw-bold {
+    font-size: 1.1rem;
+}
+
+.price-info .text-info {
+    font-size: 0.9rem;
+}
+
+.price-info .text-warning {
+    font-size: 0.8rem;
+}
+
+.price-info .text-muted {
+    font-size: 0.8rem;
+}
+
+/* No Data State */
+.no-data {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #666;
+}
+
+.no-data i {
+    font-size: 4rem;
+    color: #ddd;
+    margin-bottom: 1rem;
+}
+
+.no-data h3 {
+    color: #999;
+    margin-bottom: 1rem;
+}
+
+.no-data p {
+    font-size: 1.1rem;
+    line-height: 1.6;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .page-header {
+        padding: 1.5rem;
+    }
+    
+    .page-header h2 {
+        font-size: 1.5rem;
+    }
+    
     .date-range-form {
         flex-direction: column;
         align-items: stretch;
@@ -466,249 +370,367 @@
         min-width: auto;
     }
     
-    .date-filter-actions {
-        justify-content: center;
+    .table-responsive {
+        max-height: 500px;
+    }
+    
+    .table th, .table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.9rem;
     }
     
     .summary-cards {
         grid-template-columns: 1fr;
     }
+}
+
+@media (max-width: 576px) {
+    .container-fluid {
+        padding: 0 10px;
+    }
     
-    .enhanced-table {
+    .page-header {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .table th, .table td {
+        padding: 0.5rem 0.25rem;
         font-size: 0.8rem;
     }
     
-    .enhanced-table thead th,
-    .enhanced-table tbody td {
-        padding: 0.75rem 0.5rem;
+    .summary-card {
+        padding: 1.5rem;
     }
     
-    .job-title {
-        font-size: 1rem;
-    }
-    
-    .price-amount {
-        font-size: 1rem;
+    .summary-card-value {
+        font-size: 1.5rem;
     }
 }
 </style>
 
-<div class="container-fluid">
+<div class="earnings-container">
     <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="page-header">
-                <h2>
-                    <i class="fas fa-dollar-sign me-2"></i>
-                    My Earnings
-                </h2>
-                <p>Track your earnings and payment history</p>
-            </div>
-        </div>
+    <div class="page-header">
+        <h2>
+            <i class="fas fa-dollar-sign me-3"></i>
+            My Earnings
+        </h2>
+        <p>Track your completed jobs and payment history</p>
     </div>
 
     <!-- Date Range Filter -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="date-filter-card">
-                <div class="date-filter-header">
-                    <h5>
-                        <i class="fas fa-calendar-alt me-2"></i>
-                        Date Range Filter
-                    </h5>
+    <div class="date-filter-card">
+        <div class="date-filter-header">
+            <h5>
+                <i class="fas fa-calendar-alt text-success me-2"></i>
+                Filter by Date Range
+            </h5>
+        </div>
+        <div class="date-filter-body">
+            <form method="GET" action="<?php echo base_url('cleaner/earnings'); ?>" class="date-range-form">
+                <div class="date-input-group">
+                    <label>Start Date</label>
+                    <input type="date" name="start_date" value="<?php echo htmlspecialchars($start_date); ?>">
                 </div>
-                <div class="date-filter-body">
-                    <form method="GET" action="<?php echo base_url('cleaner/earnings'); ?>" class="date-range-form">
-                        <div class="date-input-group">
-                            <label for="start_date">Start Date</label>
-                            <input type="date" 
-                                   id="start_date" 
-                                   name="start_date" 
-                                   value="<?php echo htmlspecialchars($start_date); ?>"
-                                   required>
-                        </div>
-                        <div class="date-input-group">
-                            <label for="end_date">End Date</label>
-                            <input type="date" 
-                                   id="end_date" 
-                                   name="end_date" 
-                                   value="<?php echo htmlspecialchars($end_date); ?>"
-                                   required>
-                        </div>
-                        <div class="date-filter-actions">
-                            <button type="submit" class="btn-filter">
-                                <i class="fas fa-filter"></i>
-                                Apply Filter
-                            </button>
-                            <a href="<?php echo base_url('cleaner/earnings'); ?>" class="btn-reset">
-                                <i class="fas fa-undo"></i>
-                                Reset
-                            </a>
-                        </div>
-                    </form>
+                <div class="date-input-group">
+                    <label>End Date</label>
+                    <input type="date" name="end_date" value="<?php echo htmlspecialchars($end_date); ?>">
                 </div>
-            </div>
+                <button type="submit" class="filter-btn">
+                    <i class="fas fa-search me-2"></i>
+                    Filter
+                </button>
+            </form>
         </div>
     </div>
 
     <!-- Summary Cards -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="summary-cards">
-                <!-- Total Earnings (All Time) -->
-                <div class="summary-card total">
-                    <div class="summary-card-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="summary-card-title">Total Earnings</div>
-                    <div class="summary-card-value">$<?php echo number_format($earnings_summary['total_earnings'], 2); ?></div>
-                    <div class="summary-card-subtitle">All time (<?php echo $earnings_summary['total_jobs']; ?> jobs)</div>
-                </div>
-
-                <!-- Period Earnings -->
-                <div class="summary-card period">
-                    <div class="summary-card-icon">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                    <div class="summary-card-title">Selected Period</div>
-                    <div class="summary-card-value">$<?php echo number_format($earnings_data['total_earnings'], 2); ?></div>
-                    <div class="summary-card-subtitle"><?php echo $earnings_data['total_jobs']; ?> jobs from <?php echo date('M j', strtotime($start_date)); ?> to <?php echo date('M j, Y', strtotime($end_date)); ?></div>
-                </div>
-
-                <!-- This Month -->
-                <div class="summary-card monthly">
-                    <div class="summary-card-icon">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <div class="summary-card-title">This Month</div>
-                    <div class="summary-card-value">$<?php echo number_format($earnings_summary['this_month_earnings'], 2); ?></div>
-                    <div class="summary-card-subtitle"><?php echo $earnings_summary['this_month_jobs']; ?> jobs completed</div>
-                </div>
-
-                <!-- Average Earnings -->
-                <div class="summary-card average">
-                    <div class="summary-card-icon">
-                        <i class="fas fa-calculator"></i>
-                    </div>
-                    <div class="summary-card-title">Average per Job</div>
-                    <div class="summary-card-value">$<?php echo number_format($earnings_data['average_earnings'], 2); ?></div>
-                    <div class="summary-card-subtitle">Selected period average</div>
-                </div>
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="summary-card-icon">
+                <i class="fas fa-dollar-sign"></i>
             </div>
+            <div class="summary-card-title">Total Earnings</div>
+            <div class="summary-card-value">$<?php echo number_format($earnings_summary['total_earnings'], 2); ?></div>
+            <div class="summary-card-subtitle">All time earnings</div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-card-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="summary-card-title">Closed Jobs</div>
+            <div class="summary-card-value"><?php echo count($closed_jobs); ?></div>
+            <div class="summary-card-subtitle">Jobs in selected period</div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-card-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="summary-card-title">Average Earnings</div>
+            <div class="summary-card-value">$<?php echo count($closed_jobs) > 0 ? number_format(array_sum(array_column($closed_jobs, 'payment_amount')) / count($closed_jobs), 2) : '0.00'; ?></div>
+            <div class="summary-card-subtitle">Per job in period</div>
         </div>
     </div>
 
-    <!-- Earnings Table -->
-    <div class="row">
-        <div class="col-12">
-            <div class="earnings-table-container">
-                <div class="table-header">
-                    <h5>
-                        <i class="fas fa-list-alt me-2"></i>
-                        Payment History (<?php echo count($earnings_data['jobs']); ?> jobs)
-                    </h5>
+    <!-- Closed Jobs Table -->
+    <?php if (!empty($closed_jobs)): ?>
+        <div class="jobs-table-container">
+            <div class="table-header">
+                <h5>
+                    <i class="fas fa-list me-2"></i>
+                    Closed Jobs History
+                </h5>
+                <div class="sort-controls">
+                    <small class="text-muted">
+                        <?php echo count($closed_jobs); ?> jobs closed
+                    </small>
                 </div>
-                
-                <?php if (!empty($earnings_data['jobs'])): ?>
-                <div class="scrollable-table">
-                    <table class="enhanced-table">
-                        <thead>
-                            <tr>
-                                <th>Job Details</th>
-                                <th>Host</th>
-                                <th>Amount Earned</th>
-                                <th>Payment Date</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($earnings_data['jobs'] as $job): ?>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Job Title</th>
+                            <th>Host</th>
+                            <th>Payment Released</th>
+                            <th>Original Price</th>
+                            <th>Final Payment</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($closed_jobs as $job): ?>
                             <tr>
                                 <td>
-                                    <div class="job-title"><?php echo htmlspecialchars($job->title); ?></div>
-                                    <div class="job-description"><?php echo htmlspecialchars($job->description); ?></div>
-                                    <div class="job-address">
-                                        <i class="fas fa-map-marker-alt me-1"></i>
-                                        <?php echo htmlspecialchars($job->address . ', ' . $job->city . ', ' . $job->state); ?>
-                                    </div>
+                                    <div class="fw-bold"><?php echo htmlspecialchars($job->title); ?></div>
+                                    <small class="text-muted"><?php echo htmlspecialchars(substr($job->description, 0, 50)) . '...'; ?></small>
                                 </td>
-                                <td class="host-info">
-                                    <div class="host-name">
-                                        <?php echo htmlspecialchars($job->host_first_name . ' ' . $job->host_last_name); ?>
-                                    </div>
-                                    <div class="host-username">
-                                        @<?php echo htmlspecialchars($job->host_username); ?>
-                                    </div>
-                                </td>
+                                <td><?php echo htmlspecialchars($job->host_name); ?></td>
                                 <td>
-                                    <div class="price-amount">
-                                        $<?php echo number_format($job->payment_amount ?: ($job->final_price ?: $job->accepted_price), 2); ?>
-                                    </div>
-                                    <div class="price-label">Payment Amount</div>
-                                </td>
-                                <td class="date-info">
-                                    <div class="date-label">Paid On</div>
-                                    <div class="date-value">
+                                    <?php if ($job->payment_released_at): ?>
                                         <?php echo date('M j, Y', strtotime($job->payment_released_at)); ?>
-                                    </div>
-                                    <div class="date-value" style="font-size: 0.8rem; color: #6c757d;">
-                                        <?php echo date('g:i A', strtotime($job->payment_released_at)); ?>
-                                    </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">Not released</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-success fw-bold">
+                                    $<?php echo number_format($job->suggested_price, 2); ?>
+                                    <?php if (!empty($job->price_adjustments)): ?>
+                                        <?php 
+                                        $approved_adjustment = null;
+                                        foreach ($job->price_adjustments as $adjustment) {
+                                            if ($adjustment->status === 'approved') {
+                                                $approved_adjustment = $adjustment;
+                                                break;
+                                            }
+                                        }
+                                        ?>
+                                        <?php if ($approved_adjustment): ?>
+                                            <br><small class="text-info">
+                                                <i class="fas fa-arrow-up"></i> Counter: $<?php echo number_format($approved_adjustment->requested_amount, 2); ?>
+                                            </small>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-primary fw-bold">
+                                    $<?php echo number_format($job->payment_amount ?: $job->suggested_price, 2); ?>
                                 </td>
                                 <td>
-                                    <?php
-                                    $status_class = 'status-completed';
-                                    $status_text = 'Completed';
-                                    
-                                    // Check job status
-                                    if ($job->status === 'disputed') {
-                                        $status_class = 'status-disputed';
-                                        $status_text = 'Disputed';
-                                    } elseif ($job->status === 'closed') {
-                                        $status_class = 'status-closed';
-                                        $status_text = 'Closed';
-                                    } elseif ($job->status === 'completed') {
-                                        $status_class = 'status-completed';
-                                        $status_text = 'Completed';
-                                    }
-                                    ?>
-                                    <span class="status-badge <?php echo $status_class; ?>">
-                                        <?php echo $status_text; ?>
-                                    </span>
+                                    <span class="badge bg-success">Closed</span>
+                                    <?php if ($job->dispute_info): ?>
+                                        <br><small class="text-warning">
+                                            <i class="fas fa-exclamation-triangle"></i> Disputed
+                                        </small>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <button class="btn btn-details" onclick="toggleJobDetails(<?php echo $job->id; ?>)">
+                                        <i class="fas fa-chevron-down me-1"></i>Details
+                                    </button>
                                 </td>
                             </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-dollar-sign"></i>
-                    <h4>No Earnings Found</h4>
-                    <p>No payments were released for the selected date range. Complete some jobs to start earning!</p>
-                    <a href="<?php echo base_url('cleaner/jobs'); ?>" class="btn btn-primary mt-3">
-                        <i class="fas fa-search me-2"></i>
-                        Browse Available Jobs
-                    </a>
-                </div>
-                <?php endif; ?>
+                            
+                            <!-- Expandable Details Row -->
+                            <tr class="job-details-row" id="details-<?php echo $job->id; ?>" style="display: none;">
+                                <td colspan="7">
+                                    <div class="job-details-content">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6 class="mb-3">
+                                                    <i class="fas fa-info-circle text-primary me-2"></i>
+                                                    Job Information
+                                                </h6>
+                                                <table class="table table-sm table-borderless">
+                                                    <tr>
+                                                        <td><strong>Title:</strong></td>
+                                                        <td><?php echo htmlspecialchars($job->title); ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Description:</strong></td>
+                                                        <td><?php echo htmlspecialchars($job->description); ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Original Price:</strong></td>
+                                                        <td class="text-success fw-bold">$<?php echo number_format($job->suggested_price, 2); ?></td>
+                                                    </tr>
+                                                    <?php if (!empty($job->price_adjustments)): ?>
+                                                        <?php 
+                                                        $approved_adjustment = null;
+                                                        foreach ($job->price_adjustments as $adjustment) {
+                                                            if ($adjustment->status === 'approved') {
+                                                                $approved_adjustment = $adjustment;
+                                                                break;
+                                                            }
+                                                        }
+                                                        ?>
+                                                        <?php if ($approved_adjustment): ?>
+                                                            <tr>
+                                                                <td><strong>Counter Offer:</strong></td>
+                                                                <td class="text-info fw-bold">
+                                                                    $<?php echo number_format($approved_adjustment->requested_amount, 2); ?>
+                                                                    <small class="text-muted d-block">
+                                                                        Approved on <?php echo date('M j, Y', strtotime($approved_adjustment->approved_at)); ?>
+                                                                    </small>
+                                                                </td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
+                                                    <tr>
+                                                        <td><strong>Final Payment:</strong></td>
+                                                        <td class="text-primary fw-bold">$<?php echo number_format($job->payment_amount ?: $job->suggested_price, 2); ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Completed:</strong></td>
+                                                        <td><?php echo $job->completed_at ? date('M j, Y g:i A', strtotime($job->completed_at)) : 'Not set'; ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Payment Released:</strong></td>
+                                                        <td><?php echo $job->payment_released_at ? date('M j, Y g:i A', strtotime($job->payment_released_at)) : 'Not released'; ?></td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6 class="mb-3">
+                                                    <i class="fas fa-user text-info me-2"></i>
+                                                    Host Information
+                                                </h6>
+                                                <table class="table table-sm table-borderless">
+                                                    <tr>
+                                                        <td><strong>Name:</strong></td>
+                                                        <td><?php echo htmlspecialchars($job->host_name); ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Email:</strong></td>
+                                                        <td><?php echo htmlspecialchars($job->host_email); ?></td>
+                                                    </tr>
+                                                </table>
+                                                
+                                                <?php if ($job->dispute_info): ?>
+                                                    <h6 class="mb-3 mt-4">
+                                                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                                        Dispute Information
+                                                    </h6>
+                                                    <table class="table table-sm table-borderless">
+                                                        <tr>
+                                                            <td><strong>Disputed At:</strong></td>
+                                                            <td><?php echo $job->dispute_info['disputed_at'] ? date('M j, Y g:i A', strtotime($job->dispute_info['disputed_at'])) : 'N/A'; ?></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><strong>Reason:</strong></td>
+                                                            <td><?php echo $job->dispute_info['dispute_reason'] ? htmlspecialchars($job->dispute_info['dispute_reason']) : 'N/A'; ?></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><strong>Resolution:</strong></td>
+                                                            <td><?php echo $job->dispute_info['dispute_resolution'] ? ucfirst(str_replace('_', ' ', $job->dispute_info['dispute_resolution'])) : 'Pending'; ?></td>
+                                                        </tr>
+                                                        <?php if ($job->dispute_info['dispute_resolution_notes']): ?>
+                                                            <tr>
+                                                                <td><strong>Notes:</strong></td>
+                                                                <td><?php echo htmlspecialchars($job->dispute_info['dispute_resolution_notes']); ?></td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                        <?php if ($job->dispute_info['dispute_resolved_at']): ?>
+                                                            <tr>
+                                                                <td><strong>Resolved At:</strong></td>
+                                                                <td><?php echo date('M j, Y g:i A', strtotime($job->dispute_info['dispute_resolved_at'])); ?></td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                    </table>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($job->price_adjustments)): ?>
+                                                    <h6 class="mb-3 mt-4">
+                                                        <i class="fas fa-dollar-sign text-success me-2"></i>
+                                                        Price Adjustments History
+                                                    </h6>
+                                                    <div class="price-adjustments">
+                                                        <?php foreach ($job->price_adjustments as $adjustment): ?>
+                                                            <div class="adjustment-item mb-2 p-2 bg-light rounded">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <div>
+                                                                        <span class="fw-bold">$<?php echo number_format($adjustment->requested_amount, 2); ?></span>
+                                                                        <?php if ($adjustment->reason): ?>
+                                                                            <div class="text-muted small"><?php echo htmlspecialchars($adjustment->reason); ?></div>
+                                                                        <?php endif; ?>
+                                                                    </div>
+                                                                    <div class="text-end">
+                                                                        <small class="text-muted"><?php echo date('M j, Y', strtotime($adjustment->created_at)); ?></small>
+                                                                        <div class="mt-1">
+                                                                            <span class="badge badge-<?php echo $adjustment->status === 'approved' ? 'success' : ($adjustment->status === 'rejected' ? 'danger' : 'warning'); ?>">
+                                                                                <?php echo ucfirst($adjustment->status); ?>
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
+    <?php else: ?>
+        <div class="no-data">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>No Closed Jobs Found</h3>
+            <p>
+                No closed jobs found in the selected date range. Closed jobs appear here after payment has been released.
+            </p>
+        </div>
+    <?php endif; ?>
 </div>
 
 <script>
-$(document).ready(function() {
-    // Set default date range to current month if not set
-    const urlParams = new URLSearchParams(window.location.search);
-    if (!urlParams.has('start_date') && !urlParams.has('end_date')) {
-        const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        
-        document.getElementById('start_date').value = firstDay.toISOString().split('T')[0];
-        document.getElementById('end_date').value = today.toISOString().split('T')[0];
-    }
+// Toggle job details row
+function toggleJobDetails(jobId) {
+    const detailsRow = document.getElementById('details-' + jobId);
+    const toggleButton = document.querySelector(`[onclick="toggleJobDetails(${jobId})"]`);
+    const chevronIcon = toggleButton.querySelector('i');
     
-    console.log('Earnings dashboard loaded');
-});
+    if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {
+        // Show details
+        detailsRow.style.display = 'table-row';
+        chevronIcon.classList.remove('fa-chevron-down');
+        chevronIcon.classList.add('fa-chevron-up');
+        toggleButton.innerHTML = '<i class="fas fa-chevron-up me-1"></i>Hide Details';
+    } else {
+        // Hide details
+        detailsRow.style.display = 'none';
+        chevronIcon.classList.remove('fa-chevron-up');
+        chevronIcon.classList.add('fa-chevron-down');
+        toggleButton.innerHTML = '<i class="fas fa-chevron-down me-1"></i>Details';
+    }
+}
 </script>

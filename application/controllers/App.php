@@ -15,11 +15,13 @@ class App extends MY_Controller {
         $this->load->helper('form');
         $this->load->helper('text');
 
-        $this->load->helper("Post_helper");
-        $this->load->helper("Date_helper");
+        // Legacy blog helpers - not needed for cleaning service
+        // $this->load->helper("post_helper");
+        // $this->load->helper("date_helper");
 
-        $this->load->model('Post');
-        $this->load->model('Category');
+        // Legacy blog models - not needed for cleaning service  
+        // $this->load->model('Post');
+        // $this->load->model('Category');
     }
 
     public function login() {
@@ -204,7 +206,6 @@ class App extends MY_Controller {
     public function profile() {
 
         $this->init_session_auto(1);
-        $this->load->helper('Breadcrumb_helper');
 
         $data['user'] = $this->User->find($this->session->userdata('id'));
 
@@ -232,10 +233,18 @@ class App extends MY_Controller {
 
         if ($this->session->userdata("auth_level") == 9) {
             $view["title"] = 'Perfil';
-            $view['breadcrumb'] = breadcrumb_admin("profile");
+            $view['breadcrumb'] = [['', 'Dashboard'], ['app/profile', 'Profile', true]]; // Simple breadcrumb
             $this->parser->parse("admin/template/body", $view);
         } else {
-            $this->parser->parse("blog/template/body", $view);
+            // Redirect to appropriate dashboard instead of using blog template
+            $auth_level = $this->session->userdata("auth_level");
+            if ($auth_level == 6) {
+                redirect('host'); // Host dashboard
+            } elseif ($auth_level == 3) {
+                redirect('cleaner'); // Cleaner dashboard
+            } else {
+                redirect('app/login'); // Default login
+            }
         }
     }
 

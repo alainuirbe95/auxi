@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <title><?php echo isset($title) ? $title . ' | ' : ''; ?>EasyClean Admin</title>
 
     <!-- Google Font: Source Sans Pro -->
@@ -25,6 +25,33 @@
 
     <!-- Layout CSS -->
     <style>
+        /* Mobile viewport fixes */
+        html, body {
+            height: 100% !important;
+            overflow-x: hidden !important;
+        }
+        
+        body {
+            position: relative !important;
+            min-height: 100vh !important;
+            min-height: -webkit-fill-available !important;
+        }
+        
+        .wrapper {
+            min-height: 100vh !important;
+            min-height: -webkit-fill-available !important;
+            position: relative !important;
+        }
+        
+        /* Mobile safe area support */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(0px, env(safe-area-inset-left));
+                padding-right: max(0px, env(safe-area-inset-right));
+                padding-bottom: max(0px, env(safe-area-inset-bottom));
+            }
+        }
+        
         /* Sidebar styles */
         .app-sidebar {
             position: fixed !important;
@@ -36,6 +63,12 @@
             background-color: #f8f9fa !important;
             border-right: 1px solid #dee2e6 !important;
             transform: translateX(0) !important;
+            overflow-y: auto !important;
+        }
+        
+        /* Mobile toggle button default hidden */
+        .mobile-sidebar-toggle {
+            display: none !important;
         }
         
         /* Content wrapper styles */
@@ -63,13 +96,35 @@
         
         /* Tablet responsive (768px - 991px) */
         @media (max-width: 991.98px) and (min-width: 768px) {
+            /* Ensure proper height on tablets */
+            html, body {
+                height: 100% !important;
+                overflow-x: hidden !important;
+            }
+            
+            .wrapper {
+                min-height: 100vh !important;
+                overflow-x: hidden !important;
+            }
+            
             .content-wrapper {
                 margin-left: 0 !important;
+                min-height: calc(100vh - 60px) !important;
             }
+            
+            /* Adjust content wrapper for host users when header is hidden */
+            <?php if ($this->session->userdata('auth_level') == 6): ?>
+            .content-wrapper {
+                margin-top: 0 !important;
+                padding-top: 15px !important;
+            }
+            <?php endif; ?>
             
             .app-sidebar {
                 transform: translateX(-100%) !important;
-                width: 200px !important;
+                width: 280px !important;
+                z-index: 1050 !important;
+                height: 100vh !important;
             }
             
             .app-sidebar.show {
@@ -79,25 +134,93 @@
             /* Add mobile toggle button for tablet */
             .mobile-sidebar-toggle {
                 display: block !important;
+                position: fixed !important;
+                top: 15px !important;
+                left: 15px !important;
+                z-index: 1060 !important;
+                background: #007bff !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 8px !important;
+                padding: 10px 15px !important;
+                font-size: 16px !important;
+                box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3) !important;
+                transition: all 0.3s ease !important;
+            }
+            
+            .mobile-sidebar-toggle:hover {
+                background: #0056b3 !important;
+                transform: scale(1.05) !important;
             }
             
             .container-fluid {
                 max-width: 100% !important;
                 padding: 0 15px !important;
+                margin-top: 60px !important;
+            }
+            
+            /* Adjust container margin for host users when header is hidden */
+            <?php if ($this->session->userdata('auth_level') == 6): ?>
+            .container-fluid {
+                margin-top: 10px !important;
+            }
+            <?php endif; ?>
+            
+            /* Overlay for tablet sidebar */
+            .sidebar-overlay {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100vh !important;
+                background-color: rgba(0, 0, 0, 0.5) !important;
+                z-index: 1040 !important;
+                display: none !important;
+                transition: opacity 0.3s ease !important;
+            }
+            
+            .sidebar-overlay.show {
+                display: block !important;
             }
         }
         
         /* Mobile responsive (max-width: 767px) */
         @media (max-width: 767.98px) {
+            /* Ensure full height without overflow */
+            html, body {
+                height: 100% !important;
+                min-height: 100vh !important;
+                min-height: -webkit-fill-available !important;
+                overflow-x: hidden !important;
+            }
+            
+            .wrapper {
+                min-height: 100vh !important;
+                min-height: -webkit-fill-available !important;
+                overflow-x: hidden !important;
+            }
+            
             .content-wrapper {
                 margin-left: 0 !important;
                 padding: 10px !important;
+                min-height: calc(100vh - 60px) !important;
+                min-height: calc(-webkit-fill-available - 60px) !important;
             }
+            
+            /* Adjust content wrapper for host users when header is hidden */
+            <?php if ($this->session->userdata('auth_level') == 6): ?>
+            .content-wrapper {
+                margin-top: 0 !important;
+                padding-top: 10px !important;
+            }
+            <?php endif; ?>
             
             .app-sidebar {
                 transform: translateX(-100%) !important;
                 width: 280px !important;
                 z-index: 1050 !important;
+                height: 100vh !important;
+                height: -webkit-fill-available !important;
             }
             
             .app-sidebar.show {
@@ -116,27 +239,68 @@
             /* Add mobile toggle button */
             .mobile-sidebar-toggle {
                 display: block !important;
+                position: fixed !important;
+                top: 15px !important;
+                left: 15px !important;
+                z-index: 1060 !important;
+                background: #007bff !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 8px !important;
+                padding: 10px 15px !important;
+                font-size: 16px !important;
+                box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3) !important;
+                transition: all 0.3s ease !important;
+            }
+            
+            .mobile-sidebar-toggle:hover {
+                background: #0056b3 !important;
+                transform: scale(1.05) !important;
             }
             
             .container-fluid {
                 max-width: 100% !important;
                 padding: 0 10px !important;
+                margin-top: 60px !important;
+                padding-bottom: env(safe-area-inset-bottom, 20px) !important;
             }
+            
+            /* Adjust container margin for host users when header is hidden */
+            <?php if ($this->session->userdata('auth_level') == 6): ?>
+            .container-fluid {
+                margin-top: 10px !important;
+            }
+            <?php endif; ?>
             
             /* Overlay for mobile sidebar */
             .sidebar-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0, 0, 0, 0.5);
-                z-index: 1040;
-                display: none;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100vh !important;
+                height: -webkit-fill-available !important;
+                background-color: rgba(0, 0, 0, 0.5) !important;
+                z-index: 1040 !important;
+                display: none !important;
+                transition: opacity 0.3s ease !important;
             }
             
             .sidebar-overlay.show {
                 display: block !important;
+            }
+            
+            /* Ensure content doesn't overflow */
+            .content {
+                padding-bottom: 20px !important;
+                padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+            }
+            
+            /* Footer adjustments */
+            .main-footer {
+                margin-left: 0 !important;
+                padding: 15px !important;
+                padding-bottom: calc(15px + env(safe-area-inset-bottom)) !important;
             }
         }
         
@@ -193,7 +357,7 @@
         <!-- Content Wrapper -->
         <div class="content-wrapper">
             <!-- Mobile Sidebar Toggle Button -->
-            <button class="mobile-sidebar-toggle" style="display: none; position: fixed; top: 10px; left: 10px; z-index: 1051; background: #007bff; color: white; border: none; border-radius: 4px; padding: 8px 12px; font-size: 14px;">
+            <button class="mobile-sidebar-toggle">
                 <i class="fas fa-bars"></i>
             </button>
             
@@ -310,36 +474,7 @@
             $('[data-toggle="popover"]').popover();
             
             
-            // Mobile sidebar toggle functionality
-            $('.mobile-sidebar-toggle').click(function() {
-                $('.app-sidebar').toggleClass('show');
-                $('.sidebar-overlay').toggleClass('show');
-            });
-            
-            // Close sidebar when clicking overlay
-            $('.sidebar-overlay').click(function() {
-                $('.app-sidebar').removeClass('show');
-                $('.sidebar-overlay').removeClass('show');
-            });
-            
-            // Close sidebar when clicking outside on mobile
-            $(document).click(function(e) {
-                if ($(window).width() < 992) {
-                    if (!$(e.target).closest('.app-sidebar, .mobile-sidebar-toggle').length) {
-                        $('.app-sidebar').removeClass('show');
-                        $('.sidebar-overlay').removeClass('show');
-                    }
-                }
-            });
-            
-            // Handle window resize
-            $(window).resize(function() {
-                if ($(window).width() >= 992) {
-                    // Desktop: remove mobile classes
-                    $('.app-sidebar').removeClass('show');
-                    $('.sidebar-overlay').removeClass('show');
-                }
-            });
+            // Mobile sidebar functionality is handled in the sidebar file
             
             // Auto-hide alerts after 5 seconds
             setTimeout(function() {
@@ -391,17 +526,7 @@
                 }
             }
             
-            // Simple mobile sidebar toggle functionality
-            $('.mobile-sidebar-toggle').click(function() {
-                $('.app-sidebar').toggleClass('show');
-                $('.sidebar-overlay').toggleClass('show');
-            });
-            
-            // Close sidebar when clicking overlay
-            $('.sidebar-overlay').click(function() {
-                $('.app-sidebar').removeClass('show');
-                $('.sidebar-overlay').removeClass('show');
-            });
+            // Mobile sidebar functionality is handled in the sidebar file
         });
     </script>
     </body>

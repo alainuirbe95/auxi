@@ -799,17 +799,9 @@ class M_jobs extends CI_Model
 
         $this->db->select('j.*, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name, u.email as host_email, u.phone as host_phone');
         $this->db->from('jobs j');
-        $this->db->join('users u', 'j.host_id = u.user_id');
+        $this->db->join('users u', 'j.host_id = u.user_id', 'left');
         $this->db->where('j.assigned_cleaner_id', $cleaner_id);
         $this->db->where_in('j.status', ['assigned', 'in_progress', 'completed']);
-        
-        // Show future jobs, jobs scheduled for today, or jobs that are in progress/completed
-        $today = date('Y-m-d');
-        $this->db->group_start();
-        $this->db->where('j.scheduled_date >', $today);
-        $this->db->or_where('j.scheduled_date', $today);
-        $this->db->or_where_in('j.status', ['in_progress', 'completed']);
-        $this->db->group_end();
         
         // Order by status priority (in_progress first, then completed, then assigned), then by date
         $this->db->order_by("FIELD(j.status, 'in_progress', 'completed', 'assigned')", '', FALSE);
@@ -932,7 +924,7 @@ class M_jobs extends CI_Model
     }
 
     /**
-     * Get job history for a cleaner (completed jobs)
+     * Get job history for a cleaner (completed jobs only)
      */
     public function get_completed_jobs_for_cleaner($cleaner_id)
     {
@@ -941,11 +933,11 @@ class M_jobs extends CI_Model
             return [];
         }
 
-        $this->db->select('j.*, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name');
+        $this->db->select('j.*, u.username as host_name, u.email as host_email');
         $this->db->from('jobs j');
-        $this->db->join('users u', 'j.host_id = u.user_id');
+        $this->db->join('users u', 'j.host_id = u.user_id', 'left');
         $this->db->where('j.assigned_cleaner_id', $cleaner_id);
-        $this->db->where_in('j.status', ['completed', 'disputed', 'closed']); // Include disputed and closed jobs
+        $this->db->where('j.status', 'completed'); // Only completed jobs
         $this->db->order_by('j.completed_at', 'DESC'); // Order by completion date
         
         $query = $this->db->get();
@@ -1691,6 +1683,188 @@ class M_jobs extends CI_Model
         $this->db->where('j.assigned_cleaner_id', $cleaner_id);
         $this->db->where('j.status', 'disputed');
         $this->db->order_by('j.disputed_at', 'ASC');
+        
+        return $this->db->get()->result();
+    }
+    
+    /**
+     * Get total jobs for cleaner
+     */
+    public function get_total_jobs_for_cleaner($cleaner_id)
+    {
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('status', ['assigned', 'in_progress', 'completed', 'disputed', 'closed']);
+        return $this->db->count_all_results('jobs');
+    }
+    
+    /**
+     * Get active jobs for cleaner
+     */
+    public function get_active_jobs_for_cleaner($cleaner_id)
+    {
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('status', ['assigned', 'in_progress']);
+        return $this->db->count_all_results('jobs');
+    }
+    
+    /**
+     * Get completed jobs count for cleaner
+     */
+    public function get_completed_jobs_count_for_cleaner($cleaner_id)
+    {
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where('status', 'completed');
+        return $this->db->count_all_results('jobs');
+    }
+    
+    /**
+     * Get total completed jobs count for cleaner (includes both completed and closed)
+     */
+    public function get_total_completed_jobs_count_for_cleaner($cleaner_id)
+    {
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('status', ['completed', 'closed']);
+        return $this->db->count_all_results('jobs');
+    }
+    
+    /**
+     * Get disputed jobs count for cleaner
+     */
+    public function get_disputed_jobs_count_for_cleaner($cleaner_id)
+    {
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where('status', 'disputed');
+        return $this->db->count_all_results('jobs');
+    }
+    
+    /**
+     * Get closed jobs count for cleaner
+     */
+    public function get_closed_jobs_count_for_cleaner($cleaner_id)
+    {
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where('status', 'closed');
+        return $this->db->count_all_results('jobs');
+    }
+    
+    /**
+     * Get recent jobs for cleaner
+     */
+    public function get_recent_jobs_for_cleaner($cleaner_id, $limit = 5)
+    {
+        $this->db->select('j.*, h.username as host_name');
+        $this->db->from('jobs j');
+        $this->db->join('users h', 'h.user_id = j.host_id', 'left');
+        $this->db->where('j.assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('j.status', ['assigned', 'in_progress', 'completed', 'disputed', 'closed']);
+        $this->db->order_by('j.created_at', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result();
+    }
+    
+    /**
+     * Get pending price adjustments for cleaner
+     */
+    public function get_pending_price_adjustments_for_cleaner($cleaner_id)
+    {
+        $this->db->select('co.*, j.title as job_title, j.suggested_price');
+        $this->db->from('counter_offers co');
+        $this->db->join('jobs j', 'j.id = co.job_id');
+        $this->db->where('co.cleaner_id', $cleaner_id);
+        $this->db->where('co.status', 'pending');
+        $this->db->order_by('co.created_at', 'DESC');
+        
+        return $this->db->get()->result();
+    }
+    
+    /**
+     * Get total earnings for cleaner
+     */
+    public function get_total_earnings_for_cleaner($cleaner_id)
+    {
+        $this->db->select('SUM(COALESCE(payment_amount, final_price, suggested_price)) as total_earnings');
+        $this->db->from('jobs');
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('status', ['completed', 'closed']);
+        
+        $result = $this->db->get()->row();
+        return $result ? $result->total_earnings : 0;
+    }
+    
+    /**
+     * Get potential earnings for cleaner (sum of completed jobs only)
+     */
+    public function get_potential_earnings_for_cleaner($cleaner_id)
+    {
+        $this->db->select('SUM(suggested_price) as potential_earnings');
+        $this->db->from('jobs');
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where('status', 'completed');
+        
+        $result = $this->db->get()->row();
+        return $result ? $result->potential_earnings : 0;
+    }
+    
+    /**
+     * Get closed jobs for cleaner with date filtering
+     */
+    public function get_closed_jobs_for_cleaner($cleaner_id, $start_date = null, $end_date = null)
+    {
+        $this->db->select('j.*, h.username as host_name, h.email as host_email');
+        $this->db->from('jobs j');
+        $this->db->join('users h', 'h.user_id = j.host_id', 'left');
+        $this->db->where('j.assigned_cleaner_id', $cleaner_id);
+        $this->db->where('j.status', 'closed');
+        
+        // Date range filtering
+        if ($start_date) {
+            $this->db->where('DATE(j.payment_released_at) >=', $start_date);
+        }
+        if ($end_date) {
+            $this->db->where('DATE(j.payment_released_at) <=', $end_date);
+        }
+        
+        $this->db->order_by('j.payment_released_at', 'DESC');
+        
+        return $this->db->get()->result();
+    }
+    
+    /**
+     * Get completed jobs for cleaner with filtering and sorting
+     */
+    public function get_completed_jobs_for_cleaner_filtered($cleaner_id, $start_date = null, $end_date = null, $sort_by = 'completed_at', $sort_order = 'DESC', $search = null)
+    {
+        $this->db->select('j.*, h.username as host_name, h.email as host_email');
+        $this->db->from('jobs j');
+        $this->db->join('users h', 'h.user_id = j.host_id', 'left');
+        $this->db->where('j.assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('j.status', ['completed', 'disputed', 'closed']);
+        
+        // Date range filtering
+        if ($start_date) {
+            $this->db->where('DATE(j.completed_at) >=', $start_date);
+        }
+        if ($end_date) {
+            $this->db->where('DATE(j.completed_at) <=', $end_date);
+        }
+        
+        // Search filtering
+        if ($search) {
+            $this->db->group_start();
+            $this->db->like('j.title', $search);
+            $this->db->or_like('j.description', $search);
+            $this->db->or_like('h.username', $search);
+            $this->db->group_end();
+        }
+        
+        // Sorting
+        $allowed_sort_fields = ['completed_at', 'title', 'suggested_price', 'status', 'created_at'];
+        if (in_array($sort_by, $allowed_sort_fields)) {
+            $this->db->order_by('j.' . $sort_by, $sort_order);
+        } else {
+            $this->db->order_by('j.completed_at', 'DESC');
+        }
         
         return $this->db->get()->result();
     }

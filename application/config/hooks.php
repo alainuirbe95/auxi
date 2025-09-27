@@ -13,7 +13,14 @@ defined('BASEPATH') OR exit('No direct script access allowed');
   |
  */
 
-$hook['pre_system'] = array(
+// PHP 8.2+ Compatibility Hook - Must be first
+$hook['pre_system'][] = array(
+    'class' => 'Php82_compatibility',
+    'filename' => 'php82_compatibility.php',
+    'filepath' => 'hooks'
+);
+
+$hook['pre_system'][] = array(
     'function' => 'auth_constants',
     'filename' => 'auth_constants.php',
     'filepath' => 'third_party/community_auth/hooks'

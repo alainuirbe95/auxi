@@ -1,5 +1,8 @@
 <?php
 
+// PHP 8.2+ Compatibility - Load first
+require_once(__DIR__ . '/php82_compat.php');
+
 // Set timezone to PST as required
 date_default_timezone_set('America/Los_Angeles');
 
@@ -74,7 +77,12 @@ define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'developm
  */
 switch (ENVIRONMENT) {
     case 'development':
-        error_reporting(-1);
+        // Suppress PHP 8.2+ dynamic property deprecation warnings for CodeIgniter 3.x compatibility
+        if (version_compare(PHP_VERSION, '8.2', '>=')) {
+            error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+        } else {
+            error_reporting(-1);
+        }
         ini_set('display_errors', 1);
         break;
 

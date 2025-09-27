@@ -94,11 +94,7 @@ $autoload['drivers'] = array();
 $autoload['helper'] = array(
   'url',
   'text',
-  'auth',          // <-- needed for login_anchor()
-  'post',          // see note below
-  'date',
-  'user',
-  'seo'
+  'User'           // Only helper actually used - for user avatar display
 );
 /*
   | -------------------------------------------------------------------
@@ -141,4 +137,4 @@ $autoload['language'] = array();
   |
   |	$autoload['model'] = array('first_model' => 'first');
  */
-$autoload['model'] = array('Post', 'User', 'Category');
+$autoload['model'] = array('User'); // Removed Post and Category - legacy blog models not needed for cleaning service
