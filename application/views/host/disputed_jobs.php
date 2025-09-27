@@ -75,18 +75,63 @@
                                                 <div class="financial-info">
                                                     <strong>Original Amount:</strong><br>
                                                     <span class="text-primary font-weight-bold">$<?= number_format($job->final_price ?: $job->accepted_price, 2) ?></span><br><br>
-                                                    <strong>Expected Refund:</strong><br>
-                                                    <span class="text-warning">Pending Resolution</span>
+                                                    <?php if ($job->status == 'closed' && $job->dispute_resolution): ?>
+                                                        <strong>Refund Amount:</strong><br>
+                                                        <?php 
+                                                        $original_amount = $job->final_price ?: $job->accepted_price;
+                                                        $cleaner_amount = $job->payment_amount ?: 0;
+                                                        $host_refund = $original_amount - $cleaner_amount;
+                                                        ?>
+                                                        <span class="text-success font-weight-bold">$<?= number_format($host_refund, 2) ?></span><br>
+                                                        <small class="text-muted">(<?= number_format((($original_amount - $cleaner_amount) / $original_amount) * 100, 1) ?>% refund)</small>
+                                                    <?php else: ?>
+                                                        <strong>Expected Refund:</strong><br>
+                                                        <span class="text-warning">Pending Resolution</span>
+                                                    <?php endif; ?>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="status-info">
-                                                    <span class="badge badge-warning badge-lg">
-                                                        <i class="fas fa-clock"></i> Under Review
-                                                    </span><br><br>
-                                                    <small class="text-muted">
-                                                        A moderator will review your dispute and determine a fair resolution.
-                                                    </small>
+                                                    <?php if ($job->status == 'closed' && $job->dispute_resolution): ?>
+                                                        <!-- Dispute Resolved -->
+                                                        <span class="badge badge-success badge-lg">
+                                                            <i class="fas fa-check-circle"></i> Resolved
+                                                        </span><br><br>
+                                                        <div class="dispute-resolution-info">
+                                                            <?php 
+                                                            // Get resolution type and display appropriate message
+                                                            $resolution_type = $job->dispute_resolution;
+                                                            $resolution_badge_class = 'badge-success';
+                                                            $resolution_text = 'Resolved';
+                                                            
+                                                            if ($resolution_type === 'resolved_in_favor_cleaner') {
+                                                                $resolution_badge_class = 'badge-warning';
+                                                                $resolution_text = 'Resolved in Cleaner\'s Favor';
+                                                            } elseif ($resolution_type === 'resolved_in_favor_host') {
+                                                                $resolution_badge_class = 'badge-success';
+                                                                $resolution_text = 'Resolved in Your Favor';
+                                                            } elseif ($resolution_type === 'compromise') {
+                                                                $resolution_badge_class = 'badge-info';
+                                                                $resolution_text = 'Compromise Resolution';
+                                                            }
+                                                            ?>
+                                                            <small class="text-success">
+                                                                <strong>Resolution:</strong> <?= $resolution_text ?><br>
+                                                                <strong>Resolved:</strong> <?= date('M j, Y g:i A', strtotime($job->dispute_resolved_at)) ?><br>
+                                                                <?php if ($job->dispute_resolution_notes): ?>
+                                                                    <strong>Notes:</strong> <?= htmlspecialchars($job->dispute_resolution_notes) ?><br>
+                                                                <?php endif; ?>
+                                                            </small>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <!-- Under Review -->
+                                                        <span class="badge badge-warning badge-lg">
+                                                            <i class="fas fa-clock"></i> Under Review
+                                                        </span><br><br>
+                                                        <small class="text-muted">
+                                                            A moderator will review your dispute and determine a fair resolution.
+                                                        </small>
+                                                    <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>
@@ -133,6 +178,24 @@
 </div>
 
 <style>
+/* Make container wider */
+.container-fluid {
+    max-width: 95% !important;
+    margin: 0 auto !important;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 97% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: 98% !important;
+    }
+}
+
 .job-info, .cleaner-info, .dispute-info, .financial-info, .status-info {
     font-size: 0.9em;
 }

@@ -33,6 +33,24 @@ if (!function_exists('time_ago')) {
 ?>
 
 <style>
+/* Container styling for wider desktop view */
+.container-fluid {
+    max-width: 95% !important;
+    margin: 0 auto !important;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 97% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: 98% !important;
+    }
+}
+
 /* Modern Job Browse Styles */
 .jobs-browse-container {
     padding: 2rem 0;
@@ -505,7 +523,8 @@ if (!function_exists('time_ago')) {
 }
 </style>
 
-<div class="jobs-browse-container">
+<div class="container-fluid">
+    <div class="jobs-browse-container">
     <!-- Filter Section -->
     <div class="filter-section">
         <h2 class="filter-title">
@@ -835,3 +854,5 @@ function toggleFavorite(jobId) {
     form.submit();
 }
 </script>
+    </div>
+</div>

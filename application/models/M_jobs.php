@@ -220,9 +220,11 @@ class M_jobs extends CI_Model
             return [
                 'total_jobs' => 0,
                 'active_jobs' => 0,
+                'live_disputes' => 0,
                 'completed_jobs' => 0,
-                'cancelled_jobs' => 0,
-                'total_spent' => 0
+                'closed_jobs' => 0,
+                'pending_offers' => 0,
+                'pending_completed' => 0
             ];
         }
         
@@ -232,11 +234,17 @@ class M_jobs extends CI_Model
         $this->db->where('host_id', $host_id);
         $stats['total_jobs'] = $this->db->count_all_results('jobs');
         
-        // Active jobs (open + assigned)
+        // Active jobs (open + assigned + in_progress + price_adjustment_requested)
         $this->db->reset_query();
         $this->db->where('host_id', $host_id);
-        $this->db->where_in('status', ['open', 'assigned']);
+        $this->db->where_in('status', ['open', 'assigned', 'in_progress', 'price_adjustment_requested']);
         $stats['active_jobs'] = $this->db->count_all_results('jobs');
+        
+        // Live disputes
+        $this->db->reset_query();
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'disputed');
+        $stats['live_disputes'] = $this->db->count_all_results('jobs');
         
         // Completed jobs
         $this->db->reset_query();
@@ -244,22 +252,248 @@ class M_jobs extends CI_Model
         $this->db->where('status', 'completed');
         $stats['completed_jobs'] = $this->db->count_all_results('jobs');
         
-        // Cancelled jobs
+        // Closed jobs
         $this->db->reset_query();
         $this->db->where('host_id', $host_id);
-        $this->db->where('status', 'cancelled');
-        $stats['cancelled_jobs'] = $this->db->count_all_results('jobs');
+        $this->db->where('status', 'closed');
+        $stats['closed_jobs'] = $this->db->count_all_results('jobs');
         
-        // Total spent
+        // Pending offers (jobs with pending offers)
         $this->db->reset_query();
-        $this->db->select('SUM(final_price) as total_spent');
+        if ($this->db->table_exists('offers')) {
+            $this->db->select('COUNT(DISTINCT o.job_id) as pending_offers');
+            $this->db->from('offers o');
+            $this->db->join('jobs j', 'j.id = o.job_id');
+            $this->db->where('j.host_id', $host_id);
+            $this->db->where('j.status', 'open');
+            $this->db->where('o.status', 'pending');
+            $query = $this->db->get();
+            $result = $query->row();
+            $stats['pending_offers'] = $result->pending_offers ?: 0;
+        } else {
+            $stats['pending_offers'] = 0;
+        }
+        
+        // Pending completed jobs (completed but not closed or disputed)
+        $this->db->reset_query();
         $this->db->where('host_id', $host_id);
         $this->db->where('status', 'completed');
-        $query = $this->db->get('jobs');
-        $result = $query->row();
-        $stats['total_spent'] = $result->total_spent ?: 0;
+        $this->db->where('dispute_window_ends_at >', date('Y-m-d H:i:s')); // Still within dispute window
+        $stats['pending_completed'] = $this->db->count_all_results('jobs');
         
         return $stats;
+    }
+
+    /**
+     * Get pending offers for host dashboard
+     */
+    public function get_host_pending_offers($host_id, $limit = 10)
+    {
+        if (!$this->db->table_exists('offers')) {
+            return [];
+        }
+        
+        $this->db->select('o.*, j.title as job_title, j.suggested_price, u.username as cleaner_username, u.email as cleaner_email');
+        $this->db->from('offers o');
+        $this->db->join('jobs j', 'j.id = o.job_id');
+        $this->db->join('users u', 'u.user_id = o.cleaner_id');
+        $this->db->where('j.host_id', $host_id);
+        $this->db->where('j.status', 'open');
+        $this->db->where('o.status', 'pending');
+        $this->db->order_by('o.created_at', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result();
+    }
+
+    /**
+     * Get pending completed jobs for host dashboard
+     */
+    public function get_host_pending_completed($host_id, $limit = 10)
+    {
+        $this->db->select('j.*, u.first_name as cleaner_first_name, u.last_name as cleaner_last_name, u.username as cleaner_username');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'u.user_id = j.assigned_cleaner_id', 'left');
+        $this->db->where('j.host_id', $host_id);
+        $this->db->where('j.status', 'completed');
+        $this->db->where('j.dispute_window_ends_at >', date('Y-m-d H:i:s')); // Still within dispute window
+        $this->db->order_by('j.completed_at', 'ASC'); // Oldest first (FIFO)
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result();
+    }
+
+    /**
+     * Get host jobs with filtering, search, and sorting
+     */
+    public function get_host_jobs_filtered($host_id, $filters = [])
+    {
+        $this->db->select('j.*, 
+                           COUNT(DISTINCT o.id) as offer_count,
+                           u.username as assigned_cleaner_name');
+        $this->db->from('jobs j');
+        $this->db->join('offers o', 'o.job_id = j.id', 'left');
+        $this->db->join('users u', 'u.user_id = j.assigned_cleaner_id', 'left');
+        $this->db->where('j.host_id', $host_id);
+        $this->db->group_by('j.id');
+        
+        // Apply filters
+        if (!empty($filters['status'])) {
+            $this->db->where('j.status', $filters['status']);
+        }
+        
+        if (!empty($filters['search'])) {
+            $search_term = $filters['search'];
+            $this->db->group_start();
+            $this->db->like('j.title', $search_term);
+            $this->db->or_like('j.description', $search_term);
+            $this->db->or_like('j.address', $search_term);
+            $this->db->group_end();
+        }
+        
+        if (!empty($filters['price_min'])) {
+            $this->db->where('j.suggested_price >=', $filters['price_min']);
+        }
+        
+        if (!empty($filters['price_max'])) {
+            $this->db->where('j.suggested_price <=', $filters['price_max']);
+        }
+        
+        if (!empty($filters['date_from'])) {
+            $this->db->where('j.scheduled_date >=', $filters['date_from']);
+        }
+        
+        if (!empty($filters['date_to'])) {
+            $this->db->where('j.scheduled_date <=', $filters['date_to']);
+        }
+        
+        // Apply sorting
+        $sort_by = $filters['sort_by'] ?? 'created_at';
+        $sort_order = $filters['sort_order'] ?? 'DESC';
+        
+        // Map sort fields
+        $sort_mapping = [
+            'title' => 'j.title',
+            'date' => 'j.scheduled_date',
+            'price' => 'j.suggested_price',
+            'status' => 'j.status',
+            'offers' => 'offer_count',
+            'created' => 'j.created_at',
+            'updated' => 'j.updated_at'
+        ];
+        
+        $sort_field = $sort_mapping[$sort_by] ?? 'j.created_at';
+        $this->db->order_by($sort_field, $sort_order);
+        
+        return $this->db->get()->result();
+    }
+
+    /**
+     * Get count of host jobs with filters
+     */
+    public function get_host_jobs_count_filtered($host_id, $filters = [])
+    {
+        $this->db->from('jobs j');
+        $this->db->where('j.host_id', $host_id);
+        
+        // Apply filters
+        if (!empty($filters['status'])) {
+            $this->db->where('j.status', $filters['status']);
+        }
+        
+        if (!empty($filters['search'])) {
+            $search_term = $filters['search'];
+            $this->db->group_start();
+            $this->db->like('j.title', $search_term);
+            $this->db->or_like('j.description', $search_term);
+            $this->db->or_like('j.address', $search_term);
+            $this->db->group_end();
+        }
+        
+        if (!empty($filters['price_min'])) {
+            $this->db->where('j.suggested_price >=', $filters['price_min']);
+        }
+        
+        if (!empty($filters['price_max'])) {
+            $this->db->where('j.suggested_price <=', $filters['price_max']);
+        }
+        
+        if (!empty($filters['date_from'])) {
+            $this->db->where('j.scheduled_date >=', $filters['date_from']);
+        }
+        
+        if (!empty($filters['date_to'])) {
+            $this->db->where('j.scheduled_date <=', $filters['date_to']);
+        }
+        
+        return $this->db->count_all_results();
+    }
+
+    /**
+     * Get host job status counts for filter buttons
+     */
+    public function get_host_job_status_counts($host_id)
+    {
+        $this->db->select('status, COUNT(*) as count');
+        $this->db->from('jobs');
+        $this->db->where('host_id', $host_id);
+        $this->db->group_by('status');
+        
+        $result = $this->db->get()->result();
+        $counts = [];
+        
+        foreach ($result as $row) {
+            $counts[$row->status] = $row->count;
+        }
+        
+        return $counts;
+    }
+
+    /**
+     * Get host's active jobs (today and future only)
+     */
+    public function get_host_active_jobs($host_id)
+    {
+        $this->db->select('*');
+        $this->db->from('jobs');
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'open'); // Only open jobs
+        $this->db->where('(scheduled_date >= CURDATE() OR scheduled_date IS NULL)'); // Today and future only
+        $this->db->order_by('scheduled_date', 'ASC');
+        
+        return $this->db->get()->result();
+    }
+
+    /**
+     * Get host's expired jobs
+     */
+    public function get_host_expired_jobs($host_id)
+    {
+        $this->db->select('*');
+        $this->db->from('jobs');
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'expired'); // Only expired jobs
+        $this->db->order_by('scheduled_date', 'DESC');
+        
+        return $this->db->get()->result();
+    }
+
+    /**
+     * Auto-expire jobs that have passed their scheduled date without offers being accepted
+     */
+    public function auto_expire_jobs()
+    {
+        // Update jobs that are past their scheduled date and still open
+        $this->db->where('status', 'open');
+        $this->db->where('scheduled_date < CURDATE()');
+        $this->db->where('scheduled_date IS NOT NULL');
+        
+        $result = $this->db->update('jobs', [
+            'status' => 'expired',
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        return $result;
     }
 
     /**
@@ -711,11 +945,123 @@ class M_jobs extends CI_Model
         $this->db->from('jobs j');
         $this->db->join('users u', 'j.host_id = u.user_id');
         $this->db->where('j.assigned_cleaner_id', $cleaner_id);
-        $this->db->where('j.status', 'completed');
-        $this->db->order_by('j.updated_at', 'DESC');
+        $this->db->where_in('j.status', ['completed', 'disputed', 'closed']); // Include disputed and closed jobs
+        $this->db->order_by('j.completed_at', 'DESC'); // Order by completion date
         
         $query = $this->db->get();
         return $query->result();
+    }
+
+    /**
+     * Get earnings data for cleaner within date range
+     */
+    public function get_cleaner_earnings($cleaner_id, $start_date = null, $end_date = null)
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return [
+                'total_earnings' => 0,
+                'total_jobs' => 0,
+                'average_earnings' => 0,
+                'jobs' => []
+            ];
+        }
+
+        $this->db->select('j.*, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.host_id = u.user_id');
+        $this->db->where('j.assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('j.status', ['completed', 'disputed', 'closed']);
+        $this->db->where('j.payment_released_at IS NOT NULL'); // Only jobs with released payments
+
+        // Apply date filters
+        if ($start_date) {
+            $this->db->where('j.payment_released_at >=', $start_date . ' 00:00:00');
+        }
+        if ($end_date) {
+            $this->db->where('j.payment_released_at <=', $end_date . ' 23:59:59');
+        }
+
+        $this->db->order_by('j.payment_released_at', 'DESC');
+        
+        $query = $this->db->get();
+        $jobs = $query->result();
+
+        // Calculate totals
+        $total_earnings = 0;
+        $total_jobs = count($jobs);
+        
+        foreach ($jobs as $job) {
+            $earnings = $job->payment_amount ?: ($job->final_price ?: $job->accepted_price);
+            $total_earnings += (float)$earnings;
+        }
+
+        $average_earnings = $total_jobs > 0 ? $total_earnings / $total_jobs : 0;
+
+        return [
+            'total_earnings' => $total_earnings,
+            'total_jobs' => $total_jobs,
+            'average_earnings' => $average_earnings,
+            'jobs' => $jobs
+        ];
+    }
+
+    /**
+     * Get earnings summary for cleaner (all time)
+     */
+    public function get_cleaner_earnings_summary($cleaner_id)
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return [
+                'total_earnings' => 0,
+                'total_jobs' => 0,
+                'this_month_earnings' => 0,
+                'this_month_jobs' => 0,
+                'last_month_earnings' => 0,
+                'last_month_jobs' => 0
+            ];
+        }
+
+        // All time totals
+        $this->db->select('COUNT(*) as total_jobs, SUM(COALESCE(payment_amount, final_price, accepted_price)) as total_earnings');
+        $this->db->from('jobs');
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('status', ['completed', 'disputed', 'closed']);
+        $this->db->where('payment_released_at IS NOT NULL');
+        $all_time = $this->db->get()->row();
+
+        // This month
+        $this->db->select('COUNT(*) as total_jobs, SUM(COALESCE(payment_amount, final_price, accepted_price)) as total_earnings');
+        $this->db->from('jobs');
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('status', ['completed', 'disputed', 'closed']);
+        $this->db->where('payment_released_at IS NOT NULL');
+        $this->db->where('YEAR(payment_released_at)', date('Y'));
+        $this->db->where('MONTH(payment_released_at)', date('m'));
+        $this_month = $this->db->get()->row();
+
+        // Last month
+        $last_month = date('m', strtotime('first day of last month'));
+        $last_year = date('Y', strtotime('first day of last month'));
+        
+        $this->db->select('COUNT(*) as total_jobs, SUM(COALESCE(payment_amount, final_price, accepted_price)) as total_earnings');
+        $this->db->from('jobs');
+        $this->db->where('assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('status', ['completed', 'disputed', 'closed']);
+        $this->db->where('payment_released_at IS NOT NULL');
+        $this->db->where('YEAR(payment_released_at)', $last_year);
+        $this->db->where('MONTH(payment_released_at)', $last_month);
+        $last_month_data = $this->db->get()->row();
+
+        return [
+            'total_earnings' => (float)($all_time->total_earnings ?: 0),
+            'total_jobs' => (int)($all_time->total_jobs ?: 0),
+            'this_month_earnings' => (float)($this_month->total_earnings ?: 0),
+            'this_month_jobs' => (int)($this_month->total_jobs ?: 0),
+            'last_month_earnings' => (float)($last_month_data->total_earnings ?: 0),
+            'last_month_jobs' => (int)($last_month_data->total_jobs ?: 0)
+        ];
     }
 
     /**
@@ -1018,7 +1364,12 @@ class M_jobs extends CI_Model
         // Add debug logging for dispute window check
         $current_time = time();
         $dispute_end_time = $job->dispute_window_ends_at ? strtotime($job->dispute_window_ends_at) : 0;
-        log_message('debug', "Dispute Job Debug - Current time: $current_time, Dispute end time: $dispute_end_time, Window ends at: {$job->dispute_window_ends_at}");
+        
+        // Convert to PST for debugging
+        $current_pst = date('Y-m-d H:i:s T', $current_time);
+        $dispute_end_pst = $dispute_end_time ? date('Y-m-d H:i:s T', $dispute_end_time) : 'NULL';
+        
+        log_message('debug', "Dispute Job Debug - Current time: $current_time ($current_pst), Dispute end time: $dispute_end_time ($dispute_end_pst), Window ends at: {$job->dispute_window_ends_at}");
         
         // Check if dispute window is still open
         if ($job->dispute_window_ends_at && $dispute_end_time < $current_time) {
@@ -1361,12 +1712,20 @@ class M_jobs extends CI_Model
         $cleaner_amount = number_format((float)($original_amount * $cleaner_percentage / 100), 2, '.', '');
         $host_refund = number_format((float)($original_amount - $cleaner_amount), 2, '.', '');
 
+        // Determine resolution type based on percentage
+        $dispute_resolution = 'compromise'; // Default
+        if ($cleaner_percentage >= 75) {
+            $dispute_resolution = 'resolved_in_favor_cleaner';
+        } elseif ($cleaner_percentage <= 25) {
+            $dispute_resolution = 'resolved_in_favor_host';
+        }
+
         // Update job status
         $this->db->where('id', $job_id);
         $this->db->update('jobs', [
             'status' => 'closed',
             'dispute_resolved_at' => date('Y-m-d H:i:s'),
-            'dispute_resolution' => 'resolved_by_admin',
+            'dispute_resolution' => $dispute_resolution,
             'dispute_resolution_notes' => $resolution_notes,
             'payment_amount' => $cleaner_amount,
             'payment_released_at' => date('Y-m-d H:i:s'),
@@ -1383,7 +1742,7 @@ class M_jobs extends CI_Model
             $this->M_notifications->notify_dispute_resolved(
                 $job->host_id,
                 $job->title,
-                'resolved_by_admin',
+                $dispute_resolution,
                 $host_refund,
                 [
                     'job_id' => $job_id,
@@ -1398,7 +1757,7 @@ class M_jobs extends CI_Model
             $this->M_notifications->notify_dispute_resolved(
                 $job->assigned_cleaner_id,
                 $job->title,
-                'resolved_by_admin',
+                $dispute_resolution,
                 $cleaner_amount,
                 [
                     'job_id' => $job_id,
@@ -1413,5 +1772,152 @@ class M_jobs extends CI_Model
         }
 
         return false;
+    }
+
+    /**
+     * Get price adjustment statistics for host dashboard
+     */
+    public function get_price_adjustment_stats($host_id)
+    {
+        // Check if counter_offers table exists
+        if (!$this->db->table_exists('counter_offers')) {
+            return (object)[
+                'total_requests' => 0,
+                'pending_requests' => 0,
+                'approved_requests' => 0,
+                'escalated_requests' => 0,
+                'total_additional_amount' => 0,
+                'average_adjustment' => 0,
+                'disputed_requests' => 0
+            ];
+        }
+
+        $stats = [];
+
+        // Total requests
+        $this->db->where('host_id', $host_id);
+        $stats['total_requests'] = $this->db->count_all_results('counter_offers');
+
+        // Pending requests
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'pending');
+        $stats['pending_requests'] = $this->db->count_all_results('counter_offers');
+
+        // Approved requests
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'approved');
+        $stats['approved_requests'] = $this->db->count_all_results('counter_offers');
+
+        // Escalated requests
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'escalated');
+        $stats['escalated_requests'] = $this->db->count_all_results('counter_offers');
+
+        // Disputed requests
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'disputed');
+        $stats['disputed_requests'] = $this->db->count_all_results('counter_offers');
+
+        // Total additional amount (approved requests)
+        $this->db->select('SUM(proposed_price - original_price) as total_additional');
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'approved');
+        $result = $this->db->get('counter_offers')->row();
+        $stats['total_additional_amount'] = $result ? $result->total_additional : 0;
+
+        // Average adjustment amount
+        $this->db->select('AVG(proposed_price - original_price) as avg_adjustment');
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'approved');
+        $result = $this->db->get('counter_offers')->row();
+        $stats['average_adjustment'] = $result ? $result->avg_adjustment : 0;
+
+        return (object)$stats;
+    }
+
+    /**
+     * Get filtered price adjustment jobs for host
+     */
+    public function get_price_adjustment_jobs_filtered($host_id, $filters = [])
+    {
+        // Check if counter_offers table exists
+        if (!$this->db->table_exists('counter_offers')) {
+            return [];
+        }
+
+        $this->db->select('
+            co.id as counter_offer_id,
+            co.job_id,
+            co.cleaner_id,
+            co.host_id,
+            co.original_price,
+            co.proposed_price,
+            co.reason,
+            co.status,
+            co.host_response,
+            co.escalated_at,
+            co.moderator_id,
+            co.moderator_decision,
+            co.moderator_notes,
+            co.final_price,
+            co.expires_at,
+            co.created_at,
+            co.updated_at,
+            co.host_dispute_reason,
+            co.host_dispute_details,
+            co.disputed_by_host,
+            j.title,
+            j.description,
+            j.address,
+            j.scheduled_date,
+            j.scheduled_time,
+            j.final_price as job_final_price,
+            u.username as cleaner_username,
+            u.first_name as cleaner_first_name,
+            u.last_name as cleaner_last_name,
+            u.email as cleaner_email
+        ');
+        $this->db->from('counter_offers co');
+        $this->db->join('jobs j', 'co.job_id = j.id');
+        $this->db->join('users u', 'co.cleaner_id = u.user_id');
+        $this->db->where('co.host_id', $host_id);
+
+        // Apply filters
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $this->db->group_start();
+            $this->db->like('j.title', $search);
+            $this->db->or_like('j.description', $search);
+            $this->db->or_like('u.first_name', $search);
+            $this->db->or_like('u.last_name', $search);
+            $this->db->or_like('co.reason', $search);
+            $this->db->group_end();
+        }
+
+        if (!empty($filters['status'])) {
+            $this->db->where('co.status', $filters['status']);
+        }
+
+        if (!empty($filters['price_min'])) {
+            $this->db->where('co.proposed_price >=', $filters['price_min']);
+        }
+
+        if (!empty($filters['price_max'])) {
+            $this->db->where('co.proposed_price <=', $filters['price_max']);
+        }
+
+        // Apply sorting
+        $sort_by = $filters['sort_by'] ?? 'created_at';
+        $sort_order = $filters['sort_order'] ?? 'desc';
+        
+        $allowed_sort_fields = ['created_at', 'proposed_price', 'original_price', 'expires_at', 'status'];
+        if (in_array($sort_by, $allowed_sort_fields)) {
+            $this->db->order_by('co.' . $sort_by, strtoupper($sort_order));
+        } else {
+            $this->db->order_by('co.created_at', 'DESC');
+        }
+
+        $query = $this->db->get();
+        return $query->result();
     }
 }

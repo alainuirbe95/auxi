@@ -96,8 +96,8 @@
                                                             </h6>
                                                             <div class="mb-3">
                                                                 <strong>Reason:</strong>
-                                                                <div class="alert alert-warning p-2 mt-1">
-                                                                    <small><?= nl2br(htmlspecialchars($dispute->dispute_reason)) ?></small>
+                                                                <div class="dispute-reason-display p-2 mt-1 border rounded bg-light">
+                                                                    <small class="text-dark"><?= nl2br(htmlspecialchars($dispute->dispute_reason)) ?></small>
                                                                 </div>
                                                             </div>
                                                             <div class="row">

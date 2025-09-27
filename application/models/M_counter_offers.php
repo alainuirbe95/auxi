@@ -178,7 +178,7 @@ class M_counter_offers extends CI_Model
     /**
      * Host escalates counter-offer to moderator
      */
-    public function escalate_counter_offer($counter_offer_id, $host_id, $response = null)
+    public function escalate_counter_offer($counter_offer_id, $host_id, $dispute_data = null)
     {
         // Verify ownership
         $counter_offer = $this->get_counter_offer($counter_offer_id);
@@ -186,15 +186,90 @@ class M_counter_offers extends CI_Model
             return false;
         }
 
-        // Update counter-offer
-        $this->db->where('id', $counter_offer_id);
-        return $this->db->update('counter_offers', [
+        // Prepare update data
+        $update_data = [
             'status' => 'escalated',
-            'host_response' => $response,
             'escalated_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
-        ]);
+        ];
+
+        // Handle dispute data if provided
+        if ($dispute_data && is_array($dispute_data)) {
+            $update_data['host_dispute_reason'] = $dispute_data['dispute_reason'] ?? null;
+            $update_data['host_dispute_details'] = $dispute_data['dispute_details'] ?? null;
+            $update_data['disputed_by_host'] = $dispute_data['disputed_by_host'] ?? false;
+        } elseif ($dispute_data && is_string($dispute_data)) {
+            // Legacy support for simple response string
+            $update_data['host_response'] = $dispute_data;
+        }
+
+        // Update counter-offer
+        $this->db->where('id', $counter_offer_id);
+        return $this->db->update('counter_offers', $update_data);
         // Note: Job remains in 'price_adjustment_requested' status until moderator resolves
+    }
+
+    /**
+     * Host disputes counter-offer
+     */
+    public function dispute_counter_offer($counter_offer_id, $host_id, $dispute_reason, $dispute_details)
+    {
+        // Verify ownership and status
+        $counter_offer = $this->get_counter_offer($counter_offer_id);
+        if (!$counter_offer || $counter_offer->host_id != $host_id || $counter_offer->status != 'pending') {
+            return false;
+        }
+
+        // Update counter-offer to disputed status
+        $this->db->where('id', $counter_offer_id);
+        $result = $this->db->update('counter_offers', [
+            'status' => 'disputed',
+            'host_dispute_reason' => $dispute_reason,
+            'host_dispute_details' => $dispute_details,
+            'disputed_by_host' => 1,
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+
+        if ($result) {
+            // Send notification to cleaner
+            $this->load->model('M_notifications');
+            $this->M_notifications->notify_price_adjustment_disputed(
+                $counter_offer->cleaner_id,
+                $counter_offer->job_id,
+                $dispute_reason,
+                $dispute_details
+            );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get disputed counter offers for cleaner
+     */
+    public function get_disputed_offers_for_cleaner($cleaner_id)
+    {
+        $this->db->select('
+            co.*,
+            j.title,
+            j.description,
+            j.address,
+            j.scheduled_date,
+            j.scheduled_time,
+            h.username as host_username,
+            h.first_name as host_first_name,
+            h.last_name as host_last_name,
+            h.email as host_email
+        ');
+        $this->db->from('counter_offers co');
+        $this->db->join('jobs j', 'co.job_id = j.id');
+        $this->db->join('users h', 'co.host_id = h.user_id');
+        $this->db->where('co.cleaner_id', $cleaner_id);
+        $this->db->where('co.status', 'disputed');
+        $this->db->order_by('co.updated_at', 'DESC');
+        
+        $query = $this->db->get();
+        return $query->result();
     }
 
     /**

@@ -15,6 +15,24 @@ if (!function_exists('time_ago')) {
 ?>
 
 <style>
+/* Container styling for wider desktop view */
+.container-fluid {
+    max-width: 95% !important;
+    margin: 0 auto !important;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 97% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: 98% !important;
+    }
+}
+
 /* Rejected Offers Styles */
 .rejected-offers-container {
     padding: 2rem 0;
@@ -255,7 +273,8 @@ if (!function_exists('time_ago')) {
 }
 </style>
 
-<div class="rejected-offers-container">
+<div class="container-fluid">
+    <div class="rejected-offers-container">
     <!-- Header Section -->
     <div class="rejected-header">
         <h2>
@@ -353,6 +372,7 @@ if (!function_exists('time_ago')) {
             </p>
         </div>
     <?php endif; ?>
+    </div>
 </div>
 
 <script>

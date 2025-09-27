@@ -15,6 +15,24 @@ if (!function_exists('time_ago')) {
 ?>
 
 <style>
+/* Container styling for wider desktop view */
+.container-fluid {
+    max-width: 95% !important;
+    margin: 0 auto !important;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 97% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: 98% !important;
+    }
+}
+
 /* Assigned Jobs Styles */
 .assigned-jobs-container {
     padding: 2rem 0;
@@ -334,7 +352,8 @@ if (!function_exists('time_ago')) {
 }
 </style>
 
-<div class="assigned-jobs-container">
+<div class="container-fluid">
+    <div class="assigned-jobs-container">
     <!-- Header Section -->
     <div class="assigned-header">
         <h2>
@@ -618,3 +637,5 @@ if (!function_exists('time_ago')) {
     color: white !important;
 }
 </style>
+    </div>
+</div>

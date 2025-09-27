@@ -15,6 +15,9 @@ class Disputes extends MY_Controller
         $this->load->model('M_jobs');
         $this->load->model('M_notifications');
         $this->load->library('form_validation');
+        
+        // Initialize session and check if user is logged in (level 3 and above)
+        $this->init_session_auto(3);
     }
 
     /**
@@ -60,6 +63,10 @@ class Disputes extends MY_Controller
         $job_id = $this->input->post('job_id');
         $issues_json = $this->input->post('issues');
         $notes = $this->input->post('notes');
+        
+        // Debug logging
+        log_message('debug', "Dispute Controller - auth_user_id: $user_id");
+        log_message('debug', "Dispute Controller - session userdata: " . json_encode($this->session->userdata()));
 
         // Decode the issues JSON string
         $issues = json_decode($issues_json, true);

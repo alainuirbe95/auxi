@@ -77,6 +77,10 @@ $route['host/process_edit_job/(:num)'] = 'host/process_edit_job/$1';
 $route['host/cancel_job'] = 'host/cancel_job';
 $route['host/delete_job'] = 'host/delete_job';
 $route['host/offers'] = 'host/offers';
+$route['host/expired-jobs'] = 'host/expired_jobs';
+$route['host/repost-job'] = 'host/repost_job';
+$route['host/bulk-repost-jobs'] = 'host/bulk_repost_jobs';
+$route['host/delete-expired-job'] = 'host/delete_expired_job';
 $route['host/accept_offer/(:num)'] = 'host/accept_offer/$1';
 $route['host/reject_offer/(:num)'] = 'host/reject_offer/$1';
 
@@ -105,9 +109,11 @@ $route['host/counter-offers'] = 'counteroffers/index';
 $route['counter-offers/approve'] = 'counteroffers/approve';
 $route['counter-offers/reject'] = 'counteroffers/reject';
 $route['counter-offers/escalate'] = 'counteroffers/escalate';
+$route['counter-offers/respond'] = 'counteroffers/respond';
 $route['counter-offers/resolve'] = 'counteroffers/resolve';
 $route['counter-offers/details/(:num)'] = 'counteroffers/get_details/$1';
 $route['admin/counter-offers'] = 'counteroffers/moderator_index';
+$route['cleaner/price-adjustment-disputes'] = 'counteroffers/cleaner_disputes';
 
 // Disputes routes
 $route['host/completed-jobs'] = 'disputes/index';
@@ -166,6 +172,22 @@ $route['database-setup/debug-job-start'] = 'databasesetup/debug_job_start';
 $route['database-setup/check-logs'] = 'databasesetup/check_logs';
 $route['database-setup/debug-dispute-window'] = 'databasesetup/debug_dispute_window';
 $route['database-setup/setup-dispute-resolution-fields'] = 'databasesetup/setup_dispute_resolution_fields';
+$route['database-setup/setup-expired-status'] = 'databasesetup/setup_expired_status';
+$route['database-setup/debug-expire-jobs'] = 'databasesetup/debug_expire_jobs';
+$route['database-setup/debug-jobs-fields'] = 'databasesetup/debug_jobs_fields';
+$route['database-setup/setup-counter-offer-dispute-fields'] = 'databasesetup/setup_counter_offer_dispute_fields';
+$route['database-setup/add-disputed-status-to-counter-offers'] = 'databasesetup/add_disputed_status_to_counter_offers';
+
+// Password change routes
+$route['host/change_password'] = 'host/change_password';
+$route['host/update_password'] = 'host/update_password';
+$route['cleaner/change_password'] = 'cleaner/change_password';
+$route['cleaner/update_password'] = 'cleaner/update_password';
+$route['cleaner/completed'] = 'cleaner/completed';
+
+// User Profile routes (accessible to all user levels 3+)
+$route['user-profile/change_password'] = 'userprofile/change_password';
+$route['user-profile/update_password'] = 'userprofile/update_password';
 
 // Redirect root URL based on authentication
 $route['^$'] = 'app/redirect_user';

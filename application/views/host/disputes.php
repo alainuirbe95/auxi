@@ -372,3 +372,23 @@ $(document).ready(function() {
 });
 
 </script>
+
+<style>
+/* Make container wider */
+.container-fluid {
+    max-width: 95% !important;
+    margin: 0 auto !important;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 97% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: 98% !important;
+    }
+}
+</style>

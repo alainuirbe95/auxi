@@ -34,10 +34,8 @@ class Host extends MY_Controller
             $this->load->model('M_job_flags');
         }
         
-        // Check if user is logged in and is a host
-        if (!$this->require_min_level(6)) { // Host level = 6
-            redirect('app/login');
-        }
+        // Initialize session and check if user is logged in and is a host
+        $this->init_session_auto(6); // Host level = 6
         
         // Clear flash messages
         $this->session->unset_userdata('text');
@@ -66,23 +64,24 @@ class Host extends MY_Controller
         // Check if marketplace tables exist and load data accordingly
         if ($this->db->table_exists('jobs') && isset($this->M_jobs)) {
             $data['stats'] = $this->M_jobs->get_host_stats($user_id);
-            $data['recent_jobs'] = $this->M_jobs->get_host_recent_jobs($user_id, 5);
+            $data['recent_jobs'] = $this->M_jobs->get_host_recent_jobs($user_id, 10);
+            $data['pending_offers'] = $this->M_jobs->get_host_pending_offers($user_id, 10);
+            $data['pending_completed'] = $this->M_jobs->get_host_pending_completed($user_id, 10);
             $data['marketplace_ready'] = true;
         } else {
             // Provide default stats when marketplace tables don't exist
             $data['stats'] = [
                 'total_jobs' => 0,
                 'active_jobs' => 0,
+                'live_disputes' => 0,
                 'completed_jobs' => 0,
-                'total_spent' => 0
+                'closed_jobs' => 0,
+                'pending_offers' => 0,
+                'pending_completed' => 0
             ];
             $data['recent_jobs'] = [];
-        }
-        
-        if ($this->db->table_exists('offers') && isset($this->M_offers)) {
-            $data['pending_offers'] = $this->M_offers->get_pending_offers_for_host($user_id, 5);
-        } else {
             $data['pending_offers'] = [];
+            $data['pending_completed'] = [];
         }
         
         // Load the sidebar content as a string
@@ -277,6 +276,28 @@ class Host extends MY_Controller
             show_404();
         }
         
+        // Get dispute and price adjustment information
+        $dispute_info = null;
+        $price_adjustments = [];
+        
+        if ($job->status === 'disputed' || ($job->status === 'closed' && $job->dispute_resolution)) {
+            // Get dispute information
+            $dispute_info = [
+                'disputed_at' => $job->disputed_at,
+                'dispute_reason' => $job->dispute_reason,
+                'dispute_resolution' => $job->dispute_resolution,
+                'dispute_resolution_notes' => $job->dispute_resolution_notes,
+                'dispute_resolved_at' => $job->dispute_resolved_at,
+                'payment_amount' => $job->payment_amount
+            ];
+        }
+        
+        if ($job->status === 'price_adjustment_requested') {
+            // Get price adjustment requests
+            $this->load->model('M_counter_offers');
+            $price_adjustments = $this->M_counter_offers->get_counter_offers_for_job($job_id);
+        }
+        
         $data = [
             'title' => 'Job Details - ' . $job->title,
             'page_icon' => 'fas fa-clipboard-list',
@@ -287,7 +308,9 @@ class Host extends MY_Controller
             ],
             'job' => $job,
             'offers' => $this->M_offers->get_offers_by_job($job_id),
-            'user_info' => $this->M_users->get_user_by_id($this->auth_user_id)
+            'user_info' => $this->M_users->get_user_by_id($this->auth_user_id),
+            'dispute_info' => $dispute_info,
+            'price_adjustments' => $price_adjustments
         ];
         
         // Load the sidebar content as a string
@@ -368,14 +391,100 @@ class Host extends MY_Controller
     }
 
     /**
+     * View Expired Jobs
+     * Show all expired jobs for the host
+     */
+    public function expired_jobs()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Get filter parameters
+        $search_term = $this->input->get('search');
+        $sort_by = $this->input->get('sort') ?: 'scheduled_date';
+        $sort_order = $this->input->get('order') ?: 'DESC';
+        
+        // Get expired jobs
+        $expired_jobs = [];
+        if (isset($this->M_jobs)) {
+            $expired_jobs = $this->M_jobs->get_host_expired_jobs($user_id);
+            
+            // Apply search filter
+            if (!empty($search_term)) {
+                $expired_jobs = array_filter($expired_jobs, function($job) use ($search_term) {
+                    return stripos($job->title, $search_term) !== false || 
+                           stripos($job->description, $search_term) !== false ||
+                           stripos($job->address, $search_term) !== false;
+                });
+            }
+            
+            // Sort jobs
+            usort($expired_jobs, function($a, $b) use ($sort_by, $sort_order) {
+                switch ($sort_by) {
+                    case 'scheduled_date':
+                        $a_val = strtotime($a->scheduled_date ?? $a->created_at);
+                        $b_val = strtotime($b->scheduled_date ?? $b->created_at);
+                        break;
+                    case 'title':
+                        $a_val = $a->title;
+                        $b_val = $b->title;
+                        break;
+                    case 'price':
+                        $a_val = $a->suggested_price;
+                        $b_val = $b->suggested_price;
+                        break;
+                    default:
+                        $a_val = strtotime($a->created_at);
+                        $b_val = strtotime($b->created_at);
+                }
+                
+                if ($sort_order === 'DESC') {
+                    return $b_val <=> $a_val;
+                } else {
+                    return $a_val <=> $b_val;
+                }
+            });
+        }
+        
+        $data = [
+            'title' => 'Expired Jobs',
+            'page_icon' => 'fas fa-clock',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'host'],
+                ['title' => 'Expired Jobs', 'url' => '', 'active' => true]
+            ],
+            'expired_jobs' => $expired_jobs,
+            'filters' => [
+                'search' => $search_term,
+                'sort_by' => $sort_by,
+                'sort_order' => $sort_order
+            ]
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        
+        // Load the expired jobs content as a string
+        $data['body'] = $this->load->view('host/expired_jobs', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
      * View All Offers
-     * Show all offers for host's jobs
+     * Show all offers for host's jobs (today and future only)
      */
     public function offers()
     {
         $user_id = $this->auth_user_id;
         
-        // Get all jobs with offers for this host
+        // Get filter parameters
+        $status_filter = $this->input->get('status');
+        $search_term = $this->input->get('search');
+        $sort_by = $this->input->get('sort') ?: 'scheduled_date';
+        $sort_order = $this->input->get('order') ?: 'ASC';
+        
+        // Get all jobs with offers for this host (today and future only)
         $jobs_with_offers = [];
         $total_offers = 0;
         $pending_offers = 0;
@@ -383,8 +492,8 @@ class Host extends MY_Controller
         $accepted_offers = 0;
         
         if ($this->db->table_exists('jobs') && $this->db->table_exists('offers')) {
-            // Get all jobs for this host
-            $jobs = $this->M_jobs->get_jobs_by_host($user_id);
+            // Get jobs for this host (today and future only)
+            $jobs = $this->M_jobs->get_host_active_jobs($user_id);
             
             foreach ($jobs as $job) {
                 $offers = $this->M_offers->get_offers_by_job($job->id);
@@ -408,6 +517,37 @@ class Host extends MY_Controller
                     }
                 }
             }
+            
+            // Sort jobs by scheduled date
+            usort($jobs_with_offers, function($a, $b) use ($sort_by, $sort_order) {
+                switch ($sort_by) {
+                    case 'scheduled_date':
+                        $a_val = strtotime($a->scheduled_date ?? $a->created_at);
+                        $b_val = strtotime($b->scheduled_date ?? $b->created_at);
+                        break;
+                    case 'title':
+                        $a_val = $a->title;
+                        $b_val = $b->title;
+                        break;
+                    case 'price':
+                        $a_val = $a->suggested_price;
+                        $b_val = $b->suggested_price;
+                        break;
+                    case 'offers_count':
+                        $a_val = count($a->offers);
+                        $b_val = count($b->offers);
+                        break;
+                    default:
+                        $a_val = strtotime($a->created_at);
+                        $b_val = strtotime($b->created_at);
+                }
+                
+                if ($sort_order === 'DESC') {
+                    return $b_val <=> $a_val;
+                } else {
+                    return $a_val <=> $b_val;
+                }
+            });
         }
         
         $data = [
@@ -421,7 +561,13 @@ class Host extends MY_Controller
             'total_offers' => $total_offers,
             'pending_offers' => $pending_offers,
             'counter_offers' => $counter_offers,
-            'accepted_offers' => $accepted_offers
+            'accepted_offers' => $accepted_offers,
+            'filters' => [
+                'status' => $status_filter,
+                'search' => $search_term,
+                'sort_by' => $sort_by,
+                'sort_order' => $sort_order
+            ]
         ];
         
         // Load the sidebar content as a string
@@ -442,13 +588,51 @@ class Host extends MY_Controller
     {
         $host_id = $this->auth_user_id;
         
+        // Get filter parameters
+        $status_filter = $this->input->get('status');
+        $search_term = $this->input->get('search');
+        $sort_by = $this->input->get('sort') ?: 'created_at';
+        $sort_order = $this->input->get('order') ?: 'DESC';
+        $price_min = $this->input->get('price_min');
+        $price_max = $this->input->get('price_max');
+        $date_from = $this->input->get('date_from');
+        $date_to = $this->input->get('date_to');
+        
         // Debug: Check if M_jobs model exists
         if (!isset($this->M_jobs)) {
             log_message('error', 'M_jobs model not loaded in jobs() method');
             $jobs = [];
+            $total_jobs = 0;
         } else {
-            $jobs = $this->M_jobs->get_jobs_by_host($host_id);
-            log_message('debug', 'Found ' . count($jobs) . ' jobs for host ID: ' . $host_id);
+            // Get filtered and sorted jobs
+            $jobs = $this->M_jobs->get_host_jobs_filtered($host_id, [
+                'status' => $status_filter,
+                'search' => $search_term,
+                'sort_by' => $sort_by,
+                'sort_order' => $sort_order,
+                'price_min' => $price_min,
+                'price_max' => $price_max,
+                'date_from' => $date_from,
+                'date_to' => $date_to
+            ]);
+            
+            // Get total count for pagination
+            $total_jobs = $this->M_jobs->get_host_jobs_count_filtered($host_id, [
+                'status' => $status_filter,
+                'search' => $search_term,
+                'price_min' => $price_min,
+                'price_max' => $price_max,
+                'date_from' => $date_from,
+                'date_to' => $date_to
+            ]);
+            
+            log_message('debug', 'Found ' . count($jobs) . ' filtered jobs for host ID: ' . $host_id);
+        }
+        
+        // Get status counts for filter buttons
+        $status_counts = [];
+        if (isset($this->M_jobs)) {
+            $status_counts = $this->M_jobs->get_host_job_status_counts($host_id);
         }
         
         $data = [
@@ -459,7 +643,19 @@ class Host extends MY_Controller
                 ['title' => 'My Jobs', 'url' => '', 'active' => true]
             ],
             'jobs' => $jobs,
-            'user_info' => $this->M_users->get_user_by_id($host_id)
+            'total_jobs' => $total_jobs,
+            'status_counts' => $status_counts,
+            'user_info' => $this->M_users->get_user_by_id($host_id),
+            'filters' => [
+                'status' => $status_filter,
+                'search' => $search_term,
+                'sort_by' => $sort_by,
+                'sort_order' => $sort_order,
+                'price_min' => $price_min,
+                'price_max' => $price_max,
+                'date_from' => $date_from,
+                'date_to' => $date_to
+            ]
         ];
         
         // Load the sidebar content as a string
@@ -738,6 +934,253 @@ class Host extends MY_Controller
             echo json_encode(['success' => true, 'message' => 'Job flagged successfully']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to flag job or you have already flagged this job']);
+        }
+    }
+
+    /**
+     * Repost a single expired job
+     */
+    public function repost_job()
+    {
+        $user_id = $this->auth_user_id;
+        $job_id = $this->input->post('job_id');
+        
+        if (!$job_id) {
+            echo json_encode(['success' => false, 'message' => 'Job ID is required']);
+            return;
+        }
+        
+        // Get the expired job
+        $expired_job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$expired_job || $expired_job->host_id != $user_id || $expired_job->status != 'expired') {
+            echo json_encode(['success' => false, 'message' => 'Job not found or not expired']);
+            return;
+        }
+        
+        // Create new job data (copy from expired job)
+        $new_job_data = [
+            'host_id' => $expired_job->host_id,
+            'title' => $expired_job->title,
+            'description' => $expired_job->description,
+            'address' => $expired_job->address,
+            'city' => $expired_job->city,
+            'state' => $expired_job->state,
+            'zip_code' => $expired_job->zip_code,
+            'latitude' => $expired_job->latitude,
+            'longitude' => $expired_job->longitude,
+            'scheduled_date' => date('Y-m-d'), // Set to today
+            'scheduled_time' => date('H:i:s'), // Set to current time
+            'estimated_duration' => $expired_job->estimated_duration,
+            'rooms' => $expired_job->rooms,
+            'extras' => $expired_job->extras,
+            'pets' => $expired_job->pets,
+            'pet_notes' => $expired_job->pet_notes,
+            'special_instructions' => $expired_job->special_instructions,
+            'suggested_price' => $expired_job->suggested_price,
+            'status' => 'open',
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+        
+        $new_job_id = $this->M_jobs->create_job($new_job_data);
+        
+        if ($new_job_id) {
+            echo json_encode(['success' => true, 'message' => 'Job reposted successfully', 'new_job_id' => $new_job_id]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to repost job']);
+        }
+    }
+
+    /**
+     * Bulk repost multiple expired jobs
+     */
+    public function bulk_repost_jobs()
+    {
+        $user_id = $this->auth_user_id;
+        $job_ids = $this->input->post('job_ids');
+        
+        if (!$job_ids || !is_array($job_ids)) {
+            echo json_encode(['success' => false, 'message' => 'No jobs selected']);
+            return;
+        }
+        
+        $success_count = 0;
+        $errors = [];
+        
+        foreach ($job_ids as $job_id) {
+            // Get the expired job
+            $expired_job = $this->M_jobs->get_job_by_id($job_id);
+            
+            if (!$expired_job || $expired_job->host_id != $user_id || $expired_job->status != 'expired') {
+                $errors[] = "Job #{$job_id}: Not found or not expired";
+                continue;
+            }
+            
+            // Create new job data
+            $new_job_data = [
+                'host_id' => $expired_job->host_id,
+                'title' => $expired_job->title,
+                'description' => $expired_job->description,
+                'address' => $expired_job->address,
+                'city' => $expired_job->city,
+                'state' => $expired_job->state,
+                'zip_code' => $expired_job->zip_code,
+                'latitude' => $expired_job->latitude,
+                'longitude' => $expired_job->longitude,
+                'scheduled_date' => date('Y-m-d'),
+                'scheduled_time' => date('H:i:s'),
+                'estimated_duration' => $expired_job->estimated_duration,
+                'rooms' => $expired_job->rooms,
+                'extras' => $expired_job->extras,
+                'pets' => $expired_job->pets,
+                'pet_notes' => $expired_job->pet_notes,
+                'special_instructions' => $expired_job->special_instructions,
+                'suggested_price' => $expired_job->suggested_price,
+                'status' => 'open',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            $new_job_id = $this->M_jobs->create_job($new_job_data);
+            
+            if ($new_job_id) {
+                $success_count++;
+            } else {
+                $errors[] = "Job #{$job_id}: Failed to repost";
+            }
+        }
+        
+        if ($success_count > 0) {
+            echo json_encode([
+                'success' => true, 
+                'message' => "Successfully reposted {$success_count} jobs",
+                'count' => $success_count,
+                'errors' => $errors
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to repost any jobs', 'errors' => $errors]);
+        }
+    }
+
+    /**
+     * Delete an expired job permanently
+     */
+    public function delete_expired_job()
+    {
+        $user_id = $this->auth_user_id;
+        $job_id = $this->input->post('job_id');
+        
+        if (!$job_id) {
+            echo json_encode(['success' => false, 'message' => 'Job ID is required']);
+            return;
+        }
+        
+        // Get the job
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job || $job->host_id != $user_id || $job->status != 'expired') {
+            echo json_encode(['success' => false, 'message' => 'Job not found or not expired']);
+            return;
+        }
+        
+        // Delete the job
+        $result = $this->M_jobs->hard_delete_job($job_id);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Job deleted successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to delete job']);
+        }
+    }
+
+    /**
+     * Display change password form for host
+     */
+    public function change_password() {
+        $this->load->model('M_users');
+        
+        // Get current user info - try different session field names (exact copy from admin)
+        $user_id = $this->session->userdata('user_id');
+        if (!$user_id) {
+            $user_id = $this->session->userdata('id'); // Try 'id' field
+        }
+        
+        if (!$user_id) {
+            show_error('User not authenticated. Please login again.', 401);
+        }
+        
+        $user_info = $this->M_users->get_user_by_id($user_id);
+        
+        if (!$user_info) {
+            show_error('User not found. Please contact administrator.', 404);
+        }
+        
+        $view["title"] = 'Change Password';
+        $view["page_icon"] = 'key';
+        $view["breadcrumbs"] = array(
+            array('title' => 'Dashboard', 'url' => 'host/dashboard'),
+            array('title' => 'Change Password', 'url' => '', 'active' => true)
+        );
+        $view["sidebar"] = $this->load->view("admin/template/host_sidebar", NULL, TRUE);
+        $view["body"] = $this->load->view("admin/change_password", array('user_info' => $user_info), TRUE);
+        
+        $this->load->view("admin/template/layout_with_sidebar", $view);
+    }
+
+    /**
+     * Process password change for host
+     */
+    public function update_password() {
+        $this->load->model('M_users');
+        
+        // Get current user info - try different session field names (exact copy from admin)
+        $user_id = $this->session->userdata('user_id');
+        if (!$user_id) {
+            $user_id = $this->session->userdata('id'); // Try 'id' field
+        }
+        
+        if (!$user_id) {
+            $this->output->set_status_header(401);
+            echo json_encode(array('success' => false, 'message' => 'User not authenticated'));
+            return;
+        }
+        
+        // Get form data
+        $current_password = $this->input->post('current_password');
+        $new_password = $this->input->post('new_password');
+        $confirm_password = $this->input->post('confirm_password');
+        
+        // Validate input
+        if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
+            echo json_encode(array('success' => false, 'message' => 'All fields are required'));
+            return;
+        }
+        
+        if ($new_password !== $confirm_password) {
+            echo json_encode(array('success' => false, 'message' => 'New passwords do not match'));
+            return;
+        }
+        
+        if (strlen($new_password) < 8) {
+            echo json_encode(array('success' => false, 'message' => 'New password must be at least 8 characters long'));
+            return;
+        }
+        
+        // Verify current password
+        $user = $this->M_users->get_user_by_id($user_id);
+        if (!$user || !password_verify($current_password, $user->passwd)) {
+            echo json_encode(array('success' => false, 'message' => 'Current password is incorrect'));
+            return;
+        }
+        
+        // Update password
+        $result = $this->M_users->update_user_password($user_id, $new_password);
+        
+        if ($result) {
+            echo json_encode(array('success' => true, 'message' => 'Password updated successfully'));
+        } else {
+            echo json_encode(array('success' => false, 'message' => 'Failed to update password'));
         }
     }
 

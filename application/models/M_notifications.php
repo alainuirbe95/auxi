@@ -335,4 +335,49 @@ class M_notifications extends CI_Model {
             $data['job_id'] ?? null
         );
     }
+
+    /**
+     * Notify cleaner that their price adjustment was disputed
+     */
+    public function notify_price_adjustment_disputed($cleaner_id, $job_id, $dispute_reason, $dispute_details)
+    {
+        // Get job details
+        $this->load->model('M_jobs');
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job) {
+            return false;
+        }
+
+        // Map dispute reasons to user-friendly text
+        $reason_mapping = [
+            'unexpected_work' => 'The cleaner is requesting payment for work that wasn\'t agreed upon',
+            'overpriced' => 'The additional work doesn\'t justify this price increase',
+            'misunderstanding' => 'There seems to be a misunderstanding about the scope of work',
+            'missing_details' => 'Important details about the job were not provided initially',
+            'other' => 'Other reason provided'
+        ];
+
+        $reason_text = $reason_mapping[$dispute_reason] ?? $dispute_reason;
+        
+        $data = [
+            'job_id' => $job_id,
+            'dispute_reason' => $dispute_reason,
+            'dispute_details' => $dispute_details,
+            'disputed_at' => date('Y-m-d H:i:s')
+        ];
+
+        $message = "Your price adjustment request for '{$job->title}' has been disputed by the host. ";
+        $message .= "Reason: {$reason_text}. ";
+        $message .= "The request will be reviewed by a moderator for a fair resolution.";
+
+        return $this->create_notification(
+            $cleaner_id,
+            'price_adjustment_disputed',
+            'Price Adjustment Disputed',
+            $message,
+            $data,
+            $job_id
+        );
+    }
 }

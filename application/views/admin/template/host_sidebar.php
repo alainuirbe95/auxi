@@ -77,6 +77,16 @@
           </a>
         </li>
 
+        <!-- Expired Jobs -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('host/expired-jobs'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'host/expired_jobs') ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-clock"></i>
+            </div>
+            <span class="nav-text">Expired Jobs</span>
+          </a>
+        </li>
+
         <!-- Divider -->
         <li class="nav-header modern-nav-header">FINANCIAL</li>
 
@@ -145,7 +155,7 @@
 
         <!-- Change Password -->
         <li class="nav-item">
-          <a href="<?php echo base_url('admin/change_password'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'admin/change_password') ? 'active' : ''; ?>">
+          <a href="<?php echo base_url('user-profile/change_password'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'user-profile/change_password') ? 'active' : ''; ?>">
             <div class="nav-icon-container">
               <i class="nav-icon fas fa-key"></i>
             </div>

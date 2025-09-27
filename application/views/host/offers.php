@@ -20,6 +20,24 @@ if (!function_exists('time_ago')) {
     padding: 2rem 0;
 }
 
+/* Make container wider */
+.container-fluid {
+    max-width: 95% !important;
+    margin: 0 auto !important;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 97% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: 98% !important;
+    }
+}
+
 .offers-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 20px;
@@ -27,6 +45,72 @@ if (!function_exists('time_ago')) {
     margin-bottom: 2rem;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     color: white;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.header-actions .btn {
+    border-radius: 50px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.header-actions .btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Filter Section */
+.filter-section {
+    margin-bottom: 2rem;
+}
+
+.filter-card {
+    background: white;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.filter-card .card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: none;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filter-card .card-body {
+    padding: 2rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.input-group-text {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
 }
 
 .offers-header h2 {
@@ -337,7 +421,7 @@ if (!function_exists('time_ago')) {
             <i class="fas fa-handshake me-2"></i>
             Job Offers Management
         </h2>
-        <p class="mb-0">Review and manage all offers for your cleaning jobs</p>
+        <p class="mb-0">Review and manage all offers for your active cleaning jobs (today and future)</p>
         
         <div class="offers-stats">
             <div class="stat-card">
@@ -355,6 +439,105 @@ if (!function_exists('time_ago')) {
             <div class="stat-card">
                 <div class="stat-number"><?php echo $accepted_offers; ?></div>
                 <div class="stat-label">Accepted</div>
+            </div>
+        </div>
+        
+        <div class="header-actions mt-3">
+            <a href="<?php echo base_url('host/expired-jobs'); ?>" class="btn btn-outline-light">
+                <i class="fas fa-clock me-2"></i>
+                View Expired Jobs
+            </a>
+            <a href="<?php echo base_url('host/create_job'); ?>" class="btn btn-light">
+                <i class="fas fa-plus me-2"></i>
+                Create New Job
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter and Search Section -->
+    <div class="filter-section">
+        <div class="filter-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-filter text-info me-2"></i>
+                    Filters & Search
+                </h5>
+                <button class="btn btn-sm btn-outline-secondary" id="toggleFilters">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="card-body" id="filterBody">
+                <form method="GET" action="<?php echo base_url('host/offers'); ?>" id="filterForm">
+                    <div class="row">
+                        <!-- Search -->
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Search Jobs</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="search" 
+                                       value="<?php echo htmlspecialchars($filters['search'] ?? ''); ?>"
+                                       placeholder="Search by job title or description">
+                            </div>
+                        </div>
+
+                        <!-- Sort Options -->
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Sort By</label>
+                            <select class="form-select" name="sort">
+                                <option value="scheduled_date" <?php echo ($filters['sort_by'] ?? '') === 'scheduled_date' ? 'selected' : ''; ?>>
+                                    Scheduled Date
+                                </option>
+                                <option value="title" <?php echo ($filters['sort_by'] ?? '') === 'title' ? 'selected' : ''; ?>>
+                                    Job Title
+                                </option>
+                                <option value="price" <?php echo ($filters['sort_by'] ?? '') === 'price' ? 'selected' : ''; ?>>
+                                    Price
+                                </option>
+                                <option value="offers_count" <?php echo ($filters['sort_by'] ?? '') === 'offers_count' ? 'selected' : ''; ?>>
+                                    Number of Offers
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2 mb-3">
+                            <label class="form-label">Order</label>
+                            <select class="form-select" name="order">
+                                <option value="ASC" <?php echo ($filters['sort_order'] ?? '') === 'ASC' ? 'selected' : ''; ?>>
+                                    Ascending
+                                </option>
+                                <option value="DESC" <?php echo ($filters['sort_order'] ?? '') === 'DESC' ? 'selected' : ''; ?>>
+                                    Descending
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-1 mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clear Filters -->
+                    <div class="row">
+                        <div class="col-12">
+                            <a href="<?php echo base_url('host/offers'); ?>" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-times me-1"></i>
+                                Clear Filters
+                            </a>
+                            <span class="text-muted ms-3">
+                                Showing <?php echo count($jobs_with_offers); ?> jobs with offers
+                            </span>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -490,6 +673,27 @@ if (!function_exists('time_ago')) {
 
 <script>
 $(document).ready(function() {
+    // Toggle filters visibility
+    $('#toggleFilters').click(function() {
+        $('#filterBody').slideToggle();
+        const icon = $(this).find('i');
+        icon.toggleClass('fa-chevron-down fa-chevron-up');
+    });
+    
+    // Auto-submit form on filter change
+    $('#filterForm select').change(function() {
+        $('#filterForm').submit();
+    });
+    
+    // Search with debounce
+    let searchTimeout;
+    $('#filterForm input[name="search"]').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            $('#filterForm').submit();
+        }, 500);
+    });
+    
     // Add loading state to action buttons
     $('.btn-offer').on('click', function() {
         const $btn = $(this);

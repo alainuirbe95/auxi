@@ -2,11 +2,7 @@
 // time_ago() function is already declared in modern_header.php
 ?>
 
-<!-- Content Wrapper. Contains page content -->
-<div class="content-wrapper">
-    <!-- Main content -->
-    <section class="content">
-        <div class="container-fluid">
+<div class="container-fluid">
             
             <!-- Job Creation Form -->
             <div class="row justify-content-center">
@@ -225,23 +221,26 @@
             </div>
             
         </div>
-    </section>
-</div>
 
 <style>
-/* Content Layout */
-.content {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-}
-
+/* Make container wider */
 .container-fluid {
     max-width: 95% !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 20px !important;
+    margin: 0 auto !important;
 }
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 97% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: 98% !important;
+    }
+}
+
 
 /* Form Container Enhancement */
 .job-create-container {
@@ -249,20 +248,6 @@
     width: 100% !important;
 }
 
-/* Responsive Layout */
-@media (max-width: 991.98px) {
-    .container-fluid {
-        max-width: 98% !important;
-        padding: 0 15px !important;
-    }
-}
-
-@media (max-width: 767.98px) {
-    .container-fluid {
-        max-width: 100% !important;
-        padding: 0 10px !important;
-    }
-}
 
 /* Modern Card Styles */
 .modern-card {

@@ -33,6 +33,24 @@ if (!function_exists('time_ago')) {
 ?>
 
 <style>
+/* Container styling for wider desktop view */
+.container-fluid {
+    max-width: 95% !important;
+    margin: 0 auto !important;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 97% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: 98% !important;
+    }
+}
+
 /* Ignored Jobs Styles */
 .ignored-jobs-container {
     padding: 2rem 0;
@@ -254,7 +272,8 @@ if (!function_exists('time_ago')) {
 }
 </style>
 
-<div class="ignored-jobs-container">
+<div class="container-fluid">
+    <div class="ignored-jobs-container">
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
@@ -408,3 +427,5 @@ function unignoreJob(jobId) {
     }
 }
 </script>
+    </div>
+</div>

@@ -1,3 +1,24 @@
+<style>
+/* Container styling for wider desktop view */
+.container-fluid {
+    max-width: 95% !important;
+    margin: 0 auto !important;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 97% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: 98% !important;
+    }
+}
+</style>
+
+<div class="container-fluid">
 <form id="inconsistencyForm">
     <input type="hidden" name="job_id" value="<?= $job->id ?>">
     
@@ -187,3 +208,4 @@ function submitInconsistency(formData) {
     });
 }
 </script>
+</div>

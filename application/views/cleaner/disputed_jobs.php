@@ -1,3 +1,23 @@
+<style>
+/* Container styling for wider desktop view */
+.container-fluid {
+    max-width: 95% !important;
+    margin: 0 auto !important;
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 97% !important;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        max-width: 98% !important;
+    }
+}
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -75,18 +95,41 @@
                                                 <div class="financial-info">
                                                     <strong>Original Amount:</strong><br>
                                                     <span class="text-primary font-weight-bold">$<?= number_format($job->final_price ?: $job->accepted_price, 2) ?></span><br><br>
-                                                    <strong>Expected Payment:</strong><br>
-                                                    <span class="text-warning">Pending Resolution</span>
+                                                    <?php if ($job->status == 'closed' && $job->dispute_resolution): ?>
+                                                        <strong>Payment Amount:</strong><br>
+                                                        <span class="text-success font-weight-bold">$<?= number_format($job->payment_amount, 2) ?></span><br>
+                                                        <small class="text-muted">(<?= number_format(($job->payment_amount / ($job->final_price ?: $job->accepted_price)) * 100, 1) ?>% of original)</small>
+                                                    <?php else: ?>
+                                                        <strong>Expected Payment:</strong><br>
+                                                        <span class="text-warning">Pending Resolution</span>
+                                                    <?php endif; ?>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="status-info">
-                                                    <span class="badge badge-warning badge-lg">
-                                                        <i class="fas fa-clock"></i> Under Review
-                                                    </span><br><br>
-                                                    <small class="text-muted">
-                                                        A moderator will review the dispute and determine a fair resolution.
-                                                    </small>
+                                                    <?php if ($job->status == 'closed' && $job->dispute_resolution): ?>
+                                                        <!-- Dispute Resolved -->
+                                                        <span class="badge badge-success badge-lg">
+                                                            <i class="fas fa-check-circle"></i> Resolved
+                                                        </span><br><br>
+                                                        <div class="dispute-resolution-info">
+                                                            <small class="text-success">
+                                                                <strong>Resolution:</strong> Dispute resolved by moderator<br>
+                                                                <strong>Resolved:</strong> <?= date('M j, Y g:i A', strtotime($job->dispute_resolved_at)) ?><br>
+                                                                <?php if ($job->dispute_resolution_notes): ?>
+                                                                    <strong>Notes:</strong> <?= htmlspecialchars($job->dispute_resolution_notes) ?><br>
+                                                                <?php endif; ?>
+                                                            </small>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <!-- Under Review -->
+                                                        <span class="badge badge-warning badge-lg">
+                                                            <i class="fas fa-clock"></i> Under Review
+                                                        </span><br><br>
+                                                        <small class="text-muted">
+                                                            A moderator will review the dispute and determine a fair resolution.
+                                                        </small>
+                                                    <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>

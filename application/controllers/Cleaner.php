@@ -16,11 +16,6 @@ class Cleaner extends MY_Controller
     {
         parent::__construct();
         
-        // Check if user is logged in and is a cleaner
-        if (!$this->require_min_level(3)) { // Cleaner level = 3
-            redirect('app/login');
-        }
-        
         // Load required helpers and libraries
         $this->load->helper('form');
         $this->load->library('form_validation');
@@ -31,6 +26,9 @@ class Cleaner extends MY_Controller
         $this->load->model('M_offers');
         $this->load->model('M_ignored_jobs');
         $this->load->model('M_favorites');
+        
+        // Initialize session and check if user is logged in and is a cleaner
+        $this->init_session_auto(3); // Cleaner level = 3
         
         // Clear flash messages
         $this->session->unset_userdata('text');
@@ -570,6 +568,26 @@ class Cleaner extends MY_Controller
     {
         $user_id = $this->auth_user_id;
         
+        if (!$user_id) {
+            show_error('User not authenticated. Please login again.', 401);
+        }
+        
+        // Get date range filters from GET parameters
+        $start_date = $this->input->get('start_date');
+        $end_date = $this->input->get('end_date');
+        
+        // Set default date range if not provided (current month)
+        if (!$start_date) {
+            $start_date = date('Y-m-01'); // First day of current month
+        }
+        if (!$end_date) {
+            $end_date = date('Y-m-d'); // Today
+        }
+        
+        // Get earnings data
+        $earnings_data = $this->M_jobs->get_cleaner_earnings($user_id, $start_date, $end_date);
+        $earnings_summary = $this->M_jobs->get_cleaner_earnings_summary($user_id);
+        
         $data = [
             'title' => 'My Earnings',
             'page_icon' => 'fas fa-dollar-sign',
@@ -577,7 +595,12 @@ class Cleaner extends MY_Controller
                 ['title' => 'Dashboard', 'url' => 'cleaner'],
                 ['title' => 'Earnings', 'url' => '', 'active' => true]
             ],
-            'user_info' => $this->M_users->get_user_by_id($user_id)
+            'user_info' => $this->M_users->get_user_by_id($user_id),
+            'earnings_data' => $earnings_data,
+            'earnings_summary' => $earnings_summary,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+            'user_id' => $user_id
         ];
         
         // Load the cleaner sidebar content as a string
@@ -917,6 +940,160 @@ class Cleaner extends MY_Controller
         $data['body'] = $this->load->view('cleaner/start_job_page', $data, TRUE);
         
         // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Display change password form for cleaner
+     */
+    public function change_password() {
+        $this->load->model('M_users');
+        
+        // Get current user info - try different session field names (exact copy from admin)
+        $user_id = $this->session->userdata('user_id');
+        if (!$user_id) {
+            $user_id = $this->session->userdata('id'); // Try 'id' field
+        }
+        
+        if (!$user_id) {
+            show_error('User not authenticated. Please login again.', 401);
+        }
+        
+        $user_info = $this->M_users->get_user_by_id($user_id);
+        
+        if (!$user_info) {
+            show_error('User not found. Please contact administrator.', 404);
+        }
+        
+        $view["title"] = 'Change Password';
+        $view["page_icon"] = 'key';
+        $view["breadcrumbs"] = array(
+            array('title' => 'Dashboard', 'url' => 'cleaner'),
+            array('title' => 'Change Password', 'url' => '', 'active' => true)
+        );
+        $view["sidebar"] = $this->load->view("admin/template/cleaner_sidebar", NULL, TRUE);
+        $view["body"] = $this->load->view("admin/change_password", array('user_info' => $user_info), TRUE);
+        
+        $this->load->view("admin/template/layout_with_sidebar", $view);
+    }
+
+    /**
+     * Process password change for cleaner
+     */
+    public function update_password() {
+        $this->load->model('M_users');
+        
+        // Get current user info - try different session field names (exact copy from admin)
+        $user_id = $this->session->userdata('user_id');
+        if (!$user_id) {
+            $user_id = $this->session->userdata('id'); // Try 'id' field
+        }
+        
+        if (!$user_id) {
+            $this->output->set_status_header(401);
+            echo json_encode(array('success' => false, 'message' => 'User not authenticated'));
+            return;
+        }
+        
+        // Get form data
+        $current_password = $this->input->post('current_password');
+        $new_password = $this->input->post('new_password');
+        $confirm_password = $this->input->post('confirm_password');
+        
+        // Validate input
+        if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
+            echo json_encode(array('success' => false, 'message' => 'All fields are required'));
+            return;
+        }
+        
+        if ($new_password !== $confirm_password) {
+            echo json_encode(array('success' => false, 'message' => 'New passwords do not match'));
+            return;
+        }
+        
+        if (strlen($new_password) < 8) {
+            echo json_encode(array('success' => false, 'message' => 'New password must be at least 8 characters long'));
+            return;
+        }
+        
+        // Verify current password
+        $user = $this->M_users->get_user_by_id($user_id);
+        if (!$user || !password_verify($current_password, $user->passwd)) {
+            echo json_encode(array('success' => false, 'message' => 'Current password is incorrect'));
+            return;
+        }
+        
+        // Update password
+        $result = $this->M_users->update_user_password($user_id, $new_password);
+        
+        if ($result) {
+            echo json_encode(array('success' => true, 'message' => 'Password updated successfully'));
+        } else {
+            echo json_encode(array('success' => false, 'message' => 'Failed to update password'));
+        }
+    }
+
+    /**
+     * Display completed jobs for cleaner
+     */
+    public function completed()
+    {
+        $user_id = $this->auth_user_id;
+        
+        if (!$user_id) {
+            show_error('User not authenticated. Please login again.', 401);
+        }
+        
+        // Get completed jobs for this cleaner
+        $completed_jobs = $this->M_jobs->get_completed_jobs_for_cleaner($user_id);
+        
+        // Get dispute and price adjustment information for each job
+        $jobs_with_details = [];
+        foreach ($completed_jobs as $job) {
+            $job_details = $job;
+            $job_details->dispute_info = null;
+            $job_details->price_adjustments = [];
+            
+            // Get dispute information if applicable
+            if ($job->status === 'disputed' || ($job->status === 'closed' && $job->dispute_resolution)) {
+                $job_details->dispute_info = [
+                    'disputed_at' => $job->disputed_at,
+                    'dispute_reason' => $job->dispute_reason,
+                    'dispute_resolution' => $job->dispute_resolution,
+                    'dispute_resolution_notes' => $job->dispute_resolution_notes,
+                    'dispute_resolved_at' => $job->dispute_resolved_at,
+                    'payment_amount' => $job->payment_amount
+                ];
+            }
+            
+            // Get price adjustment requests if applicable
+            if ($job->status === 'price_adjustment_requested') {
+                $this->load->model('M_counter_offers');
+                $job_details->price_adjustments = $this->M_counter_offers->get_counter_offers_for_job($job->id);
+            }
+            
+            $jobs_with_details[] = $job_details;
+        }
+        
+        // Prepare view data
+        $data = [
+            'title' => 'Completed Jobs',
+            'page_icon' => 'fas fa-check-circle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'Completed Jobs', 'url' => '', 'active' => true]
+            ],
+            'completed_jobs' => $jobs_with_details,
+            'user_id' => $user_id
+        ];
+        
+        // Load sidebar
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', NULL, TRUE);
+        
+        // Load the main content
+        $data['body'] = $this->load->view('cleaner/completed_jobs', $data, TRUE);
+        
+        // Load the layout
         $this->load->view('admin/template/layout_with_sidebar', $data);
     }
 }
