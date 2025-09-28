@@ -143,26 +143,26 @@
           </a>
         </li>
 
-        <!-- Payment History -->
+        <!-- Payment History - Disabled until implemented -->
         <li class="nav-item">
-          <a href="<?php echo base_url('cleaner/payments'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/payments') !== false) ? 'active' : ''; ?>">
+          <a href="#" class="nav-link modern-nav-link disabled" style="opacity: 0.5; cursor: not-allowed;">
             <div class="nav-icon-container">
               <i class="nav-icon fas fa-credit-card"></i>
             </div>
-            <span class="nav-text">Payment History</span>
+            <span class="nav-text">Payment History (Coming Soon)</span>
           </a>
         </li>
 
         <!-- Divider -->
         <li class="nav-header modern-nav-header">ACCOUNT</li>
 
-        <!-- Profile -->
+        <!-- Profile - Disabled until implemented -->
         <li class="nav-item">
-          <a href="<?php echo base_url('cleaner/profile'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/profile') !== false) ? 'active' : ''; ?>">
+          <a href="#" class="nav-link modern-nav-link disabled" style="opacity: 0.5; cursor: not-allowed;">
             <div class="nav-icon-container">
               <i class="nav-icon fas fa-user-circle"></i>
             </div>
-            <span class="nav-text">My Profile</span>
+            <span class="nav-text">My Profile (Coming Soon)</span>
           </a>
         </li>
 

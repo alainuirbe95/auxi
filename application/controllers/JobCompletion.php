@@ -12,7 +12,10 @@ class JobCompletion extends MY_Controller
     {
         parent::__construct();
         
-        // Ensure user is authenticated and is a cleaner
+        // Initialize authentication system first
+        $this->init_session_auto(3); // Initialize for cleaner level
+        
+        // Now check authentication
         if (!$this->is_logged_in() || $this->auth_level != 3) {
             redirect('app/login');
         }

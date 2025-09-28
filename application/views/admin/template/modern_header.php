@@ -200,8 +200,8 @@ if (!function_exists('time_ago')) {
         padding: 0.3rem 0.6rem;
     }
     
-    /* Hide header for host users on mobile/tablet */
-    <?php if ($this->session->userdata('auth_level') == 6): ?>
+    /* Hide header for host and cleaner users on mobile/tablet */
+    <?php if ($this->session->userdata('auth_level') == 6 || $this->session->userdata('auth_level') == 3): ?>
     .modern-header {
         display: none !important;
     }

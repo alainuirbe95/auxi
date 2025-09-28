@@ -112,8 +112,8 @@
                 min-height: calc(100vh - 60px) !important;
             }
             
-            /* Adjust content wrapper for host users when header is hidden */
-            <?php if ($this->session->userdata('auth_level') == 6): ?>
+            /* Adjust content wrapper for host and cleaner users when header is hidden */
+            <?php if ($this->session->userdata('auth_level') == 6 || $this->session->userdata('auth_level') == 3): ?>
             .content-wrapper {
                 margin-top: 0 !important;
                 padding-top: 15px !important;
@@ -207,8 +207,8 @@
                 min-height: calc(-webkit-fill-available - 60px) !important;
             }
             
-            /* Adjust content wrapper for host users when header is hidden */
-            <?php if ($this->session->userdata('auth_level') == 6): ?>
+            /* Adjust content wrapper for host and cleaner users when header is hidden */
+            <?php if ($this->session->userdata('auth_level') == 6 || $this->session->userdata('auth_level') == 3): ?>
             .content-wrapper {
                 margin-top: 0 !important;
                 padding-top: 10px !important;

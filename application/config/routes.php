@@ -96,13 +96,14 @@ $route['cleaner/start_job'] = 'cleaner/start_job';
 $route['cleaner/start_job_page/(:num)'] = 'cleaner/start_job_page/$1';
 
 // Jobs in Progress routes (Job Completion workflow)
-$route['cleaner/jobs-in-progress'] = 'jobcompletion/index';
-$route['cleaner/jobs-in-progress/complete/(:num)'] = 'jobcompletion/complete_job/$1';
-$route['cleaner/jobs-in-progress/process-completion'] = 'jobcompletion/process_completion';
-$route['cleaner/jobs-in-progress/report-inconsistency'] = 'jobcompletion/report_inconsistency';
-$route['cleaner/jobs-in-progress/inconsistency-form/(:num)'] = 'jobcompletion/show_inconsistency_form/$1';
-$route['cleaner/jobs-in-progress/upload-photos'] = 'jobcompletion/upload_inconsistency_photos';
-$route['cleaner/jobs-in-progress/inconsistencies/(:num)'] = 'jobcompletion/get_inconsistencies/$1';
+$route['cleaner/jobs-in-progress'] = 'JobCompletion/index';
+$route['cleaner/jobs-in-progress/complete/(:num)'] = 'JobCompletion/complete_job/$1';
+$route['cleaner/jobs-in-progress/process-completion'] = 'JobCompletion/process_completion';
+$route['cleaner/jobs-in-progress/report-inconsistency'] = 'JobCompletion/report_inconsistency';
+$route['cleaner/jobs-in-progress/inconsistency-form/(:num)'] = 'JobCompletion/show_inconsistency_form/$1';
+$route['cleaner/jobs-in-progress/upload-photos'] = 'JobCompletion/upload_inconsistency_photos';
+$route['cleaner/jobs-in-progress/inconsistencies/(:num)'] = 'JobCompletion/get_inconsistencies/$1';
+
 
 // Counter Offers routes
 $route['host/counter-offers'] = 'counteroffers/index';

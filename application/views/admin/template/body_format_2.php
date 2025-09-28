@@ -28,7 +28,8 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             font-family: 'Inter', 'Poppins', sans-serif;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         .modern-login-container {
@@ -381,9 +382,11 @@
             position: relative;
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             padding: 20px;
+            padding-top: 40px;
+            padding-bottom: 40px;
         }
 
         .register-background {
@@ -586,6 +589,13 @@
 
         /* Registration Responsive Design */
         @media (max-width: 600px) {
+            .modern-register-container {
+                padding: 10px;
+                padding-top: 20px;
+                padding-bottom: 20px;
+                align-items: flex-start;
+            }
+            
             .register-card {
                 padding: 30px 20px;
                 margin: 10px;

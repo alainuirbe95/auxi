@@ -778,9 +778,11 @@ class M_jobs extends CI_Model
             return null;
         }
 
-        $this->db->select('j.*, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name, u.email as host_email');
+        $this->db->select('j.*, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name, u.email as host_email, u.phone as host_phone,
+                          c.username as cleaner_username, c.first_name as cleaner_first_name, c.last_name as cleaner_last_name, c.email as cleaner_email, c.phone as cleaner_phone');
         $this->db->from('jobs j');
         $this->db->join('users u', 'j.host_id = u.user_id');
+        $this->db->join('users c', 'j.assigned_cleaner_id = c.user_id', 'left');
         $this->db->where('j.id', $job_id);
         
         $query = $this->db->get();

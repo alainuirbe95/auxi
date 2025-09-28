@@ -61,49 +61,6 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- OTP Information for Assigned Jobs -->
-                                        <?php if ($job->status === 'assigned' && !empty($job->otp_code)): ?>
-                                        <div class="row mt-3">
-                                            <div class="col-12">
-                                                <div class="alert alert-info" style="border-left: 4px solid #17a2b8;">
-                                                    <h6 class="alert-heading">
-                                                        <i class="fas fa-key me-2"></i>
-                                                        Service Code (OTP) for Cleaner
-                                                    </h6>
-                                                    <div class="d-flex align-items-center justify-content-between">
-                                                        <div>
-                                                            <p class="mb-2">Share this code with your assigned cleaner to start the service:</p>
-                                                            <div class="otp-display">
-                                                                <span class="otp-code" style="
-                                                                    display: inline-block;
-                                                                    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-                                                                    color: white;
-                                                                    font-size: 1.5rem;
-                                                                    font-weight: 700;
-                                                                    padding: 0.75rem 1.5rem;
-                                                                    border-radius: 10px;
-                                                                    letter-spacing: 0.2em;
-                                                                    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
-                                                                    font-family: monospace;
-                                                                "><?php echo $job->otp_code; ?></span>
-                                                            </div>
-                                                            <small class="text-muted mt-2 d-block">
-                                                                <i class="fas fa-info-circle me-1"></i>
-                                                                The cleaner will need this code to start the job. Share it securely when they arrive.
-                                                            </small>
-                                                        </div>
-                                                        <div class="ms-3">
-                                                            <button class="btn btn-outline-info btn-sm" onclick="copyToClipboard('<?php echo $job->otp_code; ?>')">
-                                                                <i class="fas fa-copy me-1"></i>
-                                                                Copy Code
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <?php endif; ?>
-                                        
                                         <!-- Additional Job Details -->
                                         <div class="row mt-3">
                                             <div class="col-sm-6">
@@ -142,6 +99,99 @@
                                         <div class="row mt-2">
                                             <div class="col-12">
                                                 <span class="badge bg-info"><i class="fas fa-paw me-1"></i> Pets Present</span>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
+                                        
+                                        <!-- OTP Information for Assigned/In Progress Jobs -->
+                                        <?php if (in_array($job->status, ['assigned', 'in_progress']) && !empty($job->otp_code)): ?>
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="otp-info-card" style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%); border: 1px solid #bee5eb; border-radius: 15px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(23, 162, 184, 0.1);">
+                                                    <h6 class="otp-card-title" style="color: #0c5460; margin-bottom: 1rem; font-weight: 600;">
+                                                        <i class="fas fa-key me-2"></i>
+                                                        Service Code (OTP) for Cleaner
+                                                    </h6>
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <div>
+                                                            <p class="mb-2">Share this code with your assigned cleaner to start the service:</p>
+                                                            <div class="otp-display">
+                                                                <span class="otp-code" style="
+                                                                    display: inline-block;
+                                                                    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+                                                                    color: white;
+                                                                    font-size: 1.5rem;
+                                                                    font-weight: 700;
+                                                                    padding: 0.75rem 1.5rem;
+                                                                    border-radius: 10px;
+                                                                    letter-spacing: 0.2em;
+                                                                    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+                                                                    font-family: monospace;
+                                                                "><?php echo $job->otp_code; ?></span>
+                                                            </div>
+                                                            <small class="text-muted mt-2 d-block" style="color: #6c757d !important;">
+                                                                <i class="fas fa-info-circle me-1"></i>
+                                                                The cleaner will need this code to start the job. Share it securely when they arrive.
+                                                            </small>
+                                                        </div>
+                                                        <div class="ms-3">
+                                                            <button class="btn btn-outline-info btn-sm" onclick="copyToClipboard('<?php echo $job->otp_code; ?>')">
+                                                                <i class="fas fa-copy me-1"></i>
+                                                                Copy Code
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
+                                        
+                                        <!-- Cleaner Information for Assigned/In Progress Jobs -->
+                                        <?php if (in_array($job->status, ['assigned', 'in_progress']) && !empty($job->assigned_cleaner_id)): ?>
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="cleaner-info-card" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border: 1px solid #c3e6cb; border-radius: 15px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1);">
+                                                    <h6 class="cleaner-card-title" style="color: #155724; margin-bottom: 1rem; font-weight: 600;">
+                                                        <i class="fas fa-user-check me-2"></i>
+                                                        Assigned Cleaner Information
+                                                    </h6>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="cleaner-info">
+                                                                <p class="mb-1"><strong>Name:</strong> <?php echo htmlspecialchars($job->cleaner_first_name . ' ' . $job->cleaner_last_name); ?></p>
+                                                                <p class="mb-1"><strong>Username:</strong> @<?php echo htmlspecialchars($job->cleaner_username); ?></p>
+                                                                <p class="mb-1"><strong>Email:</strong> <?php echo htmlspecialchars($job->cleaner_email); ?></p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="cleaner-contact">
+                                                                <?php if (!empty($job->cleaner_phone)): ?>
+                                                                    <p class="mb-1"><strong>Phone:</strong> 
+                                                                        <a href="tel:<?php echo htmlspecialchars($job->cleaner_phone); ?>" class="text-decoration-none" style="color: #155724;">
+                                                                            <?php echo htmlspecialchars($job->cleaner_phone); ?>
+                                                                        </a>
+                                                                    </p>
+                                                                <?php endif; ?>
+                                                                <div class="contact-buttons mt-2">
+                                                                    <a href="mailto:<?php echo htmlspecialchars($job->cleaner_email); ?>" class="btn btn-outline-primary btn-sm me-2">
+                                                                        <i class="fas fa-envelope me-1"></i>
+                                                                        Email
+                                                                    </a>
+                                                                    <?php if (!empty($job->cleaner_phone)): ?>
+                                                                        <a href="tel:<?php echo htmlspecialchars($job->cleaner_phone); ?>" class="btn btn-outline-success btn-sm">
+                                                                            <i class="fas fa-phone me-1"></i>
+                                                                            Call
+                                                                        </a>
+                                                                    <?php endif; ?>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <small class="text-muted mt-2 d-block" style="color: #6c757d !important;">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        This cleaner has been assigned to your job. You can contact them directly using the information above.
+                                                    </small>
+                                                </div>
                                             </div>
                                         </div>
                                         <?php endif; ?>
