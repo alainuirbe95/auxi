@@ -24,6 +24,30 @@ class App extends MY_Controller {
         // $this->load->model('Category');
     }
 
+    public function home() {
+        // Public home page - no authentication required
+        $view["body"] = $this->load->view("app/home", NULL, TRUE);
+        $this->parser->parse("admin/template/body_format_2", $view);
+    }
+
+    public function for_cleaners() {
+        // For Cleaners page - no authentication required
+        $view["body"] = $this->load->view("app/for_cleaners", NULL, TRUE);
+        $this->parser->parse("admin/template/body_format_2", $view);
+    }
+
+    public function for_hosts() {
+        // For Hosts page - no authentication required
+        $view["body"] = $this->load->view("app/for_hosts", NULL, TRUE);
+        $this->parser->parse("admin/template/body_format_2", $view);
+    }
+
+    public function faq() {
+        // FAQ page - no authentication required
+        $view["body"] = $this->load->view("app/faq", NULL, TRUE);
+        $this->parser->parse("admin/template/body_format_2", $view);
+    }
+
     public function login() {
         // Load tokens library for CSRF protection
         $this->load->library('tokens');
