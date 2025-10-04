@@ -12,6 +12,67 @@ class M_offers extends CI_Model
     {
         parent::__construct();
     }
+    
+    /**
+     * Get offer statistics for admin dashboard
+     */
+    public function get_offer_statistics() {
+        $stats = array();
+        
+        if (!$this->db->table_exists('offers')) {
+            return $stats;
+        }
+        
+        // Total offers
+        $stats['total_offers'] = $this->db->count_all('offers');
+        
+        // Offers by status
+        $this->db->reset_query();
+        $columns = $this->db->list_fields('offers');
+        if (in_array('status', $columns)) {
+            $this->db->select('status, COUNT(*) as count');
+            $this->db->from('offers');
+            $this->db->group_by('status');
+            $status_stats = $this->db->get()->result();
+        } else {
+            $status_stats = array();
+        }
+        
+        $stats['by_status'] = array();
+        foreach ($status_stats as $status_stat) {
+            $stats['by_status'][$status_stat->status] = $status_stat->count;
+        }
+        
+        // Recent offers (last 30 days)
+        $this->db->reset_query();
+        if (in_array('created_at', $columns)) {
+            $stats['recent_offers'] = $this->db->where('created_at >=', date('Y-m-d H:i:s', strtotime('-30 days')))
+                                              ->count_all_results('offers', FALSE);
+        } else {
+            $stats['recent_offers'] = 0;
+        }
+        
+        return $stats;
+    }
+    
+    /**
+     * Get recent offers
+     */
+    public function get_recent_offers($limit = 5) {
+        if (!$this->db->table_exists('offers')) {
+            return array();
+        }
+        
+        $this->db->reset_query();
+        $this->db->select('o.*, u.username as cleaner_username, u.first_name as cleaner_first_name, u.last_name as cleaner_last_name, j.title as job_title');
+        $this->db->from('offers o');
+        $this->db->join('users u', 'o.cleaner_id = u.user_id', 'left');
+        $this->db->join('jobs j', 'o.job_id = j.id', 'left');
+        $this->db->order_by('o.created_at', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result();
+    }
 
 
 

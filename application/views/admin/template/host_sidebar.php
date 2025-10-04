@@ -143,6 +143,18 @@
         <!-- Divider -->
         <li class="nav-header modern-nav-header">ACCOUNT</li>
 
+        <!-- Admin Panel Link (only for admins) -->
+        <?php if ($this->session->userdata('auth_level') == 9): ?>
+        <li class="nav-item">
+          <a href="<?php echo base_url('admin/dashboard'); ?>" class="nav-link modern-nav-link admin-panel-link">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-crown"></i>
+            </div>
+            <span class="nav-text">Admin Panel</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
         <!-- Profile -->
         <li class="nav-item">
           <a href="<?php echo base_url('host/profile'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'host/profile') !== false) ? 'active' : ''; ?>">
@@ -327,6 +339,25 @@
 .logout-link:hover {
   background: rgba(220, 53, 69, 0.2);
   color: #ff6b7a;
+}
+
+/* Admin Panel Link Special Styling */
+.admin-panel-link {
+  background: rgba(255, 193, 7, 0.15) !important;
+  border: 1px solid rgba(255, 193, 7, 0.3) !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.admin-panel-link:hover {
+  background: rgba(255, 193, 7, 0.25) !important;
+  border-color: rgba(255, 193, 7, 0.5) !important;
+  color: #ffc107 !important;
+  transform: translateX(8px) scale(1.02) !important;
+  box-shadow: 0 6px 20px rgba(255, 193, 7, 0.3) !important;
+}
+
+.admin-panel-link .nav-icon {
+  color: #ffc107 !important;
 }
 
 /* Mobile responsive */

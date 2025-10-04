@@ -208,6 +208,13 @@ if (!function_exists('time_ago')) {
     <?php endif; ?>
 }
 
+/* Hide navbar on mobile for admin users */
+@media (max-width: 768px) {
+    .modern-header {
+        display: none !important;
+    }
+}
+
 @media (max-width: 768px) {
     .modern-header {
         padding: 0.5rem 0;

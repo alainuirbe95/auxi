@@ -12,6 +12,95 @@ class M_jobs extends CI_Model
     {
         parent::__construct();
     }
+    
+    /**
+     * Get job statistics for admin dashboard
+     */
+    public function get_job_statistics() {
+        $stats = array();
+        
+        if (!$this->db->table_exists('jobs')) {
+            return $stats;
+        }
+        
+        // Total jobs
+        $stats['total_jobs'] = $this->db->count_all('jobs');
+        
+        // Jobs by status
+        $this->db->reset_query();
+        $columns = $this->db->list_fields('jobs');
+        if (in_array('status', $columns)) {
+            $this->db->select('status, COUNT(*) as count');
+            $this->db->from('jobs');
+            $this->db->group_by('status');
+            $status_stats = $this->db->get()->result();
+        } else {
+            $status_stats = array();
+        }
+        
+        $stats['by_status'] = array();
+        foreach ($status_stats as $status_stat) {
+            $stats['by_status'][$status_stat->status] = $status_stat->count;
+        }
+        
+        // Recent jobs (last 30 days)
+        $this->db->reset_query();
+        if (in_array('created_at', $columns)) {
+            $stats['recent_jobs'] = $this->db->where('created_at >=', date('Y-m-d H:i:s', strtotime('-30 days')))
+                                             ->count_all_results('jobs', FALSE);
+        } else {
+            $stats['recent_jobs'] = 0;
+        }
+        
+        // Active disputes - reset query first to avoid table alias conflict
+        $this->db->reset_query();
+        $stats['dispute_count'] = $this->get_dispute_count();
+        
+        return $stats;
+    }
+    
+    /**
+     * Get recent jobs
+     */
+    public function get_recent_jobs($limit = 5) {
+        if (!$this->db->table_exists('jobs')) {
+            return array();
+        }
+        
+        $this->db->reset_query();
+        $this->db->select('j.*, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.host_id = u.user_id', 'left');
+        $this->db->order_by('j.created_at', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result();
+    }
+    
+    /**
+     * Get count of active disputes
+     */
+    public function get_dispute_count() {
+        if (!$this->db->table_exists('jobs')) {
+            return 0;
+        }
+        
+        // Check if dispute_status column exists
+        $columns = $this->db->list_fields('jobs');
+        if (!in_array('dispute_status', $columns)) {
+            // If dispute_status column doesn't exist, check for other dispute-related fields
+            if (in_array('status', $columns)) {
+                $this->db->reset_query();
+                $this->db->where('status', 'disputed');
+                return $this->db->count_all_results('jobs');
+            }
+            return 0;
+        }
+        
+        $this->db->reset_query();
+        $this->db->where('dispute_status', 'active');
+        return $this->db->count_all_results('jobs');
+    }
 
     /**
      * Create a new job

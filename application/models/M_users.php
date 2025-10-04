@@ -566,6 +566,16 @@ class M_users extends CI_Model {
         $query = $this->db->get();
         return $query->result();
     }
+    
+    /**
+     * Get count of pending users
+     */
+    public function get_pending_users_count() {
+        $this->db->reset_query();
+        $this->db->where('pending_verification', '1');
+        $this->db->where('rejected', '0');
+        return $this->db->count_all_results('users');
+    }
 
     /**
      * Get rejected users (users with rejected = 1)

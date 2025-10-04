@@ -26,12 +26,35 @@ class Admin extends MY_Controller {
     }
 
     public function dashboard() {
-        // Load user statistics
+        // Load models
         $this->load->model('M_users');
+        $this->load->model('M_jobs');
+        $this->load->model('M_offers');
+        $this->load->model('M_payments');
+        $this->load->model('M_notifications');
         
+        // Get comprehensive statistics
         $stats = $this->M_users->get_user_statistics();
         $pending_users = $this->M_users->get_pending_users();
         $recent_activity = $this->M_users->get_recent_activity(5);
+        
+        // Get job statistics
+        $job_stats = $this->M_jobs->get_job_statistics();
+        
+        // Get offer statistics
+        $offer_stats = $this->M_offers->get_offer_statistics();
+        
+        // Get payment statistics
+        $payment_stats = $this->M_payments->get_payment_statistics();
+        
+        // Get recent jobs
+        $recent_jobs = $this->M_jobs->get_recent_jobs(5);
+        
+        // Get recent offers
+        $recent_offers = $this->M_offers->get_recent_offers(5);
+        
+        // Get system alerts
+        $system_alerts = $this->get_system_alerts();
         
         $view["title"] = 'Dashboard'; 
         $view["page_icon"] = 'tachometer-alt';
@@ -43,11 +66,70 @@ class Admin extends MY_Controller {
             'total_users' => $stats->total_users,
             'active_users' => $stats->active_users,
             'banned_users' => $stats->banned_users,
+            'verified_users' => $stats->verified_users,
+            'recent_users' => $stats->recent_users,
+            'by_level' => $stats->by_level,
             'pending_users_count' => count($pending_users),
-            'recent_activity' => $recent_activity
+            'recent_activity' => $recent_activity,
+            'job_stats' => $job_stats,
+            'offer_stats' => $offer_stats,
+            'payment_stats' => $payment_stats,
+            'recent_jobs' => $recent_jobs,
+            'recent_offers' => $recent_offers,
+            'system_alerts' => $system_alerts
         ), TRUE);
 
         $this->load->view("admin/template/layout_with_sidebar", $view);
+    }
+    
+    /**
+     * Get system alerts for admin dashboard
+     */
+    private function get_system_alerts() {
+        $alerts = array();
+        
+        // Check for pending users
+        $pending_count = $this->M_users->get_pending_users_count();
+        if ($pending_count > 0) {
+            $alerts[] = array(
+                'type' => 'warning',
+                'icon' => 'fas fa-user-clock',
+                'title' => 'Pending User Approvals',
+                'message' => "You have {$pending_count} users waiting for approval.",
+                'action_url' => base_url('admin/pending_users'),
+                'action_text' => 'Review Now'
+            );
+        }
+        
+        // Check for recent disputes
+        $this->load->model('M_jobs');
+        $dispute_count = $this->M_jobs->get_dispute_count();
+        if ($dispute_count > 0) {
+            $alerts[] = array(
+                'type' => 'danger',
+                'icon' => 'fas fa-exclamation-triangle',
+                'title' => 'Active Disputes',
+                'message' => "There are {$dispute_count} active disputes requiring attention.",
+                'action_url' => base_url('admin/disputes'),
+                'action_text' => 'View Disputes'
+            );
+        }
+        
+        // Check for failed payments
+        $this->load->model('M_payments');
+        $failed_payments = $this->M_payments->get_failed_payments_count();
+        if ($failed_payments > 0) {
+            $alerts[] = array(
+                'type' => 'info',
+                'icon' => 'fas fa-credit-card',
+                'title' => 'Failed Payments',
+                'message' => "{$failed_payments} payments failed and need review.",
+                'action_url' => base_url('admin/payments'),
+                'action_text' => 'View Payments'
+            );
+        }
+        
+        return $alerts;
     }
 
     public function users() {

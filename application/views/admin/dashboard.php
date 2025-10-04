@@ -103,6 +103,8 @@ if (!function_exists('time_ago')) {
 .stat-card.pending { --card-gradient: linear-gradient(135deg, #f093fb, #f5576c); }
 .stat-card.active { --card-gradient: linear-gradient(135deg, #4facfe, #00f2fe); }
 .stat-card.banned { --card-gradient: linear-gradient(135deg, #fa709a, #fee140); }
+.stat-card.success { --card-gradient: linear-gradient(135deg, #43e97b, #38f9d7); }
+.stat-card.info { --card-gradient: linear-gradient(135deg, #4facfe, #00f2fe); }
 
 .stat-header {
     display: flex;
@@ -363,6 +365,130 @@ if (!function_exists('time_ago')) {
     color: #718096;
 }
 
+/* Priority Section Styles */
+.priority-section {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    margin-bottom: 2rem;
+}
+
+.priority-section .section-title {
+    color: #2d3748;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    font-size: 1.25rem;
+}
+
+.priority-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    border-left: 4px solid;
+    height: 100%;
+}
+
+.priority-card.pending {
+    border-left-color: #f093fb;
+}
+
+.priority-card.danger {
+    border-left-color: #f5576c;
+}
+
+.priority-card.info {
+    border-left-color: #4facfe;
+}
+
+.priority-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.priority-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.priority-card.pending .priority-icon {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+}
+
+.priority-card.danger .priority-icon {
+    background: linear-gradient(135deg, #f5576c, #fa709a);
+}
+
+.priority-card.info .priority-icon {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+}
+
+.priority-content h4 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.priority-content p {
+    color: #718096;
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+/* System Alerts Styles */
+.system-alerts .alert {
+    border: none;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+}
+
+.system-alerts .alert-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.alert-warning .alert-icon {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+}
+
+.alert-danger .alert-icon {
+    background: linear-gradient(135deg, #f5576c, #fa709a);
+}
+
+.alert-info .alert-icon {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+}
+
+.alert-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.alert-message {
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .dashboard-welcome {
@@ -393,6 +519,32 @@ if (!function_exists('time_ago')) {
     
     .stat-number {
         font-size: 2rem;
+    }
+    
+    .priority-section .row {
+        flex-direction: column;
+    }
+    
+    .priority-section .col-md-4 {
+        margin-bottom: 1rem;
+    }
+    
+    .priority-card {
+        padding: 1rem;
+    }
+    
+    .priority-content h4 {
+        font-size: 1.5rem;
+    }
+    
+    .system-alerts .alert {
+        padding: 0.75rem 1rem;
+    }
+    
+    .system-alerts .alert-icon {
+        width: 30px;
+        height: 30px;
+        font-size: 1rem;
     }
 }
 </style>
@@ -448,6 +600,82 @@ if (!function_exists('time_ago')) {
         </div>
     <?php endif; ?>
 
+    <!-- System Alerts -->
+    <?php if (!empty($system_alerts)): ?>
+        <div class="system-alerts mb-4">
+            <?php foreach ($system_alerts as $alert): ?>
+                <div class="alert alert-<?php echo $alert['type']; ?> alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center">
+                        <div class="alert-icon me-3">
+                            <i class="<?php echo $alert['icon']; ?>"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="alert-title mb-1"><?php echo $alert['title']; ?></h6>
+                            <p class="alert-message mb-0"><?php echo $alert['message']; ?></p>
+                        </div>
+                        <div class="alert-actions">
+                            <a href="<?php echo $alert['action_url']; ?>" class="btn btn-sm btn-outline-<?php echo $alert['type']; ?>">
+                                <?php echo $alert['action_text']; ?>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <!-- Priority Data Section -->
+    <div class="priority-section mb-4">
+        <h3 class="section-title">
+            <i class="fas fa-exclamation-circle text-warning me-2"></i>
+            Priority Actions Required
+        </h3>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="priority-card pending">
+                    <div class="priority-icon">
+                        <i class="fas fa-user-clock"></i>
+                    </div>
+                    <div class="priority-content">
+                        <h4><?php echo isset($pending_users_count) ? $pending_users_count : '0'; ?></h4>
+                        <p>Pending User Approvals</p>
+                        <a href="<?php echo base_url('admin/pending_users'); ?>" class="btn btn-sm btn-warning">
+                            Review Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="priority-card danger">
+                    <div class="priority-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="priority-content">
+                        <h4><?php echo isset($job_stats['dispute_count']) ? $job_stats['dispute_count'] : '0'; ?></h4>
+                        <p>Active Disputes</p>
+                        <a href="<?php echo base_url('admin/disputes'); ?>" class="btn btn-sm btn-danger">
+                            View Disputes
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="priority-card info">
+                    <div class="priority-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div class="priority-content">
+                        <h4><?php echo isset($payment_stats['by_status']['failed']) ? $payment_stats['by_status']['failed'] : '0'; ?></h4>
+                        <p>Failed Payments</p>
+                        <a href="<?php echo base_url('admin/payments'); ?>" class="btn btn-sm btn-info">
+                            View Payments
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Statistics Cards -->
     <div class="dashboard-stats">
         <!-- Total Users -->
@@ -463,22 +691,6 @@ if (!function_exists('time_ago')) {
             </div>
             <a href="<?php echo base_url('admin/users'); ?>" class="stat-link">
                 View all users <i class="fas fa-arrow-right"></i>
-            </a>
-        </div>
-
-        <!-- Pending Users -->
-        <div class="stat-card pending">
-            <div class="stat-header">
-                <div>
-                    <h3 class="stat-number"><?php echo isset($pending_users_count) ? $pending_users_count : '0'; ?></h3>
-                    <p class="stat-label">Pending Reviews</p>
-                </div>
-                <div class="stat-icon">
-                    <i class="fas fa-user-clock"></i>
-                </div>
-            </div>
-            <a href="<?php echo base_url('admin/pending_users'); ?>" class="stat-link">
-                Review now <i class="fas fa-arrow-right"></i>
             </a>
         </div>
 
@@ -498,19 +710,67 @@ if (!function_exists('time_ago')) {
             </a>
         </div>
 
-        <!-- Banned Users -->
-        <div class="stat-card banned">
+        <!-- Total Jobs -->
+        <div class="stat-card total">
             <div class="stat-header">
                 <div>
-                    <h3 class="stat-number"><?php echo isset($banned_users) ? $banned_users : '0'; ?></h3>
-                    <p class="stat-label">Banned Users</p>
+                    <h3 class="stat-number"><?php echo isset($job_stats['total_jobs']) ? $job_stats['total_jobs'] : '0'; ?></h3>
+                    <p class="stat-label">Total Jobs</p>
                 </div>
                 <div class="stat-icon">
-                    <i class="fas fa-user-times"></i>
+                    <i class="fas fa-briefcase"></i>
+                </div>
+            </div>
+            <a href="<?php echo base_url('admin/jobs'); ?>" class="stat-link">
+                View all jobs <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <!-- Total Offers -->
+        <div class="stat-card active">
+            <div class="stat-header">
+                <div>
+                    <h3 class="stat-number"><?php echo isset($offer_stats['total_offers']) ? $offer_stats['total_offers'] : '0'; ?></h3>
+                    <p class="stat-label">Total Offers</p>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-handshake"></i>
+                </div>
+            </div>
+            <a href="<?php echo base_url('admin/offers'); ?>" class="stat-link">
+                View all offers <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <!-- Total Revenue -->
+        <div class="stat-card success">
+            <div class="stat-header">
+                <div>
+                    <h3 class="stat-number">$<?php echo isset($payment_stats['total_amount']) ? number_format($payment_stats['total_amount'], 2) : '0.00'; ?></h3>
+                    <p class="stat-label">Total Revenue</p>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+            </div>
+            <a href="<?php echo base_url('admin/payments'); ?>" class="stat-link">
+                View payments <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <!-- Recent Users -->
+        <div class="stat-card info">
+            <div class="stat-header">
+                <div>
+                    <h3 class="stat-number"><?php echo isset($recent_users) ? $recent_users : '0'; ?></h3>
+                    <p class="stat-label">New Users (30 days)</p>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-user-plus"></i>
                 </div>
             </div>
             <a href="<?php echo base_url('admin/users'); ?>" class="stat-link">
-                Manage banned <i class="fas fa-arrow-right"></i>
+                View recent <i class="fas fa-arrow-right"></i>
             </a>
         </div>
     </div>
@@ -541,11 +801,13 @@ if (!function_exists('time_ago')) {
         </div>
     </div>
 
-    <!-- Recent Activity -->
+    <!-- Recent Activity & Data -->
+    <div class="row">
+        <div class="col-md-6">
     <div class="recent-activity">
         <h3>
             <i class="fas fa-history"></i>
-            Recent Activity
+                    Recent User Activity
         </h3>
         <?php if (!empty($recent_activity)): ?>
             <?php foreach ($recent_activity as $activity): ?>
@@ -564,11 +826,75 @@ if (!function_exists('time_ago')) {
             <div class="text-center py-4">
                 <div class="text-muted">
                     <i class="fas fa-inbox fa-2x mb-3"></i>
-                    <p>No recent activity to display</p>
+                            <p>No recent user activity</p>
                 </div>
             </div>
         <?php endif; ?>
     </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="recent-activity">
+                <h3>
+                    <i class="fas fa-briefcase"></i>
+                    Recent Jobs
+                </h3>
+                <?php if (!empty($recent_jobs)): ?>
+                    <?php foreach ($recent_jobs as $job): ?>
+                        <div class="activity-item">
+                            <div class="activity-icon new-user">
+                                <i class="fas fa-broom"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title"><?php echo htmlspecialchars($job->title); ?></div>
+                                <div class="activity-description">
+                                    Host: <?php echo htmlspecialchars($job->host_username); ?> | 
+                                    Status: <span class="badge badge-<?php echo $job->status === 'completed' ? 'success' : ($job->status === 'in_progress' ? 'warning' : 'info'); ?>"><?php echo ucfirst($job->status); ?></span>
+                                </div>
+                                <div class="activity-time"><?php echo time_ago($job->created_at); ?></div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center py-4">
+                        <div class="text-muted">
+                            <i class="fas fa-briefcase fa-2x mb-3"></i>
+                            <p>No recent jobs</p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Offers -->
+    <?php if (!empty($recent_offers)): ?>
+    <div class="recent-activity mt-4">
+        <h3>
+            <i class="fas fa-handshake"></i>
+            Recent Offers
+        </h3>
+        <div class="row">
+            <?php foreach ($recent_offers as $offer): ?>
+                <div class="col-md-6 mb-3">
+                    <div class="activity-item">
+                        <div class="activity-icon approved">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">$<?php echo number_format($offer->amount, 2); ?> - <?php echo htmlspecialchars($offer->job_title); ?></div>
+                            <div class="activity-description">
+                                Cleaner: <?php echo htmlspecialchars($offer->cleaner_username); ?> | 
+                                Status: <span class="badge badge-<?php echo $offer->status === 'accepted' ? 'success' : ($offer->status === 'pending' ? 'warning' : 'secondary'); ?>"><?php echo ucfirst($offer->status); ?></span>
+                            </div>
+                            <div class="activity-time"><?php echo time_ago($offer->created_at); ?></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
 
 <script>

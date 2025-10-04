@@ -12,6 +12,78 @@ class M_payments extends CI_Model
     {
         parent::__construct();
     }
+    
+    /**
+     * Get payment statistics for admin dashboard
+     */
+    public function get_payment_statistics() {
+        $stats = array();
+        
+        if (!$this->db->table_exists('payments')) {
+            return $stats;
+        }
+        
+        // Total payments
+        $stats['total_payments'] = $this->db->count_all('payments');
+        
+        // Payments by status
+        $this->db->reset_query();
+        $columns = $this->db->list_fields('payments');
+        if (in_array('status', $columns)) {
+            $this->db->select('status, COUNT(*) as count');
+            $this->db->from('payments');
+            $this->db->group_by('status');
+            $status_stats = $this->db->get()->result();
+        } else {
+            $status_stats = array();
+        }
+        
+        $stats['by_status'] = array();
+        foreach ($status_stats as $status_stat) {
+            $stats['by_status'][$status_stat->status] = $status_stat->count;
+        }
+        
+        // Total amount
+        $this->db->reset_query();
+        if (in_array('amount', $columns) && in_array('status', $columns)) {
+            $this->db->select('SUM(amount) as total_amount');
+            $this->db->from('payments');
+            $this->db->where('status', 'completed');
+            $total_amount = $this->db->get()->row();
+            $stats['total_amount'] = $total_amount ? $total_amount->total_amount : 0;
+        } else {
+            $stats['total_amount'] = 0;
+        }
+        
+        // Recent payments (last 30 days)
+        $this->db->reset_query();
+        if (in_array('created_at', $columns)) {
+            $stats['recent_payments'] = $this->db->where('created_at >=', date('Y-m-d H:i:s', strtotime('-30 days')))
+                                                ->count_all_results('payments', FALSE);
+        } else {
+            $stats['recent_payments'] = 0;
+        }
+        
+        return $stats;
+    }
+    
+    /**
+     * Get count of failed payments
+     */
+    public function get_failed_payments_count() {
+        if (!$this->db->table_exists('payments')) {
+            return 0;
+        }
+        
+        $columns = $this->db->list_fields('payments');
+        if (!in_array('status', $columns)) {
+            return 0;
+        }
+        
+        $this->db->reset_query();
+        $this->db->where('status', 'failed');
+        return $this->db->count_all_results('payments');
+    }
 
     /**
      * Create a new payment record
