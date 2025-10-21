@@ -63,12 +63,15 @@
             background-color: #f8f9fa !important;
             border-right: 1px solid #dee2e6 !important;
             transform: translateX(0) !important;
-            overflow-y: auto !important;
+            overflow: hidden !important;
         }
         
         /* Mobile toggle button default hidden */
         .mobile-sidebar-toggle {
             display: none !important;
+            cursor: pointer !important;
+            -webkit-tap-highlight-color: transparent !important;
+            touch-action: manipulation !important;
         }
         
         /* Content wrapper styles */
@@ -79,6 +82,7 @@
             z-index: 1 !important;
             display: flex !important;
             flex-direction: column !important;
+            overflow: visible !important;
         }
         
         /* Main content centering */
@@ -88,6 +92,7 @@
             flex-direction: column !important;
         }
         
+        /* Hide main content scrollbar when not needed */
         .container-fluid {
             max-width: 1200px !important;
             margin: 0 auto !important;
@@ -112,13 +117,16 @@
                 min-height: calc(100vh - 60px) !important;
             }
             
-            /* Adjust content wrapper for host and cleaner users when header is hidden */
-            <?php if ($this->session->userdata('auth_level') == 6 || $this->session->userdata('auth_level') == 3): ?>
+            /* Hide header for all users on tablets (iPad) */
+            .main-header {
+                display: none !important;
+            }
+            
             .content-wrapper {
                 margin-top: 0 !important;
                 padding-top: 15px !important;
+                min-height: 100vh !important;
             }
-            <?php endif; ?>
             
             .app-sidebar {
                 transform: translateX(-100%) !important;
@@ -138,19 +146,29 @@
                 top: 15px !important;
                 left: 15px !important;
                 z-index: 1060 !important;
-                background: #007bff !important;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
                 color: white !important;
                 border: none !important;
                 border-radius: 8px !important;
-                padding: 10px 15px !important;
-                font-size: 16px !important;
-                box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3) !important;
+                padding: 12px 16px !important;
+                font-size: 18px !important;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
                 transition: all 0.3s ease !important;
+                cursor: pointer !important;
+                -webkit-tap-highlight-color: transparent !important;
+                touch-action: manipulation !important;
+                min-width: 48px !important;
+                min-height: 48px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
             
-            .mobile-sidebar-toggle:hover {
-                background: #0056b3 !important;
+            .mobile-sidebar-toggle:hover,
+            .mobile-sidebar-toggle:active {
+                background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
                 transform: scale(1.05) !important;
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5) !important;
             }
             
             .container-fluid {
@@ -207,13 +225,16 @@
                 min-height: calc(-webkit-fill-available - 60px) !important;
             }
             
-            /* Adjust content wrapper for host and cleaner users when header is hidden */
-            <?php if ($this->session->userdata('auth_level') == 6 || $this->session->userdata('auth_level') == 3): ?>
+            /* Hide header for all users on mobile */
+            .main-header {
+                display: none !important;
+            }
+            
             .content-wrapper {
                 margin-top: 0 !important;
                 padding-top: 10px !important;
+                min-height: 100vh !important;
             }
-            <?php endif; ?>
             
             .app-sidebar {
                 transform: translateX(-100%) !important;
@@ -243,19 +264,29 @@
                 top: 15px !important;
                 left: 15px !important;
                 z-index: 1060 !important;
-                background: #007bff !important;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
                 color: white !important;
                 border: none !important;
                 border-radius: 8px !important;
-                padding: 10px 15px !important;
-                font-size: 16px !important;
-                box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3) !important;
+                padding: 12px 16px !important;
+                font-size: 18px !important;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
                 transition: all 0.3s ease !important;
+                cursor: pointer !important;
+                -webkit-tap-highlight-color: transparent !important;
+                touch-action: manipulation !important;
+                min-width: 48px !important;
+                min-height: 48px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
             
-            .mobile-sidebar-toggle:hover {
-                background: #0056b3 !important;
+            .mobile-sidebar-toggle:hover,
+            .mobile-sidebar-toggle:active {
+                background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
                 transform: scale(1.05) !important;
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5) !important;
             }
             
             .container-fluid {
@@ -511,9 +542,87 @@
         }
     </style>
     
-    <!-- Fix for AdminLTE sidebar errors -->
+    <!-- Admin Sidebar JavaScript -->
     <script>
         $(document).ready(function() {
+            // Prevent multiple initializations
+            if (window.adminSidebarInitialized) {
+                console.log('Admin sidebar already initialized, skipping...');
+                return;
+            }
+            window.adminSidebarInitialized = true;
+            
+            console.log('Initializing admin sidebar...');
+            
+            // Handle sidebar menu dropdowns - more specific targeting
+            $('.nav-item.has-submenu .modern-nav-link').off('click').on('click', function(e) {
+                e.preventDefault();
+                console.log('Submenu link clicked');
+                
+                var $this = $(this);
+                var $parent = $this.parent();
+                var $submenu = $parent.find('.modern-submenu');
+                var $arrow = $this.find('.nav-arrow');
+                
+                console.log('Submenu element:', $submenu.length);
+                
+                if ($submenu.length > 0) {
+                    if ($submenu.is(':visible')) {
+                        console.log('Hiding submenu');
+                        $submenu.slideUp(300);
+                        $arrow.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+                    } else {
+                        console.log('Showing submenu');
+                        $submenu.slideDown(300);
+                        $arrow.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+                    }
+                }
+            });
+            
+            // Auto-expand active submenu on page load
+            $('.nav-item').each(function() {
+                var $this = $(this);
+                var $submenu = $this.find('.modern-submenu');
+                var $activeLink = $submenu.find('.modern-submenu-link.active');
+                
+                if ($activeLink.length > 0) {
+                    console.log('Auto-expanding submenu for active link');
+                    $submenu.show();
+                    $this.find('.nav-arrow').removeClass('fa-chevron-right').addClass('fa-chevron-down');
+                }
+            });
+            
+            // Enhanced mobile sidebar toggle with debug logging
+            $('.mobile-sidebar-toggle').on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('Admin mobile toggle clicked');
+                
+                var $sidebar = $('.app-sidebar');
+                var $overlay = $('.sidebar-overlay');
+                
+                $sidebar.toggleClass('show');
+                $overlay.toggleClass('show');
+            });
+            
+            // Close sidebar when clicking overlay
+            $('.sidebar-overlay').on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                $('.app-sidebar').removeClass('show');
+                $('.sidebar-overlay').removeClass('show');
+            });
+            
+            // Handle window resize
+            $(window).on('resize', function() {
+                if ($(window).width() >= 992) {
+                    $('.app-sidebar').removeClass('show');
+                    $('.sidebar-overlay').removeClass('show');
+                }
+            });
+            
             // Prevent AdminLTE sidebar errors by ensuring elements exist
             if (typeof $.fn.pushMenu !== 'undefined') {
                 try {
@@ -525,8 +634,6 @@
                     console.log('AdminLTE sidebar initialization skipped:', e.message);
                 }
             }
-            
-            // Mobile sidebar functionality is handled in the sidebar file
         });
     </script>
     </body>

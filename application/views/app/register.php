@@ -31,6 +31,7 @@
                     <div class="alert-content">
                         <h4>Registration Failed!</h4>
                         <p><?php echo $registration_error; ?></p>
+                        <p><strong>Debug Info:</strong> Check server logs for more details.</p>
                     </div>
                 </div>
             <?php endif; ?>
@@ -205,7 +206,8 @@ $(document).ready(function() {
 
     // Form submission with enhanced UX
     $(document).on('submit', '.modern-register-form', function (e) {
-        e.preventDefault();
+        // Temporarily disable preventDefault to test form submission
+        // e.preventDefault();
         
         var $form = $(this);
         var $btn = $form.find('.modern-btn');
@@ -267,7 +269,7 @@ $(document).ready(function() {
         $btn.prop('disabled', true);
         
         // Submit the form
-        $form[0].submit();
+        // $form[0].submit();
     });
     
     // Function to show error messages

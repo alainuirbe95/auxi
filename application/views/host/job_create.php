@@ -73,19 +73,72 @@
                                                    placeholder="Enter the complete address" required>
                                         </div>
                                         
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-8 mb-3">
                                             <label for="city" class="form-label">City *</label>
-                                            <input type="text" class="form-control modern-input" id="city" name="city" 
-                                                   value="<?php echo set_value('city'); ?>" 
-                                                   placeholder="New York" required>
+                                            <select class="form-control modern-select" id="city" name="city" required>
+                                                <option value="">Select city</option>
+                                                <optgroup label="Maricopa County">
+                                                    <option value="Phoenix">Phoenix</option>
+                                                    <option value="Mesa">Mesa</option>
+                                                    <option value="Chandler">Chandler</option>
+                                                    <option value="Scottsdale">Scottsdale</option>
+                                                    <option value="Glendale">Glendale</option>
+                                                    <option value="Gilbert">Gilbert</option>
+                                                    <option value="Tempe">Tempe</option>
+                                                    <option value="Peoria">Peoria</option>
+                                                    <option value="Surprise">Surprise</option>
+                                                    <option value="Goodyear">Goodyear</option>
+                                                    <option value="Avondale">Avondale</option>
+                                                    <option value="Buckeye">Buckeye</option>
+                                                    <option value="Fountain Hills">Fountain Hills</option>
+                                                    <option value="Cave Creek">Cave Creek</option>
+                                                    <option value="Carefree">Carefree</option>
+                                                    <option value="Paradise Valley">Paradise Valley</option>
+                                                    <option value="Tolleson">Tolleson</option>
+                                                    <option value="El Mirage">El Mirage</option>
+                                                    <option value="Youngtown">Youngtown</option>
+                                                    <option value="Litchfield Park">Litchfield Park</option>
+                                                    <option value="Wickenburg">Wickenburg</option>
+                                                    <option value="Queen Creek">Queen Creek</option>
+                                                    <option value="Apache Junction">Apache Junction</option>
+                                                    <option value="Guadalupe">Guadalupe</option>
+                                                </optgroup>
+                                                <optgroup label="Pinal County">
+                                                    <option value="Casa Grande">Casa Grande</option>
+                                                    <option value="Maricopa">Maricopa</option>
+                                                    <option value="Eloy">Eloy</option>
+                                                    <option value="Coolidge">Coolidge</option>
+                                                    <option value="Florence">Florence</option>
+                                                    <option value="Arizona City">Arizona City</option>
+                                                    <option value="San Tan Valley">San Tan Valley</option>
+                                                    <option value="Gold Canyon">Gold Canyon</option>
+                                                    <option value="Kearny">Kearny</option>
+                                                    <option value="Superior">Superior</option>
+                                                    <option value="Oracle">Oracle</option>
+                                                </optgroup>
+                                                <optgroup label="Pima County">
+                                                    <option value="Tucson">Tucson</option>
+                                                    <option value="Oro Valley">Oro Valley</option>
+                                                    <option value="Marana">Marana</option>
+                                                    <option value="Sahuarita">Sahuarita</option>
+                                                    <option value="South Tucson">South Tucson</option>
+                                                    <option value="Catalina Foothills">Catalina Foothills</option>
+                                                    <option value="Catalina">Catalina</option>
+                                                    <option value="Green Valley">Green Valley</option>
+                                                    <option value="Vail">Vail</option>
+                                                    <option value="Tanque Verde">Tanque Verde</option>
+                                                    <option value="Three Points">Three Points</option>
+                                                    <option value="Flowing Wells">Flowing Wells</option>
+                                                    <option value="Drexel Heights">Drexel Heights</option>
+                                                    <option value="Casas Adobes">Casas Adobes</option>
+                                                    <option value="Ajo">Ajo</option>
+                                                    <option value="Sells">Sells</option>
+                                                </optgroup>
+                                            </select>
                                         </div>
                                         
-                                        <div class="col-md-4 mb-3">
-                                            <label for="state" class="form-label">State *</label>
-                                            <input type="text" class="form-control modern-input" id="state" name="state" 
-                                                   value="<?php echo set_value('state'); ?>" 
-                                                   placeholder="NY" required>
-                                        </div>
+                                        <!-- Hidden state field - always AZ -->
+                                        <input type="hidden" id="state" name="state" value="AZ">
                                         
                                         <div class="col-md-4 mb-3">
                                             <label for="estimated_duration" class="form-label">Estimated Duration *</label>

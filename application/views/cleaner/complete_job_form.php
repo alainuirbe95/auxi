@@ -16,6 +16,71 @@
         max-width: 98% !important;
     }
 }
+
+/* Permanent warning and info boxes - completely custom, no Bootstrap alert classes */
+.permanent-warning-box {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border: 2px solid #ffc107;
+    border-left: 6px solid #ffc107;
+    color: #856404;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.2);
+    position: relative;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 10;
+}
+
+.permanent-warning-box i {
+    color: #ffc107;
+    margin-right: 0.75rem;
+    font-size: 1.2rem;
+}
+
+.permanent-info-box {
+    background: linear-gradient(135deg, #cce7ff 0%, #b3d9ff 100%);
+    border: 2px solid #007bff;
+    border-left: 6px solid #007bff;
+    color: #004085;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+    position: relative;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 10;
+}
+
+.permanent-info-box i {
+    color: #007bff;
+    margin-right: 0.75rem;
+    font-size: 1.2rem;
+}
+
+/* Ensure these boxes are never hidden or faded */
+.permanent-warning-box,
+.permanent-info-box {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+}
+
+/* Override any potential hiding */
+.permanent-warning-box *,
+.permanent-info-box * {
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
 </style>
 
 <div class="container-fluid">
@@ -95,9 +160,10 @@
                                         </div>
                                     <?php endif; ?>
                                     
-                                    <button type="button" class="btn btn-warning" onclick="showInconsistencyForm(<?= $job->id ?>)">
-                                        <i class="fas fa-plus"></i> Report New Issue
-                                    </button>
+                                    <div class="permanent-warning-box">
+                                        <i class="fas fa-video fa-lg"></i>
+                                        <strong>Video Proof Required:</strong> Please send a WhatsApp video to the host showing the completed cleaning work before submitting this completion form.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -118,37 +184,14 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="form-group">
-                                            <label for="final_price">Final Price</label>
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    <span class="input-group-text">$</span>
-                                                </div>
-                                                <input type="number" 
-                                                       class="form-control" 
-                                                       id="final_price" 
-                                                       name="final_price" 
-                                                       step="0.01" 
-                                                       min="0"
-                                                       value="<?= $job->accepted_price ?>"
-                                                       placeholder="Enter final price">
+                                            <label>Final Price</label>
+                                            <div class="alert alert-success">
+                                                <i class="fas fa-dollar-sign"></i>
+                                                <strong>Agreed Price: $<?= number_format($job->accepted_price, 2) ?></strong>
+                                                <br>
+                                                <small class="text-muted">The price is locked and cannot be changed at this stage.</small>
                                             </div>
-                                            <small class="form-text text-muted">
-                                                Agreed price: $<?= number_format($job->accepted_price, 2) ?> | 
-                                                If you change this amount, a price adjustment request will be sent to the host for approval.
-                                            </small>
-                                        </div>
-                                        
-                                        <div class="form-group" id="price_reason_group" style="display: none;">
-                                            <label for="price_reason">Reason for Price Adjustment</label>
-                                            <textarea class="form-control" 
-                                                      id="price_reason" 
-                                                      name="price_reason" 
-                                                      rows="3" 
-                                                      maxlength="500"
-                                                      placeholder="Explain why the price needs to be adjusted (e.g., additional work required, unexpected conditions, etc.)"></textarea>
-                                            <small class="form-text text-muted">
-                                                <span id="reasonCount">0</span>/500 characters
-                                            </small>
+                                            <input type="hidden" name="final_price" value="<?= $job->accepted_price ?>">
                                         </div>
                                         
                                         <div class="form-group">
@@ -173,9 +216,9 @@
                                             </div>
                                         </div>
                                         
-                                        <div class="alert alert-info">
-                                            <i class="fas fa-info-circle"></i>
-                                            <strong>Important:</strong> Once you complete this job, the host will be notified and will have 24 hours to dispute the service if there are any issues. Payment will be automatically released after the dispute window expires.
+                                        <div class="permanent-info-box">
+                                            <i class="fas fa-info-circle fa-lg"></i>
+                                            <strong>Important:</strong> Once you complete this job, the host will be notified and will have 24 hours to mark the job as complete and release payment. If the host doesn't take action within 24 hours, payment will be automatically delivered. The host cannot dispute the service - if they have any issues, they can raise a "recall" after the service is closed.
                                         </div>
                                         
                                         <div class="form-group">
@@ -219,7 +262,31 @@
 
 <script>
 $(document).ready(function() {
-    var originalPrice = <?= $job->accepted_price ?>;
+    // Price is locked, no original price tracking needed
+    
+    // Ensure permanent warning and info boxes stay visible
+    function ensurePermanentBoxesVisible() {
+        $('.permanent-warning-box, .permanent-info-box').each(function() {
+            $(this).css({
+                'display': 'block !important',
+                'opacity': '1 !important',
+                'visibility': 'visible !important',
+                'position': 'relative !important',
+                'z-index': '10 !important'
+            });
+        });
+    }
+    
+    // Run immediately and periodically
+    ensurePermanentBoxesVisible();
+    setInterval(ensurePermanentBoxesVisible, 1000); // Check every second
+    
+    // Prevent any hiding attempts
+    $('.permanent-warning-box, .permanent-info-box').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        ensurePermanentBoxesVisible();
+    });
     
     // Character counter for completion notes
     $('#completion_notes').on('input', function() {
@@ -227,23 +294,7 @@ $(document).ready(function() {
         $('#notesCount').text(length);
     });
     
-    // Character counter for price reason
-    $('#price_reason').on('input', function() {
-        var count = $(this).val().length;
-        $('#reasonCount').text(count);
-    });
-    
-    // Show/hide price reason field based on price change
-    $('#final_price').on('input', function() {
-        var currentPrice = parseFloat($(this).val()) || 0;
-        if (Math.abs(currentPrice - originalPrice) > 0.01) {
-            $('#price_reason_group').slideDown();
-            $('#price_reason').prop('required', true);
-        } else {
-            $('#price_reason_group').slideUp();
-            $('#price_reason').prop('required', false);
-        }
-    });
+    // Price is locked, no adjustment logic needed
     
     // Form submission
     $('#completionForm').on('submit', function(e) {
@@ -254,12 +305,7 @@ $(document).ready(function() {
             return;
         }
         
-        // Format final price as decimal before submission
-        var finalPrice = $('#final_price').val();
-        if (finalPrice && finalPrice !== '') {
-            var formattedPrice = parseFloat(finalPrice).toFixed(2);
-            $('#final_price').val(formattedPrice);
-        }
+        // Price is locked, no formatting needed
         
         var formData = $(this).serialize();
         
@@ -283,22 +329,5 @@ $(document).ready(function() {
     });
 });
 
-function showInconsistencyForm(jobId) {
-    $.ajax({
-        url: '<?= base_url("cleaner/jobs-in-progress/inconsistency-form/") ?>' + jobId,
-        type: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                $('#inconsistencyModalBody').html(response.form_html);
-                $('#inconsistencyModal').modal('show');
-            } else {
-                alert('Error: ' + response.message);
-            }
-        },
-        error: function() {
-            alert('An error occurred while loading the form.');
-        }
-    });
-}
+// showInconsistencyForm function removed - replaced with WhatsApp video reminder
 </script>

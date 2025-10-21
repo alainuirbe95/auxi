@@ -145,6 +145,8 @@ class App extends MY_Controller {
         $data["first_name"] = $data["last_name"] = $data["username"] = $data["email"] = $data["user_role"] = "";
 
         if ($this->input->server('REQUEST_METHOD') == "POST") {
+            // Debug: Log that we received a POST request
+            error_log("Registration POST request received for user: " . $this->input->post("username"));
 
                 $this->form_validation->set_rules('username', 'username', 'max_length[50]|is_unique[' . config_item('user_table') . '.username]|required');
             $this->form_validation->set_rules('email', 'email', 'trim|required|valid_email|is_unique[' . config_item('user_table') . '.email]');
@@ -163,6 +165,7 @@ class App extends MY_Controller {
             $data['user_role'] = $this->input->post("user_role");
 
             if ($this->form_validation->run()) {
+                log_message('debug', 'Form validation passed for user: ' . $this->input->post("username"));
 
                 $save = array(
                     'first_name' => $this->input->post("first_name"),
@@ -182,17 +185,20 @@ class App extends MY_Controller {
                     'last_ip' => $this->input->ip_address(), // Current IP
                     'created_by' => 0, // System created
                     'modified_by' => 0, // System modified
-                    'avatar' => '', // No avatar yet
+                    'avatar' => '', // No avatar yet (required field)
                     'passwd_recovery_code' => NULL, // No recovery code
                     'passwd_recovery_date' => NULL, // No recovery date
                     'passwd_modified_at' => date('Y-m-d H:i:s'), // Password modified now
                     'last_login' => NULL, // No last login
-                    'modified_at' => date('Y-m-d H:i:s') // Modified now
+                    'modified_at' => date('Y-m-d H:i:s'), // Modified now
+                    'passwd_force_change' => 0, // Required field - no force change
+                    'rejected' => 0 // Required field - not rejected
                 );
                 
                 // Add optional fields if they exist in the database
                 $columns = $this->db->list_fields('users');
                 
+                // Only add fields that actually exist in the database
                 if (in_array('banned_reason', $columns)) {
                     $save['banned_reason'] = 'Account pending admin review';
                 }
@@ -202,22 +208,69 @@ class App extends MY_Controller {
                 if (in_array('banned_by', $columns)) {
                     $save['banned_by'] = 'system';
                 }
+                
+                // Remove any fields that don't exist in the database
+                $final_save = array();
+                foreach ($save as $key => $value) {
+                    if (in_array($key, $columns)) {
+                        $final_save[$key] = $value;
+                    }
+                }
 
+                // Debug: Log the data being inserted
+                log_message('debug', 'Generated user_id: ' . $save['user_id']);
+                log_message('debug', 'Attempting to insert user with data: ' . json_encode($final_save));
+                
                 // Attempt to insert user using direct database insert
-                $this->db->insert('users', $save);
+                $this->db->insert('users', $final_save);
                 $insert_result = $this->db->affected_rows();
+                $insert_id = $this->db->insert_id();
+                
+                // Debug: Log the result
+                log_message('debug', 'Insert result: ' . $insert_result . ', Insert ID: ' . $insert_id);
+                log_message('debug', 'Generated user_id from save array: ' . $save['user_id']);
+                
+                if ($this->db->error()['code'] != 0) {
+                    log_message('error', 'Database error: ' . $this->db->error()['message']);
+                }
                 
                 if ($insert_result > 0) {
+                    // Use the insert_id we already got, or fallback to the generated user_id
+                    $new_user_id = ($insert_id > 0) ? $insert_id : $save['user_id'];
+                    
+                    // Log the successful user creation
+                    log_message('info', 'User created successfully with ID: ' . $new_user_id);
+                    
+                    // Try to create default profile for new user (optional)
+                    $this->load->model('M_user_profiles');
+                    $profile_result = $this->M_user_profiles->create_default_profile($new_user_id);
+                    
+                    if (!$profile_result) {
+                        log_message('warning', 'Failed to create profile for user ID: ' . $new_user_id . ' - User created but profile creation failed');
+                    } else {
+                        log_message('info', 'Profile created successfully for user ID: ' . $new_user_id);
+                    }
+                    
                     // Log the registration
                     log_message('info', 'New user registered: ' . $this->input->post("username") . ' (Role: ' . $this->input->post("user_role") . ') - Account banned pending review');
                     
-                    // Redirect to login with success parameter (no flash data needed)
-                    redirect("/login?registered=1");
+                    // Set success message
+                    $this->session->set_flashdata('registration_success', 'Registration successful! Your account has been created and is pending admin review. You will receive an email once your account is approved.');
+                    
+                    // Redirect to login with success parameter
+                    log_message('debug', 'Redirecting to login page with success parameter');
+                    error_log("Registration successful, redirecting to login page");
+                    redirect(base_url("login?registered=1"));
                 } else {
                     // Log the error for debugging
                     log_message('error', 'User registration failed for: ' . $this->input->post("username") . ' - Database error: ' . $this->db->last_query());
+                    log_message('error', 'Database error message: ' . $this->db->error()['message']);
                     $data['registration_error'] = "Registration failed. Please try again.";
                 }
+            } else {
+                // Form validation failed
+                log_message('debug', 'Form validation failed for user: ' . $this->input->post("username"));
+                log_message('debug', 'Validation errors: ' . validation_errors());
             }
         }
 

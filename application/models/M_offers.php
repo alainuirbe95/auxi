@@ -90,6 +90,7 @@ class M_offers extends CI_Model
         $this->db->from('offers o');
         $this->db->join('users u', 'o.cleaner_id = u.user_id');
         $this->db->where('o.job_id', $job_id);
+        $this->db->where('o.status !=', 'cancelled'); // Exclude cancelled offers
         $this->db->order_by('o.created_at', 'DESC');
         
         $query = $this->db->get();
@@ -669,5 +670,60 @@ class M_offers extends CI_Model
         $this->db->where('cleaner_id', $cleaner_id);
         $this->db->where('status', 'pending');
         return $this->db->count_all_results('offers');
+    }
+    
+    /**
+     * Get total offers count for cleaner
+     */
+    public function get_total_offers_for_cleaner($cleaner_id)
+    {
+        if (!$this->db->table_exists('offers')) {
+            return 0;
+        }
+        
+        $this->db->where('cleaner_id', $cleaner_id);
+        return $this->db->count_all_results('offers');
+    }
+    
+    /**
+     * Get accepted offers count for cleaner
+     */
+    public function get_accepted_offers_count_for_cleaner($cleaner_id)
+    {
+        if (!$this->db->table_exists('offers')) {
+            return 0;
+        }
+        
+        $this->db->where('cleaner_id', $cleaner_id);
+        $this->db->where('status', 'accepted');
+        return $this->db->count_all_results('offers');
+    }
+
+    /**
+     * Clear all offers for a job (when job date changes)
+     * @param int $job_id
+     * @return int Number of offers cleared
+     */
+    public function clear_offers_for_job($job_id)
+    {
+        if (!$this->db->table_exists('offers')) {
+            return 0;
+        }
+        
+        // Get count of offers to be cleared
+        $this->db->where('job_id', $job_id);
+        $this->db->where('status', 'pending'); // Only clear pending offers
+        $count = $this->db->count_all_results('offers');
+        
+        if ($count > 0) {
+            // Update offers to 'cancelled' status
+            $this->db->where('job_id', $job_id);
+            $this->db->where('status', 'pending');
+            $this->db->update('offers', [
+                'status' => 'cancelled'
+            ]);
+        }
+        
+        return $count;
     }
 }

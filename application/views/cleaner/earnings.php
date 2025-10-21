@@ -407,6 +407,23 @@
         font-size: 1.5rem;
     }
 }
+
+/* Recall Resolution Section - Keep Visible When Parent is Visible */
+.job-details-row td .alert-warning,
+.job-details-row td .alert-info {
+    background: #f8f9fa;
+    border-left: 4px solid #17a2b8;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+/* Ensure recall sections stay visible when job details are expanded */
+.job-details-row[style*="display: table-row"] .alert-warning,
+.job-details-row[style*="display: table-row"] .alert-info {
+    display: block;
+    visibility: visible;
+    opacity: 1;
+}
 </style>
 
 <div class="earnings-container">
@@ -453,7 +470,11 @@
             </div>
             <div class="summary-card-title">Total Earnings</div>
             <div class="summary-card-value">$<?php echo number_format($earnings_summary['total_earnings'], 2); ?></div>
-            <div class="summary-card-subtitle">All time earnings</div>
+            <div class="summary-card-subtitle">
+                <?php 
+                echo date('M j', strtotime($start_date)) . ' - ' . date('M j, Y', strtotime($end_date)); 
+                ?>
+            </div>
         </div>
         
         <div class="summary-card">
@@ -461,7 +482,7 @@
                 <i class="fas fa-check-circle"></i>
             </div>
             <div class="summary-card-title">Closed Jobs</div>
-            <div class="summary-card-value"><?php echo count($closed_jobs); ?></div>
+            <div class="summary-card-value"><?php echo $earnings_summary['total_jobs']; ?></div>
             <div class="summary-card-subtitle">Jobs in selected period</div>
         </div>
         
@@ -470,7 +491,7 @@
                 <i class="fas fa-chart-line"></i>
             </div>
             <div class="summary-card-title">Average Earnings</div>
-            <div class="summary-card-value">$<?php echo count($closed_jobs) > 0 ? number_format(array_sum(array_column($closed_jobs, 'payment_amount')) / count($closed_jobs), 2) : '0.00'; ?></div>
+            <div class="summary-card-value">$<?php echo number_format($earnings_summary['avg_earnings'], 2); ?></div>
             <div class="summary-card-subtitle">Per job in period</div>
         </div>
     </div>
@@ -538,10 +559,20 @@
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-primary fw-bold">
-                                    $<?php echo number_format($job->payment_amount ?: $job->suggested_price, 2); ?>
+                                    $<?php 
+                                        // Calculate final payment with proper priority
+                                        $final_payment = $job->payment_amount ?? $job->final_price ?? $job->accepted_price ?? $job->suggested_price;
+                                        echo number_format($final_payment, 2); 
+                                    ?>
                                 </td>
                                 <td>
-                                    <span class="badge bg-success">Closed</span>
+                                    <?php if ($job->status === 'recall_settled'): ?>
+                                        <span class="badge bg-info">Recall Settled</span>
+                                    <?php elseif ($job->status === 'recalled'): ?>
+                                        <span class="badge bg-warning">Pending Recall</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-success">Closed</span>
+                                    <?php endif; ?>
                                     <?php if ($job->dispute_info): ?>
                                         <br><small class="text-warning">
                                             <i class="fas fa-exclamation-triangle"></i> Disputed
@@ -602,7 +633,11 @@
                                                     <?php endif; ?>
                                                     <tr>
                                                         <td><strong>Final Payment:</strong></td>
-                                                        <td class="text-primary fw-bold">$<?php echo number_format($job->payment_amount ?: $job->suggested_price, 2); ?></td>
+                                                        <td class="text-primary fw-bold">$<?php 
+                                                            // Calculate final payment with proper priority
+                                                            $final_payment = $job->payment_amount ?? $job->final_price ?? $job->accepted_price ?? $job->suggested_price;
+                                                            echo number_format($final_payment, 2); 
+                                                        ?></td>
                                                     </tr>
                                                     <tr>
                                                         <td><strong>Completed:</strong></td>
@@ -661,6 +696,71 @@
                                                             </tr>
                                                         <?php endif; ?>
                                                     </table>
+                                                <?php endif; ?>
+                                                
+                                                <?php if ($job->status === 'recalled' || $job->status === 'recall_settled'): ?>
+                                                    <h6 class="mb-3 mt-4">
+                                                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                                        <?php echo $job->status === 'recalled' ? 'Recall - Pending Review' : 'Recall Resolution'; ?>
+                                                    </h6>
+                                                    <div class="alert alert-<?php echo $job->status === 'recalled' ? 'warning' : 'info'; ?>">
+                                                        <table class="table table-sm table-borderless mb-0">
+                                                            <?php if (!empty($job->recall_reason)): ?>
+                                                                <tr>
+                                                                    <td><strong>Reason:</strong></td>
+                                                                    <td><?php echo ucfirst(str_replace('_', ' ', $job->recall_reason)); ?></td>
+                                                                </tr>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($job->recall_severity)): ?>
+                                                                <tr>
+                                                                    <td><strong>Severity:</strong></td>
+                                                                    <td><span class="badge bg-<?php echo $job->recall_severity === 'high' ? 'danger' : ($job->recall_severity === 'medium' ? 'warning' : 'info'); ?>"><?php echo ucfirst($job->recall_severity); ?></span></td>
+                                                                </tr>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($job->recalled_at)): ?>
+                                                                <tr>
+                                                                    <td><strong>Recalled At:</strong></td>
+                                                                    <td><?php echo date('M j, Y g:i A', strtotime($job->recalled_at)); ?></td>
+                                                                </tr>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($job->recall_details)): ?>
+                                                                <tr>
+                                                                    <td colspan="2"><strong>Details:</strong><br><?php echo nl2br(htmlspecialchars($job->recall_details)); ?></td>
+                                                                </tr>
+                                                            <?php endif; ?>
+                                                            <?php if ($job->status === 'recall_settled'): ?>
+                                                                <tr>
+                                                                    <td colspan="2"><hr></td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td colspan="2"><strong class="text-success"><i class="fas fa-check-circle me-1"></i>Resolution:</strong></td>
+                                                                </tr>
+                                                                <?php if (!empty($job->admin_decision)): ?>
+                                                                    <tr>
+                                                                        <td><strong>Decision:</strong></td>
+                                                                        <td><?php echo ucfirst(str_replace('_', ' ', $job->admin_decision)); ?></td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                                <?php if (!empty($job->resolution_type)): ?>
+                                                                    <tr>
+                                                                        <td><strong>Type:</strong></td>
+                                                                        <td><?php echo ucfirst(str_replace('_', ' ', $job->resolution_type)); ?></td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                                <?php if (!empty($job->admin_notes)): ?>
+                                                                    <tr>
+                                                                        <td colspan="2"><strong>Admin Notes:</strong><br><?php echo nl2br(htmlspecialchars($job->admin_notes)); ?></td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                                <?php if (!empty($job->recall_settled_at)): ?>
+                                                                    <tr>
+                                                                        <td><strong>Settled At:</strong></td>
+                                                                        <td><?php echo date('M j, Y g:i A', strtotime($job->recall_settled_at)); ?></td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                            <?php endif; ?>
+                                                        </table>
+                                                    </div>
                                                 <?php endif; ?>
                                                 
                                                 <?php if (!empty($job->price_adjustments)): ?>
@@ -725,6 +825,15 @@ function toggleJobDetails(jobId) {
         chevronIcon.classList.remove('fa-chevron-down');
         chevronIcon.classList.add('fa-chevron-up');
         toggleButton.innerHTML = '<i class="fas fa-chevron-up me-1"></i>Hide Details';
+        
+        // Mark recall sections as persistent when details are shown
+        const alertElements = detailsRow.querySelectorAll('.alert-warning, .alert-info');
+        alertElements.forEach(function(alert) {
+            alert.setAttribute('data-persistent', 'true');
+            alert.style.display = 'block';
+            alert.style.visibility = 'visible';
+            alert.style.opacity = '1';
+        });
     } else {
         // Hide details
         detailsRow.style.display = 'none';
@@ -733,4 +842,39 @@ function toggleJobDetails(jobId) {
         toggleButton.innerHTML = '<i class="fas fa-chevron-down me-1"></i>Details';
     }
 }
+
+// Prevent recall resolution sections from being hidden
+document.addEventListener('DOMContentLoaded', function() {
+    // Monitor for any changes that might hide recall sections
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                const target = mutation.target;
+                if (target.classList.contains('alert-warning') || target.classList.contains('alert-info')) {
+                    if (target.hasAttribute('data-persistent')) {
+                        // Force visible if it's marked as persistent
+                        if (target.style.display === 'none' || target.style.visibility === 'hidden') {
+                            target.style.display = 'block';
+                            target.style.visibility = 'visible';
+                            target.style.opacity = '1';
+                        }
+                    }
+                }
+            }
+        });
+    });
+    
+    // Observe all alert elements
+    document.querySelectorAll('.alert-warning, .alert-info').forEach(function(element) {
+        observer.observe(element, {
+            attributes: true,
+            attributeFilter: ['style']
+        });
+    });
+    
+    // Mark all recall sections as persistent on page load
+    document.querySelectorAll('.job-details-row .alert-warning, .job-details-row .alert-info').forEach(function(alert) {
+        alert.setAttribute('data-persistent', 'true');
+    });
+});
 </script>

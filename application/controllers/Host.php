@@ -97,9 +97,43 @@ class Host extends MY_Controller
     /**
      * Create New Job
      * Form to create a new cleaning job
+     * ENFORCES: Host must have 50%+ profile completion
      */
     public function create_job()
     {
+        $user_id = $this->auth_user_id;
+        
+        // Load profile model
+        $this->load->model('M_user_profiles');
+        
+        // Check profile completion
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        // ENFORCE: Must have at least 50% profile completion to post jobs
+        if ($completion['percentage'] < 50) {
+            // Redirect to incomplete profile warning page
+            $data = [
+                'title' => 'Complete Your Profile',
+                'page_icon' => 'fas fa-exclamation-triangle',
+                'breadcrumbs' => [
+                    ['title' => 'Dashboard', 'url' => 'host'],
+                    ['title' => 'Complete Profile', 'url' => '', 'active' => true]
+                ],
+                'completion' => $completion,
+                'user_info' => $this->M_users->get_user_by_id($user_id)
+            ];
+            
+            // Load the sidebar content as a string
+            $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+            
+            // Load the incomplete profile warning
+            $data['body'] = $this->load->view('host/profile/incomplete_profile_warning', $data, TRUE);
+            
+            // Load the layout with the content
+            $this->load->view('admin/template/layout_with_sidebar', $data);
+            return;
+        }
+        
         $data = [
             'title' => 'Create New Job',
             'page_icon' => 'fas fa-plus-circle',
@@ -107,7 +141,8 @@ class Host extends MY_Controller
                 ['title' => 'Dashboard', 'url' => 'host'],
                 ['title' => 'Create Job', 'url' => '', 'active' => true]
             ],
-            'user_info' => $this->M_users->get_user_by_id($this->auth_user_id)
+            'user_info' => $this->M_users->get_user_by_id($this->auth_user_id),
+            'profile_completion' => $completion
         ];
         
         // Load the sidebar content as a string
@@ -123,11 +158,22 @@ class Host extends MY_Controller
     /**
      * Process Job Creation
      * Handle form submission for new job creation
+     * ENFORCES: Host must have 50%+ profile completion
      */
     public function process_create_job()
     {
         if ($this->input->method() !== 'post') {
             show_404();
+        }
+        
+        // Load profile model and check completion (backend validation)
+        $this->load->model('M_user_profiles');
+        $completion = $this->M_user_profiles->calculate_profile_completion($this->auth_user_id);
+        
+        if ($completion['percentage'] < 50) {
+            $this->session->set_flashdata('text', 'You must complete at least 50% of your profile to post jobs.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('host/edit-profile');
         }
         
         // Debug: Log all POST data
@@ -498,10 +544,12 @@ class Host extends MY_Controller
             foreach ($jobs as $job) {
                 $offers = $this->M_offers->get_offers_by_job($job->id);
                 
+                // Always add the job, regardless of whether it has offers
+                $job->offers = $offers ?: []; // Set empty array if no offers
+                $jobs_with_offers[] = $job;
+                
+                // Count offers if they exist
                 if (!empty($offers)) {
-                    $job->offers = $offers;
-                    $jobs_with_offers[] = $job;
-                    
                     foreach ($offers as $offer) {
                         $total_offers++;
                         
@@ -681,6 +729,13 @@ class Host extends MY_Controller
             show_404();
         }
         
+        // Prevent editing assigned jobs
+        if ($job->status === 'assigned') {
+            $this->session->set_flashdata('text', 'Cannot edit job that has been assigned to a cleaner.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('host/jobs');
+        }
+        
         $data = [
             'title' => 'Edit Job',
             'page_icon' => 'fas fa-edit',
@@ -717,6 +772,13 @@ class Host extends MY_Controller
         $job = $this->M_jobs->get_job_by_id($job_id);
         if (!$job || $job->host_id != $this->auth_user_id) {
             show_404();
+        }
+        
+        // Prevent editing assigned jobs
+        if ($job->status === 'assigned') {
+            $this->session->set_flashdata('text', 'Cannot edit job that has been assigned to a cleaner.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('host/jobs');
         }
         
         // Set validation rules (same as create)
@@ -760,6 +822,15 @@ class Host extends MY_Controller
             redirect('host/edit_job/' . $job_id);
         }
         
+        // Check if scheduled date/time has changed
+        $date_changed = false;
+        $original_datetime = $job->scheduled_date . ' ' . $job->scheduled_time;
+        $new_datetime = $scheduled_date . ' ' . $scheduled_time;
+        
+        if ($original_datetime !== $new_datetime) {
+            $date_changed = true;
+        }
+        
         // Prepare update data
         $update_data = [
             'title' => trim($this->input->post('title')),
@@ -780,7 +851,22 @@ class Host extends MY_Controller
         
         // Update the job
         if ($this->M_jobs->update_job($job_id, $update_data)) {
-            $this->session->set_flashdata('text', 'Job updated successfully!');
+            $message = 'Job updated successfully!';
+            
+            // If date changed, clear all offers for this job
+            if ($date_changed && $this->db->table_exists('offers')) {
+                $this->load->model('M_offers');
+                $offers_cleared = $this->M_offers->clear_offers_for_job($job_id);
+                
+                if ($offers_cleared > 0) {
+                    $message .= " The job date was changed, so all existing offers have been cleared.";
+                    
+                    // TODO: Send notification emails to cleaners who had offers
+                    // This will be implemented in a future phase
+                }
+            }
+            
+            $this->session->set_flashdata('text', $message);
             $this->session->set_flashdata('type', 'success');
             redirect('host/jobs');
         } else {
@@ -1095,6 +1181,308 @@ class Host extends MY_Controller
     }
 
     /**
+     * View Host's Own Profile
+     * Display current host's profile with completion status
+     */
+    public function my_profile()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Load profile model
+        $this->load->model('M_user_profiles');
+        
+        // Get profile data
+        $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        
+        if (!$profile) {
+            // Create default profile if it doesn't exist
+            $this->M_user_profiles->create_default_profile($user_id);
+            $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        }
+        
+        // Calculate profile completion
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        // Get job statistics
+        $job_stats = [];
+        if (isset($this->M_jobs)) {
+            $job_stats = $this->M_jobs->get_host_stats($user_id);
+        }
+        
+        $data = [
+            'title' => 'My Profile',
+            'page_icon' => 'fas fa-user-circle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'host'],
+                ['title' => 'My Profile', 'url' => '', 'active' => true]
+            ],
+            'profile' => $profile,
+            'completion' => $completion,
+            'job_stats' => $job_stats,
+            'user_info' => $this->M_users->get_user_by_id($user_id)
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        
+        // Load the profile view content as a string
+        $data['body'] = $this->load->view('host/profile/my_profile', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Edit Host's Own Profile
+     * Show form to edit profile information
+     */
+    public function edit_my_profile()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Load profile model
+        $this->load->model('M_user_profiles');
+        
+        // Get profile data
+        $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        
+        if (!$profile) {
+            // Create default profile if it doesn't exist
+            $this->M_user_profiles->create_default_profile($user_id);
+            $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        }
+        
+        // Calculate profile completion
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        $data = [
+            'title' => 'Edit My Profile',
+            'page_icon' => 'fas fa-user-edit',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'host'],
+                ['title' => 'My Profile', 'url' => 'host/my-profile'],
+                ['title' => 'Edit', 'url' => '', 'active' => true]
+            ],
+            'profile' => $profile,
+            'completion' => $completion,
+            'user_info' => $this->M_users->get_user_by_id($user_id)
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        
+        // Load the edit profile view content as a string
+        $data['body'] = $this->load->view('host/profile/edit_profile', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Update Host's Own Profile (AJAX)
+     * Process profile update form submission
+     */
+    public function update_my_profile()
+    {
+        // Set JSON header first
+        header('Content-Type: application/json');
+        
+        try {
+            // Log the request for debugging
+            log_message('info', 'Profile update request received');
+            
+            if ($this->input->method() !== 'post') {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Invalid request method'
+                ]);
+                return;
+            }
+            
+            $user_id = $this->auth_user_id;
+            
+            // Fallback to session if auth_user_id is not available
+            if (!$user_id) {
+                $user_id = $this->session->userdata('user_id');
+                if (!$user_id) {
+                    $user_id = $this->session->userdata('id'); // Try 'id' field
+                }
+            }
+            
+            log_message('info', 'Auth user ID: ' . ($this->auth_user_id ? $this->auth_user_id : 'NULL'));
+            log_message('info', 'Session user ID: ' . ($user_id ? $user_id : 'NULL'));
+            
+            if (!$user_id) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ]);
+                return;
+            }
+            
+            // Load required models
+            $this->load->model('M_user_profiles');
+            $this->load->model('M_users');
+            log_message('info', 'Models loaded');
+            
+            // Get form data
+            $bio = trim($this->input->post('bio'));
+            $phone = trim($this->input->post('phone'));
+            $address = trim($this->input->post('address'));
+            $city = trim($this->input->post('city'));
+            $country = trim($this->input->post('state')); // Form field is 'state' but DB column is 'country'
+            $is_public = $this->input->post('is_public') ? 1 : 0;
+            
+            log_message('info', 'Form data received - Bio length: ' . strlen($bio) . ', Phone: ' . $phone);
+            
+            // Prepare update data
+            $update_data = [
+                'bio' => $bio,
+                'phone' => $phone,
+                'is_public' => $is_public,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            // Update profile
+            log_message('info', 'About to update profile for user: ' . $user_id);
+            $result = $this->M_user_profiles->update_profile($user_id, $update_data);
+            log_message('info', 'Profile update result: ' . ($result ? 'SUCCESS' : 'FAILED'));
+            
+            if ($result) {
+                // Also update address in users table if provided
+                log_message('info', 'Address fields - Address: "' . $address . '", City: "' . $city . '", Country: "' . $country . '"');
+                
+                if (!empty($address) || !empty($city) || !empty($country)) {
+                    $user_update = [];
+                    if (!empty($address)) $user_update['address'] = $address;
+                    if (!empty($city)) $user_update['city'] = $city;
+                    if (!empty($country)) $user_update['country'] = $country;
+                    
+                    log_message('info', 'User update data: ' . json_encode($user_update));
+                    
+                    if (!empty($user_update)) {
+                        $user_update_result = $this->M_users->update_user($user_id, $user_update);
+                        log_message('info', 'User address update result: ' . ($user_update_result ? 'SUCCESS' : 'FAILED'));
+                    }
+                } else {
+                    log_message('info', 'No address fields provided, skipping user table update');
+                }
+                
+                // Get updated completion percentage
+                $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Profile updated successfully!',
+                    'completion_percentage' => $completion['percentage']
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to update profile. Please try again.'
+                ]);
+            }
+        } catch (Exception $e) {
+            log_message('error', 'Profile update error: ' . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Test redirect URL (temporary debugging method)
+     */
+    public function test_redirect()
+    {
+        echo "Redirect test successful! This URL works: " . base_url('host/my-profile');
+        echo "<br><a href='" . base_url('host/my-profile') . "'>Click here to go to my profile</a>";
+    }
+
+    /**
+     * View Cleaner Profile (Context-Based)
+     * Host can only view cleaner profiles who made offers on their jobs
+     */
+    public function view_cleaner_profile($cleaner_id, $offer_id)
+    {
+        $host_id = $this->auth_user_id;
+        
+        // Load required models
+        $this->load->model('M_user_profiles');
+        
+        // Verify the offer exists and belongs to a job owned by this host
+        $offer = $this->M_offers->get_offer_by_id($offer_id);
+        
+        if (!$offer) {
+            show_404();
+        }
+        
+        $job = $this->M_jobs->get_job_by_id($offer->job_id);
+        
+        // Security check: Verify job belongs to this host and offer is from the cleaner
+        if (!$job || $job->host_id != $host_id || $offer->cleaner_id != $cleaner_id) {
+            show_404();
+        }
+        
+        // Get cleaner's profile
+        $profile = $this->M_user_profiles->get_profile_with_user_data($cleaner_id);
+        
+        if (!$profile) {
+            show_404();
+        }
+        
+        // Calculate profile completion
+        $completion = $this->M_user_profiles->calculate_profile_completion($cleaner_id);
+        
+        // Get cleaner's job statistics
+        $job_stats = [];
+        if (isset($this->M_jobs)) {
+            // Get cleaner stats from offers/assignments
+            $this->db->select('
+                COUNT(DISTINCT o.id) as total_offers_made,
+                COUNT(DISTINCT CASE WHEN o.status = "accepted" THEN o.id END) as offers_accepted,
+                COUNT(DISTINCT CASE WHEN j.status = "completed" AND j.cleaner_id = ' . $cleaner_id . ' THEN j.id END) as jobs_completed
+            ');
+            $this->db->from('offers o');
+            $this->db->join('jobs j', 'j.id = o.job_id', 'left');
+            $this->db->where('o.cleaner_id', $cleaner_id);
+            $query = $this->db->get();
+            $job_stats = $query->row_array();
+        }
+        
+        // Load reviews model to get cleaner's reviews
+        $this->load->model('M_reviews');
+        $reviews = $this->M_reviews->get_reviews_by_user($cleaner_id, 'cleaner', 5);
+        
+        $data = [
+            'title' => 'Cleaner Profile - ' . $profile->username,
+            'page_icon' => 'fas fa-user',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'host'],
+                ['title' => 'Offers', 'url' => 'host/offers'],
+                ['title' => 'Cleaner Profile', 'url' => '', 'active' => true]
+            ],
+            'profile' => $profile,
+            'completion' => $completion,
+            'job_stats' => $job_stats,
+            'reviews' => $reviews,
+            'offer' => $offer,
+            'job' => $job,
+            'user_info' => $this->M_users->get_user_by_id($host_id)
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        
+        // Load the cleaner profile view content as a string
+        $data['body'] = $this->load->view('host/profile/cleaner_profile', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
      * Display change password form for host
      */
     public function change_password() {
@@ -1182,6 +1570,552 @@ class Host extends MY_Controller
         } else {
             echo json_encode(array('success' => false, 'message' => 'Failed to update password'));
         }
+    }
+
+    /**
+     * Public Profile View
+     * Display public profile for hosts (visible to cleaners)
+     * Shows: name, reviews, general location (city/state)
+     * Hides: contact information, full address, email, phone
+     */
+    public function public_profile($host_id)
+    {
+        // Load profile model
+        $this->load->model('M_user_profiles');
+        
+        // Get host profile with user data
+        $profile = $this->M_user_profiles->get_profile_with_user_data($host_id);
+        
+        if (!$profile || $profile->auth_level != 6) {
+            show_404();
+        }
+        
+        // Get host statistics
+        $job_stats = [
+            'total_jobs' => $this->M_jobs->get_total_jobs_for_host($host_id),
+            'active_jobs' => count($this->M_jobs->get_host_active_jobs($host_id)),
+            'completed_jobs' => $this->M_jobs->get_completed_jobs_count_for_host($host_id),
+            'average_rating' => $profile->average_rating ?? 0,
+            'total_reviews' => $profile->total_reviews ?? 0
+        ];
+        
+        // TODO: Get actual reviews when review system is implemented
+        $reviews = [];
+        
+        $data = [
+            'title' => $profile->username . ' - Host Profile',
+            'page_icon' => 'fas fa-user-circle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'Host Profile', 'url' => '', 'active' => true]
+            ],
+            'profile' => $profile,
+            'job_stats' => $job_stats,
+            'reviews' => $reviews
+        ];
+        
+        // Check if this is being viewed by cleaner or admin
+        $viewer_auth_level = $this->session->userdata('auth_level');
+        if ($viewer_auth_level == 3) {
+            // Cleaner viewing
+            $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        } elseif ($viewer_auth_level == 9) {
+            // Admin viewing
+            $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
+        } else {
+            // Fallback
+            $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        }
+        
+        // Load the public profile view
+        $data['body'] = $this->load->view('host/public_profile', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Host Payment History
+     * Show closed jobs and payment information with filtering
+     */
+    public function past_jobs()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Get filter parameters
+        $filters = [
+            'date_from' => $this->input->get('date_from'),
+            'date_to' => $this->input->get('date_to'),
+            'search' => $this->input->get('search'),
+            'status' => $this->input->get('status')
+        ];
+        
+        // Set default date range if not provided (last 30 days)
+        if (empty($filters['date_from'])) {
+            $filters['date_from'] = date('Y-m-d', strtotime('-30 days'));
+        }
+        if (empty($filters['date_to'])) {
+            $filters['date_to'] = date('Y-m-d');
+        }
+        
+        // Get past jobs (closed and recalled) with payment information
+        $past_jobs = [];
+        $total_paid = 0;
+        $total_jobs = 0;
+        $average_payment = 0;
+        $recalled_jobs = 0;
+        
+        if (isset($this->M_jobs)) {
+            $past_jobs = $this->M_jobs->get_host_past_jobs($user_id, $filters);
+            
+            // Calculate totals
+            foreach ($past_jobs as $job) {
+                $payment_amount = $job->payment_amount ?: ($job->final_price ?: $job->accepted_price ?: 0);
+                $total_paid += (float)$payment_amount;
+                $total_jobs++;
+                
+                if ($job->status === 'recalled') {
+                    $recalled_jobs++;
+                }
+            }
+            
+            $average_payment = $total_jobs > 0 ? $total_paid / $total_jobs : 0;
+        }
+        
+        $data = [
+            'title' => 'Past Jobs',
+            'page_icon' => 'fas fa-history',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'host'],
+                ['title' => 'Past Jobs', 'url' => '', 'active' => true]
+            ],
+            'user_info' => $this->M_users->get_user_by_id($user_id),
+            'filters' => $filters,
+            'past_jobs' => $past_jobs,
+            'summary' => [
+                'total_paid' => $total_paid,
+                'total_jobs' => $total_jobs,
+                'average_payment' => $average_payment,
+                'recalled_jobs' => $recalled_jobs
+            ]
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        
+        // Load the past jobs content as a string
+        $data['body'] = $this->load->view('host/past_jobs', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Completed Jobs
+     * Show jobs that need to be completed by host and review system
+     */
+    public function completed_jobs()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Get filter parameters
+        $search_term = $this->input->get('search');
+        $sort_by = $this->input->get('sort') ?: 'completed_at';
+        $sort_order = $this->input->get('order') ?: 'DESC';
+        
+        // Get completed jobs that need host action
+        $completed_jobs = [];
+        $jobs_needing_review = [];
+        $jobs_past_review_window = [];
+        
+        if (isset($this->M_jobs)) {
+            // Get jobs that are completed but not yet closed
+            $completed_jobs = $this->M_jobs->get_host_completed_jobs($user_id);
+            
+            // Separate jobs by review status
+            foreach ($completed_jobs as $job) {
+                $completed_time = strtotime($job->completed_at);
+                $review_deadline = $completed_time + (24 * 60 * 60); // 24 hours
+                $current_time = time();
+                
+                if ($current_time > $review_deadline) {
+                    $jobs_past_review_window[] = $job;
+                } else {
+                    $jobs_needing_review[] = $job;
+                }
+            }
+            
+            // Apply search filter
+            if (!empty($search_term)) {
+                $jobs_needing_review = array_filter($jobs_needing_review, function($job) use ($search_term) {
+                    return stripos($job->title, $search_term) !== false || 
+                           stripos($job->description, $search_term) !== false ||
+                           stripos($job->cleaner_first_name . ' ' . $job->cleaner_last_name, $search_term) !== false;
+                });
+                
+                $jobs_past_review_window = array_filter($jobs_past_review_window, function($job) use ($search_term) {
+                    return stripos($job->title, $search_term) !== false || 
+                           stripos($job->description, $search_term) !== false ||
+                           stripos($job->cleaner_first_name . ' ' . $job->cleaner_last_name, $search_term) !== false;
+                });
+            }
+            
+            // Sort jobs
+            $sort_function = function($a, $b) use ($sort_by, $sort_order) {
+                switch ($sort_by) {
+                    case 'completed_at':
+                        $a_val = strtotime($a->completed_at);
+                        $b_val = strtotime($b->completed_at);
+                        break;
+                    case 'title':
+                        $a_val = $a->title;
+                        $b_val = $b->title;
+                        break;
+                    case 'final_price':
+                        $a_val = $a->final_price ?: $a->accepted_price;
+                        $b_val = $b->final_price ?: $b->accepted_price;
+                        break;
+                    default:
+                        $a_val = strtotime($a->completed_at);
+                        $b_val = strtotime($b->completed_at);
+                }
+                
+                if ($sort_order === 'DESC') {
+                    return $b_val <=> $a_val;
+                } else {
+                    return $a_val <=> $b_val;
+                }
+            };
+            
+            usort($jobs_needing_review, $sort_function);
+            usort($jobs_past_review_window, $sort_function);
+        }
+        
+        $data = [
+            'title' => 'Completed Jobs',
+            'page_icon' => 'fas fa-check-circle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'host'],
+                ['title' => 'Completed Jobs', 'url' => '', 'active' => true]
+            ],
+            'jobs_needing_review' => $jobs_needing_review,
+            'jobs_past_review_window' => $jobs_past_review_window,
+            'filters' => [
+                'search' => $search_term,
+                'sort_by' => $sort_by,
+                'sort_order' => $sort_order
+            ]
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        
+        // Load the completed jobs content as a string
+        $data['body'] = $this->load->view('host/completed_jobs', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Complete Job (Host Action)
+     * Mark a job as complete and release payment
+     */
+    public function complete_job()
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+        
+        $job_id = $this->input->post('job_id');
+        $user_id = $this->auth_user_id;
+        
+        if (!$job_id) {
+            echo json_encode(['success' => false, 'message' => 'Job ID is required']);
+            return;
+        }
+        
+        // Get job details
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job || $job->host_id != $user_id) {
+            echo json_encode(['success' => false, 'message' => 'Job not found or unauthorized']);
+            return;
+        }
+        
+        if ($job->status !== 'completed') {
+            echo json_encode(['success' => false, 'message' => 'Job is not in completed status']);
+            return;
+        }
+        
+        // Update job status to closed and release payment
+        $update_data = [
+            'status' => 'closed',
+            'payment_released_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+        
+        if ($this->M_jobs->update_job($job_id, $update_data)) {
+            // Send notification to cleaner
+            $this->load->model('M_notifications');
+            $this->M_notifications->create_notification(
+                $job->assigned_cleaner_id,
+                'Payment Released',
+                'Your payment for job "' . $job->title . '" has been released by the host.',
+                'payment_released',
+                $job_id
+            );
+            
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Job completed successfully! Payment has been released to the cleaner.'
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to complete job. Please try again.']);
+        }
+    }
+
+
+    /**
+     * Show Recall Job Form
+     * Display the recall form for a specific job
+     */
+    public function recall_job($job_id)
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Get job details
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job || $job->host_id != $user_id) {
+            $this->session->set_flashdata('text', 'Job not found or unauthorized');
+            $this->session->set_flashdata('type', 'error');
+            redirect('host/completed-jobs');
+        }
+        
+        if (!in_array($job->status, ['completed', 'closed'])) {
+            $this->session->set_flashdata('text', 'Job cannot be recalled in its current status');
+            $this->session->set_flashdata('type', 'error');
+            redirect('host/completed-jobs');
+        }
+        
+        // Get cleaner information
+        $cleaner_name = 'Unknown Cleaner';
+        if ($job->assigned_cleaner_id) {
+            $cleaner = $this->M_users->get_user_by_id($job->assigned_cleaner_id);
+            if ($cleaner) {
+                $cleaner_name = trim(($cleaner->first_name ?? '') . ' ' . ($cleaner->last_name ?? ''));
+                if (empty($cleaner_name)) {
+                    $cleaner_name = $cleaner->username ?? 'Unknown Cleaner';
+                }
+            }
+        }
+        
+        // Determine back URL
+        $back_url = $job->status === 'completed' ? base_url('host/completed-jobs') : base_url('host/past-jobs');
+        
+        $data = [
+            'title' => 'Recall Job',
+            'page_icon' => 'fas fa-exclamation-triangle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'host'],
+                ['title' => $job->status === 'completed' ? 'Completed Jobs' : 'Past Jobs', 'url' => $back_url],
+                ['title' => 'Recall Job', 'url' => '', 'active' => true]
+            ],
+            'user_info' => $this->M_users->get_user_by_id($user_id),
+            'job' => $job,
+            'cleaner_name' => $cleaner_name,
+            'back_url' => $back_url
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        
+        // Load the recall job content as a string
+        $data['body'] = $this->load->view('host/recall_job', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Process Recall Job
+     * Handle the recall form submission
+     */
+    public function process_recall_job()
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+        
+        $job_id = $this->input->post('job_id');
+        $recall_type = $this->input->post('recall_type');
+        $recall_reason = $this->input->post('recall_reason');
+        $recall_details = $this->input->post('recall_details');
+        $severity = $this->input->post('severity');
+        $evidence_notes = $this->input->post('evidence_notes');
+        $desired_resolution = $this->input->post('desired_resolution');
+        $user_id = $this->auth_user_id;
+        
+        if (!$job_id || !$recall_reason || !$recall_details || !$severity) {
+            $this->session->set_flashdata('text', 'All required fields must be filled');
+            $this->session->set_flashdata('type', 'error');
+            redirect('host/recall_job/' . $job_id);
+        }
+        
+        // Get job details
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job || $job->host_id != $user_id) {
+            $this->session->set_flashdata('text', 'Job not found or unauthorized');
+            $this->session->set_flashdata('type', 'error');
+            redirect('host/completed-jobs');
+        }
+        
+        if (!in_array($job->status, ['completed', 'closed'])) {
+            $this->session->set_flashdata('text', 'Job cannot be recalled in its current status');
+            $this->session->set_flashdata('type', 'error');
+            redirect('host/completed-jobs');
+        }
+        
+        // Check which columns exist in the jobs table
+        $columns = $this->db->list_fields('jobs');
+        
+        // Build update data with only existing columns
+        $update_data = [
+            'status' => 'recalled'
+        ];
+        
+        // Add recall-related fields only if columns exist
+        if (in_array('recall_reason', $columns)) {
+            $update_data['recall_reason'] = $recall_reason;
+        }
+        
+        if (in_array('recall_details', $columns)) {
+            $update_data['recall_details'] = $recall_details;
+        }
+        
+        if (in_array('recall_severity', $columns)) {
+            $update_data['recall_severity'] = $severity;
+        }
+        
+        if (in_array('evidence_notes', $columns)) {
+            $update_data['evidence_notes'] = $evidence_notes;
+        }
+        
+        if (in_array('desired_resolution', $columns)) {
+            $update_data['desired_resolution'] = $desired_resolution;
+        }
+        
+        if (in_array('recalled_at', $columns)) {
+            $update_data['recalled_at'] = date('Y-m-d H:i:s');
+        }
+        
+        // Note: updated_at will be automatically added by M_jobs::update_job() method
+        // So we don't need to add it here
+        
+        // If it's a completed job, also release payment
+        if ($job->status === 'completed' && in_array('payment_released_at', $columns)) {
+            $update_data['payment_released_at'] = date('Y-m-d H:i:s');
+        }
+        
+        if ($this->M_jobs->update_job($job_id, $update_data)) {
+            // Send notification to admin
+            $this->load->model('M_notifications');
+            $this->M_notifications->create_notification(
+                1, // Assuming admin user ID is 1, adjust as needed
+                'Job Recall - Admin Review Required',
+                'Host has recalled job "' . $job->title . '" for review. Reason: ' . $recall_reason . ' (Severity: ' . $severity . ')',
+                'job_recall',
+                $job_id
+            );
+            
+            // Send notification to cleaner if it's a completed job
+            if ($job->status === 'completed' && $job->assigned_cleaner_id) {
+                $this->M_notifications->create_notification(
+                    $job->assigned_cleaner_id,
+                    'Payment Released - Job Recalled',
+                    'Your payment for job "' . $job->title . '" has been released, but the host has recalled the job for admin review.',
+                    'payment_released_recalled',
+                    $job_id
+                );
+            }
+            
+            $this->session->set_flashdata('text', 'Job recalled successfully! Admin has been notified for review.');
+            $this->session->set_flashdata('type', 'success');
+            redirect('host/recalled-jobs');
+        } else {
+            $this->session->set_flashdata('text', 'Failed to recall job. Please try again.');
+            $this->session->set_flashdata('type', 'error');
+            redirect('host/recall_job/' . $job_id);
+        }
+    }
+
+    /**
+     * Recalled Jobs
+     * Show all jobs that have been recalled by the host
+     */
+    public function recalled_jobs()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Get filter parameters
+        $filters = [
+            'reason' => $this->input->get('reason'),
+            'severity' => $this->input->get('severity'),
+            'search' => $this->input->get('search'),
+            'sort' => $this->input->get('sort')
+        ];
+        
+        // Get recalled jobs
+        $recalled_jobs = [];
+        $pending_review = 0;
+        $under_investigation = 0;
+        $resolved = 0;
+        
+        if (isset($this->M_jobs)) {
+            $recalled_jobs = $this->M_jobs->get_host_recalled_jobs($user_id, $filters);
+            
+            // Calculate summary statistics
+            foreach ($recalled_jobs as $job) {
+                $recall_status = $job->recall_status ?? 'pending';
+                switch ($recall_status) {
+                    case 'pending':
+                        $pending_review++;
+                        break;
+                    case 'under_investigation':
+                        $under_investigation++;
+                        break;
+                    case 'resolved':
+                        $resolved++;
+                        break;
+                }
+            }
+        }
+        
+        $data = [
+            'title' => 'Recalled Jobs',
+            'page_icon' => 'fas fa-exclamation-triangle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'host'],
+                ['title' => 'Recalled Jobs', 'url' => '', 'active' => true]
+            ],
+            'user_info' => $this->M_users->get_user_by_id($user_id),
+            'filters' => $filters,
+            'recalled_jobs' => $recalled_jobs,
+            'pending_review' => $pending_review,
+            'under_investigation' => $under_investigation,
+            'resolved' => $resolved
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        
+        // Load the recalled jobs content as a string
+        $data['body'] = $this->load->view('host/recalled_jobs', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
     }
 
 }

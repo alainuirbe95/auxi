@@ -57,15 +57,6 @@
           </a>
         </li>
 
-        <!-- My Offers -->
-        <li class="nav-item">
-          <a href="<?php echo base_url('cleaner/offers'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/offers') !== false) ? 'active' : ''; ?>">
-            <div class="nav-icon-container">
-              <i class="nav-icon fas fa-handshake"></i>
-            </div>
-            <span class="nav-text">My Offers</span>
-          </a>
-        </li>
 
         <!-- Declined Offers -->
         <li class="nav-item">
@@ -110,15 +101,6 @@
               </a>
             </li>
 
-            <!-- My Disputed Jobs -->
-            <li class="nav-item">
-              <a href="<?php echo base_url('cleaner/my-disputed-jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'my-disputed-jobs') !== false) ? 'active' : ''; ?>">
-                <div class="nav-icon-container">
-                  <i class="nav-icon fas fa-exclamation-triangle"></i>
-                </div>
-                <span class="nav-text">My Disputed Jobs</span>
-              </a>
-            </li>
 
         <!-- Completed Jobs -->
         <li class="nav-item">
@@ -127,6 +109,16 @@
               <i class="nav-icon fas fa-check-circle"></i>
             </div>
             <span class="nav-text">Completed Jobs</span>
+          </a>
+        </li>
+
+        <!-- Recalled Jobs -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('cleaner/recalled-jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/recalled-jobs') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-exclamation-triangle"></i>
+            </div>
+            <span class="nav-text">Recalled Jobs</span>
           </a>
         </li>
 
@@ -168,13 +160,13 @@
         </li>
         <?php endif; ?>
 
-        <!-- Profile - Disabled until implemented -->
+        <!-- Profile -->
         <li class="nav-item">
-          <a href="#" class="nav-link modern-nav-link disabled" style="opacity: 0.5; cursor: not-allowed;">
+          <a href="<?php echo base_url('cleaner/my-profile'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'cleaner/my-profile' || uri_string() == 'cleaner/edit-profile') ? 'active' : ''; ?>">
             <div class="nav-icon-container">
               <i class="nav-icon fas fa-user-circle"></i>
             </div>
-            <span class="nav-text">My Profile (Coming Soon)</span>
+            <span class="nav-text">My Profile</span>
           </a>
         </li>
 
@@ -474,45 +466,6 @@ $(document).ready(function() {
         }
     });
     
-    // Enhanced mobile sidebar toggle with debug logging
-    $('.mobile-sidebar-toggle').on('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        console.log('Cleaner mobile toggle clicked');
-        
-        var $sidebar = $('.app-sidebar');
-        var $overlay = $('.sidebar-overlay');
-        
-        console.log('Before toggle - Sidebar classes:', $sidebar.attr('class'));
-        console.log('Before toggle - Overlay classes:', $overlay.attr('class'));
-        console.log('Before toggle - Sidebar has show class:', $sidebar.hasClass('show'));
-        console.log('Before toggle - Overlay has show class:', $overlay.hasClass('show'));
-        
-        $sidebar.toggleClass('show');
-        $overlay.toggleClass('show');
-        
-        console.log('After toggle - Sidebar classes:', $sidebar.attr('class'));
-        console.log('After toggle - Overlay classes:', $overlay.attr('class'));
-        console.log('After toggle - Sidebar has show class:', $sidebar.hasClass('show'));
-        console.log('After toggle - Overlay has show class:', $overlay.hasClass('show'));
-    });
-    
-    // Close sidebar when clicking overlay
-    $('.sidebar-overlay').on('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        $('.app-sidebar').removeClass('show');
-        $('.sidebar-overlay').removeClass('show');
-    });
-    
-    // Handle window resize
-    $(window).on('resize', function() {
-        if ($(window).width() >= 992) {
-            $('.app-sidebar').removeClass('show');
-            $('.sidebar-overlay').removeClass('show');
-        }
-    });
+    // Mobile sidebar toggle, overlay click, and window resize are handled in layout_with_sidebar.php to avoid conflicts
 });
 </script>

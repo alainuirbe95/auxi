@@ -143,6 +143,31 @@ class M_favorites extends CI_Model
             $this->db->where('j.scheduled_date <=', $filters['date_to']);
         }
 
+        // Filter by cleaner's service areas
+        if ($cleaner_id && $this->db->table_exists('user_profiles')) {
+            $this->load->model('M_user_profiles');
+            $service_locations = $this->M_user_profiles->get_cleaner_service_locations($cleaner_id);
+            
+            if (!empty($service_locations) && !in_array('Other', $service_locations)) {
+                // Build location conditions for the cleaner's service areas
+                $location_conditions = [];
+                foreach ($service_locations as $location) {
+                    $location_parts = explode(', ', trim($location));
+                    if (count($location_parts) == 2) {
+                        $city = trim($location_parts[0]);
+                        $state = trim($location_parts[1]);
+                        $location_conditions[] = "(j.city = " . $this->db->escape($city) . " AND j.state = " . $this->db->escape($state) . ")";
+                    }
+                }
+                
+                if (!empty($location_conditions)) {
+                    $this->db->group_start();
+                    $this->db->where('(' . implode(' OR ', $location_conditions) . ')', null, false);
+                    $this->db->group_end();
+                }
+            }
+        }
+
         // Left join with favorites to get favorite status
         $this->db->select('jf.favorited_at as is_favorited');
         if ($cleaner_id !== null && $cleaner_id !== '') {

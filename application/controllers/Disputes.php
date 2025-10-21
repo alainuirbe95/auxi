@@ -164,7 +164,7 @@ class Disputes extends MY_Controller
 
         $this->load->view('admin/template/layout_with_sidebar', [
             'body' => $this->load->view('admin/disputes/manage', $view, true),
-            'sidebar' => $this->load->view('admin/template/sidebar', [], true),
+            'sidebar' => $this->load->view('admin/template/admin_sidebar', [], true),
             'page_title' => $view['title'],
             'page_icon' => $view['page_icon'],
             'breadcrumbs' => $view['breadcrumbs']
@@ -359,7 +359,7 @@ class Disputes extends MY_Controller
             array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
             array('title' => 'Disputed Jobs', 'url' => '', 'active' => true)
         );
-        $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+        $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
         $view["body"] = $this->load->view("admin/disputes", $data, TRUE);
         
         $this->load->view("admin/template/layout_with_sidebar", $view);

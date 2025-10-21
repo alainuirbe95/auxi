@@ -302,6 +302,9 @@ if (!function_exists('time_ago')) {
     border-radius: 15px;
     padding: 2rem;
     box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    height: 500px; /* Fixed height */
 }
 
 .recent-activity h3 {
@@ -310,11 +313,38 @@ if (!function_exists('time_ago')) {
     margin-bottom: 1.5rem;
     display: flex;
     align-items: center;
+    flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .recent-activity h3 i {
     margin-right: 0.75rem;
     color: #667eea;
+}
+
+.recent-activity-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.5rem;
+}
+
+/* Custom scrollbar for recent activity */
+.recent-activity-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.recent-activity-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.recent-activity-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+}
+
+.recent-activity-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 
 .activity-item {
@@ -547,6 +577,198 @@ if (!function_exists('time_ago')) {
         font-size: 1rem;
     }
 }
+
+/* Growth Metrics, KPI, and Overview Styles */
+.growth-metrics-section, .kpi-section, .platform-overview {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+.section-title {
+    color: #2d3748;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    font-size: 1.3rem;
+}
+
+.growth-card {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 2px solid #f7fafc;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.growth-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    border-color: #e2e8f0;
+}
+
+.growth-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.growth-icon.user-growth { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.growth-icon.job-growth { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.growth-icon.revenue-growth { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
+.growth-icon.completion-rate { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+
+.growth-content { flex: 1; }
+
+.growth-label {
+    font-size: 0.85rem;
+    color: #718096;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.growth-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin: 0.25rem 0;
+}
+
+.growth-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.growth-trend.up { color: #48bb78; }
+.growth-trend.down { color: #f56565; }
+.growth-trend.neutral { color: #718096; font-weight: 500; }
+.growth-comparison { font-size: 0.75rem; color: #a0aec0; font-weight: 400; }
+
+.kpi-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    text-align: center;
+    border: 2px solid #f7fafc;
+}
+
+.kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    border-color: #e2e8f0;
+}
+
+.kpi-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: white;
+    font-size: 1.25rem;
+}
+
+.kpi-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.kpi-label {
+    font-size: 0.8rem;
+    color: #718096;
+    font-weight: 500;
+}
+
+.overview-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border-left: 4px solid;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.overview-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+}
+
+.overview-card.hosts { border-left-color: #667eea; }
+.overview-card.cleaners { border-left-color: #48bb78; }
+.overview-card.pending { border-left-color: #ed8936; }
+.overview-card.recalls { border-left-color: #f56565; }
+
+.overview-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.overview-card.hosts .overview-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.overview-card.cleaners .overview-icon { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); }
+.overview-card.pending .overview-icon { background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); }
+.overview-card.recalls .overview-icon { background: linear-gradient(135deg, #f56565 0%, #c53030 100%); }
+
+.overview-content { flex: 1; }
+
+.overview-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.25rem;
+}
+
+.overview-label {
+    font-size: 0.9rem;
+    color: #718096;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.overview-link {
+    font-size: 0.85rem;
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.overview-link:hover {
+    color: #764ba2;
+    text-decoration: none;
+}
 </style>
 
 <!-- Dashboard Content -->
@@ -624,52 +846,219 @@ if (!function_exists('time_ago')) {
         </div>
     <?php endif; ?>
 
-    <!-- Priority Data Section -->
-    <div class="priority-section mb-4">
+    <!-- Growth Metrics Section -->
+    <div class="growth-metrics-section mb-4">
         <h3 class="section-title">
-            <i class="fas fa-exclamation-circle text-warning me-2"></i>
-            Priority Actions Required
+            <i class="fas fa-chart-line text-success me-2"></i>
+            Growth Metrics (Last 30 Days)
         </h3>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="priority-card pending">
-                    <div class="priority-icon">
-                        <i class="fas fa-user-clock"></i>
+        <div class="row g-3">
+            <!-- User Growth -->
+            <div class="col-lg-3 col-md-6">
+                <div class="growth-card">
+                    <div class="growth-icon user-growth">
+                        <i class="fas fa-users"></i>
                     </div>
-                    <div class="priority-content">
-                        <h4><?php echo isset($pending_users_count) ? $pending_users_count : '0'; ?></h4>
-                        <p>Pending User Approvals</p>
-                        <a href="<?php echo base_url('admin/pending_users'); ?>" class="btn btn-sm btn-warning">
-                            Review Now
-                        </a>
+                    <div class="growth-content">
+                        <div class="growth-label">User Growth</div>
+                        <div class="growth-value"><?php echo $growth_metrics['user_growth']['current']; ?></div>
+                        <div class="growth-trend <?php echo $growth_metrics['user_growth']['trend']; ?>">
+                            <i class="fas fa-arrow-<?php echo $growth_metrics['user_growth']['trend'] === 'up' ? 'up' : 'down'; ?>"></i>
+                            <?php echo abs($growth_metrics['user_growth']['change']); ?>%
+                            <span class="growth-comparison">vs prev 30d</span>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="priority-card danger">
-                    <div class="priority-icon">
+            
+            <!-- Job Growth -->
+            <div class="col-lg-3 col-md-6">
+                <div class="growth-card">
+                    <div class="growth-icon job-growth">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="growth-content">
+                        <div class="growth-label">Job Growth</div>
+                        <div class="growth-value"><?php echo $growth_metrics['job_growth']['current']; ?></div>
+                        <div class="growth-trend <?php echo $growth_metrics['job_growth']['trend']; ?>">
+                            <i class="fas fa-arrow-<?php echo $growth_metrics['job_growth']['trend'] === 'up' ? 'up' : 'down'; ?>"></i>
+                            <?php echo abs($growth_metrics['job_growth']['change']); ?>%
+                            <span class="growth-comparison">vs prev 30d</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Revenue Growth -->
+            <div class="col-lg-3 col-md-6">
+                <div class="growth-card">
+                    <div class="growth-icon revenue-growth">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="growth-content">
+                        <div class="growth-label">Revenue Growth</div>
+                        <div class="growth-value">$<?php echo number_format($growth_metrics['revenue_growth']['current'], 0); ?></div>
+                        <div class="growth-trend <?php echo $growth_metrics['revenue_growth']['trend']; ?>">
+                            <i class="fas fa-arrow-<?php echo $growth_metrics['revenue_growth']['trend'] === 'up' ? 'up' : 'down'; ?>"></i>
+                            <?php echo abs($growth_metrics['revenue_growth']['change']); ?>%
+                            <span class="growth-comparison">vs prev 30d</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Completion Rate -->
+            <div class="col-lg-3 col-md-6">
+                <div class="growth-card">
+                    <div class="growth-icon completion-rate">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="growth-content">
+                        <div class="growth-label">Completion Rate</div>
+                        <div class="growth-value"><?php echo $growth_metrics['completion_rate']; ?>%</div>
+                        <div class="growth-trend neutral">
+                            <span class="growth-comparison">Jobs completed successfully</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Performance Indicators -->
+    <div class="kpi-section mb-4">
+        <h3 class="section-title">
+            <i class="fas fa-tachometer-alt text-primary me-2"></i>
+            Key Performance Indicators
+        </h3>
+        <div class="row g-3">
+            <!-- Average Job Value -->
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="kpi-value">$<?php echo number_format($kpi_data['avg_job_value'], 0); ?></div>
+                    <div class="kpi-label">Avg Job Value</div>
+                </div>
+            </div>
+            
+            <!-- Success Rate -->
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                        <i class="fas fa-thumbs-up"></i>
+                    </div>
+                    <div class="kpi-value"><?php echo $kpi_data['success_rate']; ?>%</div>
+                    <div class="kpi-label">Success Rate</div>
+                </div>
+            </div>
+            
+            <!-- Active Users (30d) -->
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="kpi-value"><?php echo $kpi_data['active_users_30d']; ?></div>
+                    <div class="kpi-label">Active Users (30d)</div>
+                </div>
+            </div>
+            
+            <!-- Avg Completion Time -->
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="kpi-value"><?php echo $kpi_data['avg_completion_days']; ?></div>
+                    <div class="kpi-label">Avg Days to Complete</div>
+                </div>
+            </div>
+            
+            <!-- Recall Rate -->
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #ff9a56 0%, #ff6a00 100%);">
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
-                    <div class="priority-content">
-                        <h4><?php echo isset($job_stats['dispute_count']) ? $job_stats['dispute_count'] : '0'; ?></h4>
-                        <p>Active Disputes</p>
-                        <a href="<?php echo base_url('admin/disputes'); ?>" class="btn btn-sm btn-danger">
-                            View Disputes
-                        </a>
+                    <div class="kpi-value"><?php echo $kpi_data['recall_rate']; ?>%</div>
+                    <div class="kpi-label">Recall Rate</div>
+                </div>
+            </div>
+            
+            <!-- Today's Activity -->
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="kpi-value"><?php echo $kpi_data['jobs_today']; ?> / <?php echo $kpi_data['users_today']; ?></div>
+                    <div class="kpi-label">Jobs / Users Today</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Platform Overview -->
+    <div class="platform-overview mb-4">
+        <h3 class="section-title">
+            <i class="fas fa-globe text-info me-2"></i>
+            Platform Overview
+        </h3>
+        <div class="row g-3">
+            <!-- Total Hosts -->
+            <div class="col-lg-3 col-md-6">
+                <div class="overview-card hosts">
+                    <div class="overview-icon">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <div class="overview-content">
+                        <div class="overview-value"><?php echo number_format($kpi_data['total_hosts']); ?></div>
+                        <div class="overview-label">Total Hosts</div>
+                        <a href="<?php echo base_url('admin/users?role=host'); ?>" class="overview-link">View all →</a>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="priority-card info">
-                    <div class="priority-icon">
-                        <i class="fas fa-credit-card"></i>
+            
+            <!-- Total Cleaners -->
+            <div class="col-lg-3 col-md-6">
+                <div class="overview-card cleaners">
+                    <div class="overview-icon">
+                        <i class="fas fa-broom"></i>
                     </div>
-                    <div class="priority-content">
-                        <h4><?php echo isset($payment_stats['by_status']['failed']) ? $payment_stats['by_status']['failed'] : '0'; ?></h4>
-                        <p>Failed Payments</p>
-                        <a href="<?php echo base_url('admin/payments'); ?>" class="btn btn-sm btn-info">
-                            View Payments
-                        </a>
+                    <div class="overview-content">
+                        <div class="overview-value"><?php echo number_format($kpi_data['total_cleaners']); ?></div>
+                        <div class="overview-label">Total Cleaners</div>
+                        <a href="<?php echo base_url('admin/users?role=cleaner'); ?>" class="overview-link">View all →</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pending Approvals -->
+            <div class="col-lg-3 col-md-6">
+                <div class="overview-card pending">
+                    <div class="overview-icon">
+                        <i class="fas fa-user-clock"></i>
+                    </div>
+                    <div class="overview-content">
+                        <div class="overview-value"><?php echo $pending_users_count; ?></div>
+                        <div class="overview-label">Pending Approvals</div>
+                        <a href="<?php echo base_url('admin/pending_users'); ?>" class="overview-link">Review now →</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recalled Jobs -->
+            <div class="col-lg-3 col-md-6">
+                <div class="overview-card recalls">
+                    <div class="overview-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="overview-content">
+                        <div class="overview-value"><?php echo isset($job_stats['recalled_jobs']) ? $job_stats['recalled_jobs'] : 0; ?></div>
+                        <div class="overview-label">Recalled Jobs</div>
+                        <a href="<?php echo base_url('admin/recalled-jobs'); ?>" class="overview-link">View all →</a>
                     </div>
                 </div>
             </div>
@@ -807,29 +1196,31 @@ if (!function_exists('time_ago')) {
     <div class="recent-activity">
         <h3>
             <i class="fas fa-history"></i>
-                    Recent User Activity
+            Recent User Activity
         </h3>
-        <?php if (!empty($recent_activity)): ?>
-            <?php foreach ($recent_activity as $activity): ?>
-                <div class="activity-item">
-                    <div class="activity-icon <?php echo $activity['icon_class']; ?>">
-                        <i class="<?php echo $activity['icon']; ?>"></i>
+        <div class="recent-activity-content">
+            <?php if (!empty($recent_activity)): ?>
+                <?php foreach ($recent_activity as $activity): ?>
+                    <div class="activity-item">
+                        <div class="activity-icon <?php echo $activity['icon_class']; ?>">
+                            <i class="<?php echo $activity['icon']; ?>"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title"><?php echo $activity['title']; ?></div>
+                            <div class="activity-description"><?php echo $activity['description']; ?></div>
+                            <div class="activity-time"><?php echo time_ago($activity['time']); ?></div>
+                        </div>
                     </div>
-                    <div class="activity-content">
-                        <div class="activity-title"><?php echo $activity['title']; ?></div>
-                        <div class="activity-description"><?php echo $activity['description']; ?></div>
-                        <div class="activity-time"><?php echo time_ago($activity['time']); ?></div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="text-center py-4">
+                    <div class="text-muted">
+                        <i class="fas fa-inbox fa-2x mb-3"></i>
+                        <p>No recent user activity</p>
                     </div>
                 </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="text-center py-4">
-                <div class="text-muted">
-                    <i class="fas fa-inbox fa-2x mb-3"></i>
-                            <p>No recent user activity</p>
-                </div>
-            </div>
-        <?php endif; ?>
+            <?php endif; ?>
+        </div>
     </div>
         </div>
         
@@ -839,30 +1230,32 @@ if (!function_exists('time_ago')) {
                     <i class="fas fa-briefcase"></i>
                     Recent Jobs
                 </h3>
-                <?php if (!empty($recent_jobs)): ?>
-                    <?php foreach ($recent_jobs as $job): ?>
-                        <div class="activity-item">
-                            <div class="activity-icon new-user">
-                                <i class="fas fa-broom"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title"><?php echo htmlspecialchars($job->title); ?></div>
-                                <div class="activity-description">
-                                    Host: <?php echo htmlspecialchars($job->host_username); ?> | 
-                                    Status: <span class="badge badge-<?php echo $job->status === 'completed' ? 'success' : ($job->status === 'in_progress' ? 'warning' : 'info'); ?>"><?php echo ucfirst($job->status); ?></span>
+                <div class="recent-activity-content">
+                    <?php if (!empty($recent_jobs)): ?>
+                        <?php foreach ($recent_jobs as $job): ?>
+                            <div class="activity-item">
+                                <div class="activity-icon new-user">
+                                    <i class="fas fa-broom"></i>
                                 </div>
-                                <div class="activity-time"><?php echo time_ago($job->created_at); ?></div>
+                                <div class="activity-content">
+                                    <div class="activity-title"><?php echo htmlspecialchars($job->title); ?></div>
+                                    <div class="activity-description">
+                                        Host: <?php echo htmlspecialchars($job->host_username); ?> | 
+                                        Status: <span class="badge badge-<?php echo $job->status === 'completed' ? 'success' : ($job->status === 'in_progress' ? 'warning' : 'info'); ?>"><?php echo ucfirst($job->status); ?></span>
+                                    </div>
+                                    <div class="activity-time"><?php echo time_ago($job->created_at); ?></div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="text-center py-4">
+                            <div class="text-muted">
+                                <i class="fas fa-briefcase fa-2x mb-3"></i>
+                                <p>No recent jobs</p>
                             </div>
                         </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="text-center py-4">
-                        <div class="text-muted">
-                            <i class="fas fa-briefcase fa-2x mb-3"></i>
-                            <p>No recent jobs</p>
-                        </div>
-                    </div>
-                <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>

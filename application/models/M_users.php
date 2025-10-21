@@ -254,8 +254,8 @@ class M_users extends CI_Model {
      * @return  int between 1200 and 4294967295
      */
     private function get_unused_id() {
-        // Create a random user id between 1200 and 4294967295
-        $random_unique_int = 2147483648 + mt_rand(-2147482448, 2147483647);
+        // Create a random user id between 1000000000 and 4294967295 (max for int(10) unsigned)
+        $random_unique_int = mt_rand(1000000000, 4294967295);
 
         // Make sure the random user_id isn't already in use
         $query = $this->db->where('user_id', $random_unique_int)->get('users');

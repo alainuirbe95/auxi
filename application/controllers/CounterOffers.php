@@ -335,7 +335,7 @@ class CounterOffers extends MY_Controller
             array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
             array('title' => 'Price Adjustments', 'url' => '', 'active' => true)
         );
-        $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+        $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
         $view["body"] = $this->load->view("admin/counter_offers", $data, TRUE);
         
         $this->load->view("admin/template/layout_with_sidebar", $view);

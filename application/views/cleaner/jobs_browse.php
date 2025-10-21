@@ -525,6 +525,31 @@ if (!function_exists('time_ago')) {
 
 <div class="container-fluid">
     <div class="jobs-browse-container">
+    <!-- Service Areas Notification -->
+    <?php if (!empty($service_areas)): ?>
+    <div class="alert alert-info mb-4" role="alert">
+        <h5><i class="fas fa-map-marker-alt me-2"></i> Your Service Areas</h5>
+        <p class="mb-2">You're currently viewing jobs in these locations:</p>
+        <div class="service-areas-list">
+            <?php foreach ($service_areas as $area): ?>
+                <span class="badge badge-primary me-2 mb-1"><?php echo htmlspecialchars($area); ?></span>
+            <?php endforeach; ?>
+        </div>
+        <small class="text-muted mt-2 d-block">
+            <i class="fas fa-info-circle me-1"></i>
+            Only jobs in your service areas are shown. <a href="<?php echo base_url('cleaner/edit-profile'); ?>" class="alert-link">Update your service areas</a> to see jobs in other locations.
+        </small>
+    </div>
+    <?php else: ?>
+    <div class="alert alert-warning mb-4" role="alert">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i> No Service Areas Set</h5>
+        <p class="mb-0">
+            You haven't set your service areas yet. <a href="<?php echo base_url('cleaner/edit-profile'); ?>" class="alert-link">Add your service areas</a> 
+            to see relevant jobs in your location.
+        </p>
+    </div>
+    <?php endif; ?>
+
     <!-- Filter Section -->
     <div class="filter-section">
         <h2 class="filter-title">

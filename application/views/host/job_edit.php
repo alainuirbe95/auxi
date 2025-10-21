@@ -100,19 +100,72 @@ if (!empty($job->scheduled_date) && !empty($job->scheduled_time)) {
                                                    placeholder="Enter the complete address" required>
                                         </div>
                                         
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-8 mb-3">
                                             <label for="city" class="form-label">City *</label>
-                                            <input type="text" class="form-control modern-input" id="city" name="city" 
-                                                   value="<?php echo set_value('city', $job->city); ?>" 
-                                                   placeholder="New York" required>
+                                            <select class="form-control modern-select" id="city" name="city" required>
+                                                <option value="">Select city</option>
+                                                <optgroup label="Maricopa County">
+                                                    <option value="Phoenix" <?php echo set_select('city', 'Phoenix', $job->city == 'Phoenix'); ?>>Phoenix</option>
+                                                    <option value="Mesa" <?php echo set_select('city', 'Mesa', $job->city == 'Mesa'); ?>>Mesa</option>
+                                                    <option value="Chandler" <?php echo set_select('city', 'Chandler', $job->city == 'Chandler'); ?>>Chandler</option>
+                                                    <option value="Scottsdale" <?php echo set_select('city', 'Scottsdale', $job->city == 'Scottsdale'); ?>>Scottsdale</option>
+                                                    <option value="Glendale" <?php echo set_select('city', 'Glendale', $job->city == 'Glendale'); ?>>Glendale</option>
+                                                    <option value="Gilbert" <?php echo set_select('city', 'Gilbert', $job->city == 'Gilbert'); ?>>Gilbert</option>
+                                                    <option value="Tempe" <?php echo set_select('city', 'Tempe', $job->city == 'Tempe'); ?>>Tempe</option>
+                                                    <option value="Peoria" <?php echo set_select('city', 'Peoria', $job->city == 'Peoria'); ?>>Peoria</option>
+                                                    <option value="Surprise" <?php echo set_select('city', 'Surprise', $job->city == 'Surprise'); ?>>Surprise</option>
+                                                    <option value="Goodyear" <?php echo set_select('city', 'Goodyear', $job->city == 'Goodyear'); ?>>Goodyear</option>
+                                                    <option value="Avondale" <?php echo set_select('city', 'Avondale', $job->city == 'Avondale'); ?>>Avondale</option>
+                                                    <option value="Buckeye" <?php echo set_select('city', 'Buckeye', $job->city == 'Buckeye'); ?>>Buckeye</option>
+                                                    <option value="Fountain Hills" <?php echo set_select('city', 'Fountain Hills', $job->city == 'Fountain Hills'); ?>>Fountain Hills</option>
+                                                    <option value="Cave Creek" <?php echo set_select('city', 'Cave Creek', $job->city == 'Cave Creek'); ?>>Cave Creek</option>
+                                                    <option value="Carefree" <?php echo set_select('city', 'Carefree', $job->city == 'Carefree'); ?>>Carefree</option>
+                                                    <option value="Paradise Valley" <?php echo set_select('city', 'Paradise Valley', $job->city == 'Paradise Valley'); ?>>Paradise Valley</option>
+                                                    <option value="Tolleson" <?php echo set_select('city', 'Tolleson', $job->city == 'Tolleson'); ?>>Tolleson</option>
+                                                    <option value="El Mirage" <?php echo set_select('city', 'El Mirage', $job->city == 'El Mirage'); ?>>El Mirage</option>
+                                                    <option value="Youngtown" <?php echo set_select('city', 'Youngtown', $job->city == 'Youngtown'); ?>>Youngtown</option>
+                                                    <option value="Litchfield Park" <?php echo set_select('city', 'Litchfield Park', $job->city == 'Litchfield Park'); ?>>Litchfield Park</option>
+                                                    <option value="Wickenburg" <?php echo set_select('city', 'Wickenburg', $job->city == 'Wickenburg'); ?>>Wickenburg</option>
+                                                    <option value="Queen Creek" <?php echo set_select('city', 'Queen Creek', $job->city == 'Queen Creek'); ?>>Queen Creek</option>
+                                                    <option value="Apache Junction" <?php echo set_select('city', 'Apache Junction', $job->city == 'Apache Junction'); ?>>Apache Junction</option>
+                                                    <option value="Guadalupe" <?php echo set_select('city', 'Guadalupe', $job->city == 'Guadalupe'); ?>>Guadalupe</option>
+                                                </optgroup>
+                                                <optgroup label="Pinal County">
+                                                    <option value="Casa Grande" <?php echo set_select('city', 'Casa Grande', $job->city == 'Casa Grande'); ?>>Casa Grande</option>
+                                                    <option value="Maricopa" <?php echo set_select('city', 'Maricopa', $job->city == 'Maricopa'); ?>>Maricopa</option>
+                                                    <option value="Eloy" <?php echo set_select('city', 'Eloy', $job->city == 'Eloy'); ?>>Eloy</option>
+                                                    <option value="Coolidge" <?php echo set_select('city', 'Coolidge', $job->city == 'Coolidge'); ?>>Coolidge</option>
+                                                    <option value="Florence" <?php echo set_select('city', 'Florence', $job->city == 'Florence'); ?>>Florence</option>
+                                                    <option value="Arizona City" <?php echo set_select('city', 'Arizona City', $job->city == 'Arizona City'); ?>>Arizona City</option>
+                                                    <option value="San Tan Valley" <?php echo set_select('city', 'San Tan Valley', $job->city == 'San Tan Valley'); ?>>San Tan Valley</option>
+                                                    <option value="Gold Canyon" <?php echo set_select('city', 'Gold Canyon', $job->city == 'Gold Canyon'); ?>>Gold Canyon</option>
+                                                    <option value="Kearny" <?php echo set_select('city', 'Kearny', $job->city == 'Kearny'); ?>>Kearny</option>
+                                                    <option value="Superior" <?php echo set_select('city', 'Superior', $job->city == 'Superior'); ?>>Superior</option>
+                                                    <option value="Oracle" <?php echo set_select('city', 'Oracle', $job->city == 'Oracle'); ?>>Oracle</option>
+                                                </optgroup>
+                                                <optgroup label="Pima County">
+                                                    <option value="Tucson" <?php echo set_select('city', 'Tucson', $job->city == 'Tucson'); ?>>Tucson</option>
+                                                    <option value="Oro Valley" <?php echo set_select('city', 'Oro Valley', $job->city == 'Oro Valley'); ?>>Oro Valley</option>
+                                                    <option value="Marana" <?php echo set_select('city', 'Marana', $job->city == 'Marana'); ?>>Marana</option>
+                                                    <option value="Sahuarita" <?php echo set_select('city', 'Sahuarita', $job->city == 'Sahuarita'); ?>>Sahuarita</option>
+                                                    <option value="South Tucson" <?php echo set_select('city', 'South Tucson', $job->city == 'South Tucson'); ?>>South Tucson</option>
+                                                    <option value="Catalina Foothills" <?php echo set_select('city', 'Catalina Foothills', $job->city == 'Catalina Foothills'); ?>>Catalina Foothills</option>
+                                                    <option value="Catalina" <?php echo set_select('city', 'Catalina', $job->city == 'Catalina'); ?>>Catalina</option>
+                                                    <option value="Green Valley" <?php echo set_select('city', 'Green Valley', $job->city == 'Green Valley'); ?>>Green Valley</option>
+                                                    <option value="Vail" <?php echo set_select('city', 'Vail', $job->city == 'Vail'); ?>>Vail</option>
+                                                    <option value="Tanque Verde" <?php echo set_select('city', 'Tanque Verde', $job->city == 'Tanque Verde'); ?>>Tanque Verde</option>
+                                                    <option value="Three Points" <?php echo set_select('city', 'Three Points', $job->city == 'Three Points'); ?>>Three Points</option>
+                                                    <option value="Flowing Wells" <?php echo set_select('city', 'Flowing Wells', $job->city == 'Flowing Wells'); ?>>Flowing Wells</option>
+                                                    <option value="Drexel Heights" <?php echo set_select('city', 'Drexel Heights', $job->city == 'Drexel Heights'); ?>>Drexel Heights</option>
+                                                    <option value="Casas Adobes" <?php echo set_select('city', 'Casas Adobes', $job->city == 'Casas Adobes'); ?>>Casas Adobes</option>
+                                                    <option value="Ajo" <?php echo set_select('city', 'Ajo', $job->city == 'Ajo'); ?>>Ajo</option>
+                                                    <option value="Sells" <?php echo set_select('city', 'Sells', $job->city == 'Sells'); ?>>Sells</option>
+                                                </optgroup>
+                                            </select>
                                         </div>
                                         
-                                        <div class="col-md-4 mb-3">
-                                            <label for="state" class="form-label">State *</label>
-                                            <input type="text" class="form-control modern-input" id="state" name="state" 
-                                                   value="<?php echo set_value('state', $job->state); ?>" 
-                                                   placeholder="NY" required>
-                                        </div>
+                                        <!-- Hidden state field - always AZ -->
+                                        <input type="hidden" id="state" name="state" value="AZ">
                                         
                                         <div class="col-md-4 mb-3">
                                             <label for="estimated_duration" class="form-label">Estimated Duration *</label>
