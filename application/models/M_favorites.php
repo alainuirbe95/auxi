@@ -117,6 +117,15 @@ class M_favorites extends CI_Model
         if (!empty($ignored_job_ids)) {
             $this->db->where_not_in('j.id', $ignored_job_ids);
         }
+        
+        // STR Filter: If cleaner doesn't offer STR services, exclude STR jobs
+        if (isset($filters['cleaner_offers_str']) && !$filters['cleaner_offers_str']) {
+            $this->db->group_start();
+            $this->db->where('j.property_type !=', 'str');
+            $this->db->or_where('j.property_type IS NULL');
+            $this->db->or_where('j.property_type', 'residential');
+            $this->db->group_end();
+        }
 
         // Apply filters
         if (!empty($filters['search'])) {

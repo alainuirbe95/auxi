@@ -141,7 +141,10 @@ $route['admin/counter-offers'] = 'counteroffers/moderator_index';
 $route['cleaner/price-adjustment-disputes'] = 'counteroffers/cleaner_disputes';
 
 // Disputes routes
+$route['host/upcoming-jobs'] = 'host/upcoming_jobs';
 $route['host/completed-jobs'] = 'host/completed_jobs';
+$route['host/confirm-completion/(:num)'] = 'host/confirm_completion/$1';
+$route['host/process_confirm_completion'] = 'host/process_confirm_completion';
 $route['host/complete_job'] = 'host/complete_job';
 $route['host/recall_job/(:num)'] = 'host/recall_job/$1';
 $route['host/process_recall_job'] = 'host/process_recall_job';
@@ -167,6 +170,13 @@ $route['admin/update_recall_status'] = 'admin/update_recall_status';
 $route['admin/settle_recall'] = 'admin/settle_recall';
 $route['admin/ban_user'] = 'admin/ban_user';
 
+// Admin Review Management routes
+$route['admin/reviews'] = 'admin/reviews';
+$route['admin/hide_review'] = 'admin/hide_review';
+$route['admin/unhide_review'] = 'admin/unhide_review';
+$route['admin/delete_review'] = 'admin/delete_review';
+$route['admin/get_review_details'] = 'admin/get_review_details';
+
 // Debug routes (temporary)
 $route['debug-recalls/check-host/(:any)'] = 'debug_recalls/check_host/$1';
 $route['debug-recalls/fix-job/(:num)'] = 'debug_recalls/fix_job/$1';
@@ -185,6 +195,7 @@ $route['notifications/unread_count'] = 'notifications/get_unread_count';
 $route['cleaner/accept_counter_offer/(:num)'] = 'cleaner/accept_counter_offer/$1';
 $route['cleaner/reject_counter_offer/(:num)'] = 'cleaner/reject_counter_offer/$1';
 $route['cleaner/make_counter_offer/(:num)'] = 'cleaner/make_counter_offer/$1';
+$route['cleaner/applications'] = 'cleaner/applications';
 $route['cleaner/earnings'] = 'cleaner/earnings';
 $route['cleaner/ignore_job'] = 'cleaner/ignore_job';
 $route['cleaner/ignored_jobs'] = 'cleaner/ignored_jobs';

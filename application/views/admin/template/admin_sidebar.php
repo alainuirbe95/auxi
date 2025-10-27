@@ -123,6 +123,29 @@
           </a>
         </li>
 
+        <!-- Reviews Management -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('admin/reviews'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'admin/reviews') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-star"></i>
+            </div>
+            <span class="nav-text">Reviews</span>
+          </a>
+        </li>
+
+        <!-- Divider -->
+        <li class="nav-header modern-nav-header">SETTINGS</li>
+
+        <!-- Pricing Settings -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('admin/pricing_settings'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'admin/pricing_settings') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-dollar-sign"></i>
+            </div>
+            <span class="nav-text">Pricing Settings</span>
+          </a>
+        </li>
+
         <!-- Divider -->
         <li class="nav-header modern-nav-header">USER PANELS</li>
 

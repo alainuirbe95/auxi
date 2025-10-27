@@ -20,12 +20,52 @@
         <h1 class="profile-name"><?php echo htmlspecialchars($profile->first_name . ' ' . $profile->last_name); ?></h1>
         <p class="profile-username">@<?php echo htmlspecialchars($profile->username); ?></p>
         
-        <div class="profile-rating">
-          <div class="rating-display">
-            <i class="fas fa-star"></i>
-            <span class="rating-value"><?php echo number_format($job_stats['average_rating'], 1); ?></span>
-            <span class="rating-count">(<?php echo $job_stats['total_reviews']; ?> reviews)</span>
-          </div>
+        <!-- Enhanced Rating Display -->
+        <div class="profile-rating-enhanced">
+          <?php if (isset($review_stats) && $review_stats['total_reviews'] > 0): ?>
+            <?php 
+            $avg_rating = $review_stats['overall_average'];
+            $badge_class = '';
+            $badge_text = '';
+            if ($avg_rating >= 4.8) {
+                $badge_class = 'badge-platinum';
+                $badge_text = '⭐ Platinum Host';
+            } elseif ($avg_rating >= 4.5) {
+                $badge_class = 'badge-gold';
+                $badge_text = '🏆 Gold Host';
+            } elseif ($avg_rating >= 4.0) {
+                $badge_class = 'badge-silver';
+                $badge_text = '🥈 Silver Host';
+            } else {
+                $badge_class = 'badge-bronze';
+                $badge_text = '🥉 Rated Host';
+            }
+            ?>
+            <div class="rating-badge-container">
+              <span class="rating-badge <?php echo $badge_class; ?>"><?php echo $badge_text; ?></span>
+            </div>
+            <div class="rating-display-large">
+              <div class="rating-number-large"><?php echo number_format($review_stats['overall_average'], 1); ?></div>
+              <div class="rating-stars-large">
+                <?php for($i = 1; $i <= 5; $i++): ?>
+                  <i class="fas fa-star <?php echo $i <= round($review_stats['overall_average']) ? 'filled' : 'empty'; ?>"></i>
+                <?php endfor; ?>
+              </div>
+              <div class="rating-count-large"><?php echo $review_stats['total_reviews']; ?> reviews</div>
+            </div>
+          <?php else: ?>
+            <div class="rating-display-large">
+              <div class="rating-number-large">0.0</div>
+              <div class="rating-stars-large">
+                <i class="far fa-star empty"></i>
+                <i class="far fa-star empty"></i>
+                <i class="far fa-star empty"></i>
+                <i class="far fa-star empty"></i>
+                <i class="far fa-star empty"></i>
+              </div>
+              <div class="rating-count-large">No reviews yet</div>
+            </div>
+          <?php endif; ?>
         </div>
         
         <div class="profile-stats-inline">
@@ -165,10 +205,85 @@
           </div>
         </div>
 
+        <!-- Rating Summary Card -->
+        <?php if (isset($review_stats) && $review_stats['total_reviews'] > 0): ?>
+        <div class="profile-card">
+          <div class="card-header">
+            <h3><i class="fas fa-star"></i> Rating Summary</h3>
+          </div>
+          <div class="card-content">
+            <div class="rating-summary-display">
+              <div class="rating-number">
+                <span class="big-rating"><?php echo number_format($review_stats['overall_average'], 1); ?></span>
+                <div class="rating-stars">
+                  <?php for($i = 1; $i <= 5; $i++): ?>
+                    <i class="fas fa-star <?php echo $i <= round($review_stats['overall_average']) ? 'filled' : 'empty'; ?>"></i>
+                  <?php endfor; ?>
+                </div>
+                <div class="rating-total"><?php echo $review_stats['total_reviews']; ?> <?php echo $review_stats['total_reviews'] == 1 ? 'review' : 'reviews'; ?></div>
+              </div>
+              
+              <!-- Category Ratings -->
+              <?php if (isset($review_stats['category_averages'])): ?>
+              <div class="category-ratings">
+                <?php if ($review_stats['category_averages']['professionalism'] > 0): ?>
+                <div class="category-item">
+                  <div class="category-label">Professionalism</div>
+                  <div class="category-stars">
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                      <i class="fas fa-star <?php echo $i <= round($review_stats['category_averages']['professionalism']) ? 'filled' : 'empty'; ?>"></i>
+                    <?php endfor; ?>
+                    <span class="category-score"><?php echo number_format($review_stats['category_averages']['professionalism'], 1); ?></span>
+                  </div>
+                </div>
+                <?php endif; ?>
+                
+                <?php if ($review_stats['category_averages']['quality'] > 0): ?>
+                <div class="category-item">
+                  <div class="category-label">Quality</div>
+                  <div class="category-stars">
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                      <i class="fas fa-star <?php echo $i <= round($review_stats['category_averages']['quality']) ? 'filled' : 'empty'; ?>"></i>
+                    <?php endfor; ?>
+                    <span class="category-score"><?php echo number_format($review_stats['category_averages']['quality'], 1); ?></span>
+                  </div>
+                </div>
+                <?php endif; ?>
+                
+                <?php if ($review_stats['category_averages']['communication'] > 0): ?>
+                <div class="category-item">
+                  <div class="category-label">Communication</div>
+                  <div class="category-stars">
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                      <i class="fas fa-star <?php echo $i <= round($review_stats['category_averages']['communication']) ? 'filled' : 'empty'; ?>"></i>
+                    <?php endfor; ?>
+                    <span class="category-score"><?php echo number_format($review_stats['category_averages']['communication'], 1); ?></span>
+                  </div>
+                </div>
+                <?php endif; ?>
+                
+                <?php if ($review_stats['category_averages']['punctuality'] > 0): ?>
+                <div class="category-item">
+                  <div class="category-label">Punctuality</div>
+                  <div class="category-stars">
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                      <i class="fas fa-star <?php echo $i <= round($review_stats['category_averages']['punctuality']) ? 'filled' : 'empty'; ?>"></i>
+                    <?php endfor; ?>
+                    <span class="category-score"><?php echo number_format($review_stats['category_averages']['punctuality'], 1); ?></span>
+                  </div>
+                </div>
+                <?php endif; ?>
+              </div>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Reviews Card -->
         <div class="profile-card">
           <div class="card-header">
-            <h3><i class="fas fa-comments"></i> Reviews</h3>
+            <h3><i class="fas fa-comments"></i> Reviews <?php if(isset($review_stats) && $review_stats['total_reviews'] > 0): ?>(<?php echo count($reviews); ?>)<?php endif; ?></h3>
           </div>
           <div class="card-content">
             <?php if (!empty($reviews)): ?>
@@ -176,21 +291,53 @@
                 <?php foreach ($reviews as $review): ?>
                   <div class="review-item">
                     <div class="review-header">
-                      <div class="reviewer-name"><?php echo htmlspecialchars($review->reviewer_name); ?></div>
+                      <div class="reviewer-info">
+                        <div class="reviewer-name"><?php echo htmlspecialchars($review->reviewer_name ?? 'Anonymous'); ?></div>
+                        <span class="reviewer-badge">Cleaner</span>
+                      </div>
                       <div class="review-rating">
                         <?php for($i = 1; $i <= 5; $i++): ?>
-                          <i class="fas fa-star <?php echo $i <= $review->rating ? 'filled' : 'empty'; ?>"></i>
+                          <i class="fas fa-star <?php echo $i <= $review->overall_rating ? 'filled' : 'empty'; ?>"></i>
                         <?php endfor; ?>
+                        <span class="rating-value"><?php echo number_format($review->overall_rating, 1); ?></span>
                       </div>
                     </div>
                     <div class="review-content">
-                      <?php echo nl2br(htmlspecialchars($review->comment)); ?>
+                      <?php echo nl2br(htmlspecialchars($review->public_comment)); ?>
                     </div>
+                    <?php if (!empty($review->job_title)): ?>
+                    <div class="review-job">
+                      <i class="fas fa-briefcase"></i>
+                      Job: <?php echo htmlspecialchars($review->job_title); ?>
+                    </div>
+                    <?php endif; ?>
                     <div class="review-date">
-                      <?php echo time_ago($review->created_at); ?>
+                      <?php 
+                      $review_date = new DateTime($review->created_at);
+                      $now = new DateTime();
+                      $diff = $now->diff($review_date);
+                      
+                      if ($diff->days == 0) {
+                        echo 'Today';
+                      } elseif ($diff->days == 1) {
+                        echo 'Yesterday';
+                      } elseif ($diff->days < 7) {
+                        echo $diff->days . ' days ago';
+                      } elseif ($diff->days < 30) {
+                        echo floor($diff->days / 7) . ' week' . (floor($diff->days / 7) > 1 ? 's' : '') . ' ago';
+                      } else {
+                        echo $review_date->format('M j, Y');
+                      }
+                      ?>
                     </div>
                   </div>
                 <?php endforeach; ?>
+                
+                <?php if (isset($review_stats) && $review_stats['total_reviews'] > count($reviews)): ?>
+                <div class="more-reviews-notice">
+                  Showing <?php echo count($reviews); ?> of <?php echo $review_stats['total_reviews']; ?> reviews
+                </div>
+                <?php endif; ?>
               </div>
             <?php else: ?>
               <div class="empty-state">
@@ -308,6 +455,82 @@
 
 .profile-rating {
   margin-bottom: 1rem;
+}
+
+.profile-rating-enhanced {
+  margin: 1.5rem 0;
+}
+
+.rating-badge-container {
+  margin-bottom: 1rem;
+}
+
+.rating-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 1rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.badge-platinum {
+  background: linear-gradient(135deg, #e8e8e8 0%, #ffffff 100%);
+  color: #333;
+  border: 2px solid #d4af37;
+}
+
+.badge-gold {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #333;
+  border: 2px solid #d4af37;
+}
+
+.badge-silver {
+  background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+  color: #333;
+  border: 2px solid #a8a8a8;
+}
+
+.badge-bronze {
+  background: linear-gradient(135deg, #cd7f32 0%, #e89c5e 100%);
+  color: white;
+  border: 2px solid #a86628;
+}
+
+.rating-display-large {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border-radius: 15px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.rating-number-large {
+  font-size: 4rem;
+  font-weight: 700;
+  color: #f57c00;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.rating-stars-large {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.rating-stars-large i.filled {
+  color: #ffc107;
+}
+
+.rating-stars-large i.empty {
+  color: #dee2e6;
+}
+
+.rating-count-large {
+  font-size: 1.1rem;
+  color: #6c757d;
+  font-weight: 600;
 }
 
 .rating-display {
@@ -570,6 +793,124 @@
 .review-date {
   font-size: 0.85rem;
   color: #6c757d;
+}
+
+.review-job {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.reviewer-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reviewer-badge {
+  font-size: 0.75rem;
+  background: #667eea;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.rating-value {
+  margin-left: 0.5rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.more-reviews-notice {
+  text-align: center;
+  padding: 1rem;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+/* Rating Summary */
+.rating-summary-display {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rating-number {
+  text-align: center;
+  padding: 1rem;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border-radius: 8px;
+}
+
+.big-rating {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #f57c00;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.rating-stars {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.rating-stars i.filled {
+  color: #ffc107;
+}
+
+.rating-stars i.empty {
+  color: #dee2e6;
+}
+
+.rating-total {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.category-ratings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 6px;
+}
+
+.category-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.category-stars {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.category-stars i {
+  font-size: 0.9rem;
+}
+
+.category-stars i.filled {
+  color: #ffc107;
+}
+
+.category-stars i.empty {
+  color: #dee2e6;
+}
+
+.category-score {
+  margin-left: 0.5rem;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
 }
 
 /* Privacy Notice */

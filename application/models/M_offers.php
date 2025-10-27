@@ -500,7 +500,7 @@ class M_offers extends CI_Model
             return [];
         }
 
-        $this->db->select('o.*, j.title as job_title, j.address, j.suggested_price, j.status as job_status, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name');
+        $this->db->select('o.*, j.title as job_title, j.address, j.city, j.state, j.suggested_price, j.status as job_status, u.username as host_username, u.first_name as host_first_name, u.last_name as host_last_name');
         $this->db->from('offers o');
         $this->db->join('jobs j', 'o.job_id = j.id');
         $this->db->join('users u', 'j.host_id = u.user_id');

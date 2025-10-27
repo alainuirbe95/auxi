@@ -257,6 +257,15 @@ class M_jobs extends CI_Model
         $this->db->or_where('j.scheduled_date IS NULL');
         $this->db->group_end();
         
+        // STR Filter: If cleaner doesn't offer STR services, exclude STR jobs
+        if (isset($filters['cleaner_offers_str']) && !$filters['cleaner_offers_str']) {
+            $this->db->group_start();
+            $this->db->where('j.property_type !=', 'str');
+            $this->db->or_where('j.property_type IS NULL');
+            $this->db->or_where('j.property_type', 'residential');
+            $this->db->group_end();
+        }
+        
         // Apply filters
         if (!empty($filters['search'])) {
             $this->db->group_start();
@@ -918,6 +927,15 @@ class M_jobs extends CI_Model
         $this->db->or_where('j.scheduled_date', $today);
         $this->db->or_where('j.scheduled_date IS NULL');
         $this->db->group_end();
+        
+        // STR Filter: If cleaner doesn't offer STR services, exclude STR jobs
+        if (isset($filters['cleaner_offers_str']) && !$filters['cleaner_offers_str']) {
+            $this->db->group_start();
+            $this->db->where('j.property_type !=', 'str');
+            $this->db->or_where('j.property_type IS NULL');
+            $this->db->or_where('j.property_type', 'residential');
+            $this->db->group_end();
+        }
 
         // Apply filters
         if (!empty($filters['search'])) {
@@ -1991,13 +2009,23 @@ class M_jobs extends CI_Model
      */
     public function get_potential_earnings_for_cleaner($cleaner_id)
     {
-        $this->db->select('SUM(suggested_price) as potential_earnings');
-        $this->db->from('jobs');
-        $this->db->where('assigned_cleaner_id', $cleaner_id);
-        $this->db->where('status', 'completed');
+        // Calculate potential earnings from assigned and in-progress jobs
+        // Use accepted_price (counter offer) or final_price if exists, otherwise suggested_price
+        $this->db->select('
+            SUM(
+                COALESCE(
+                    j.final_price,
+                    j.accepted_price,
+                    j.suggested_price
+                )
+            ) as potential_earnings
+        ', false);
+        $this->db->from('jobs j');
+        $this->db->where('j.assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('j.status', ['assigned', 'in_progress']);
         
         $result = $this->db->get()->row();
-        return $result ? $result->potential_earnings : 0;
+        return $result ? (float)$result->potential_earnings : 0;
     }
     
     /**
@@ -2300,6 +2328,7 @@ class M_jobs extends CI_Model
             return [];
         }
 
+        // Select all job fields including recall and settlement fields
         $this->db->select('j.*, u.username as cleaner_username, u.first_name as cleaner_first_name, u.last_name as cleaner_last_name');
         $this->db->from('jobs j');
         $this->db->join('users u', 'j.assigned_cleaner_id = u.user_id', 'left');

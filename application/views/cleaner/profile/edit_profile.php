@@ -178,37 +178,27 @@
               
               <div class="form-group">
                 <label for="city" class="form-label required">
-                  <i class="fas fa-city"></i> City
+                  <i class="fas fa-city"></i> City / Municipality and State
                 </label>
-                <input type="text" 
-                       class="form-input" 
-                       id="city" 
-                       name="city" 
-                       value="<?php echo htmlspecialchars($profile->user_city ?? ''); ?>" 
-                       placeholder="City">
-              </div>
-              
-              <div class="form-group">
-                <label for="state" class="form-label required">
-                  <i class="fas fa-map"></i> State
-                </label>
-                <select class="form-select" id="state" name="state">
-                  <option value="">Select State</option>
+                <select class="form-select" id="city" name="city">
+                  <option value="">Select City and State</option>
                   <?php 
-                  $mexican_states = [
-                    'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche', 
-                    'Chiapas', 'Chihuahua', 'Coahuila', 'Colima', 'Durango', 'Guanajuato', 
-                    'Guerrero', 'Hidalgo', 'Jalisco', 'México', 'Michoacán', 'Morelos', 
-                    'Nayarit', 'Nuevo León', 'Oaxaca', 'Puebla', 'Querétaro', 'Quintana Roo', 
-                    'San Luis Potosí', 'Sinaloa', 'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 
-                    'Veracruz', 'Yucatán', 'Zacatecas', 'Ciudad de México'
-                  ];
-                  foreach ($mexican_states as $state): 
-                    $selected = ($profile->user_country ?? '') === $state ? 'selected' : '';
+                  // Combine current city and state for comparison
+                  $current_city = $profile->user_city ?? '';
+                  $current_state = $profile->user_country ?? '';
+                  $current_location = trim($current_city . ', ' . $current_state);
+                  
+                  foreach ($service_areas as $area): 
+                    $selected = (trim($area) === trim($current_location)) ? 'selected' : '';
                   ?>
-                    <option value="<?php echo $state; ?>" <?php echo $selected; ?>><?php echo $state; ?></option>
+                    <option value="<?php echo htmlspecialchars($area); ?>" <?php echo $selected; ?>>
+                      <?php echo htmlspecialchars($area); ?>
+                    </option>
                   <?php endforeach; ?>
                 </select>
+                <small class="form-help">
+                  <i class="fas fa-info-circle"></i> Select your city/municipality and state (e.g., "San Carlos, Sonora")
+                </small>
               </div>
               
             </div>
@@ -259,28 +249,48 @@
                 <label class="form-label required">
                   <i class="fas fa-location-arrow"></i> Where do you provide cleaning services?
                 </label>
-                <small class="form-help">
-                  <i class="fas fa-info-circle"></i> Select all areas where you can travel to provide cleaning services (20 points)
+                <small class="form-help mb-2 d-block">
+                  <i class="fas fa-info-circle"></i> Select all cities and municipalities where you can travel to provide cleaning services. (20 points)
                 </small>
                 
-                <div class="checkbox-grid">
+                <!-- Search Box -->
+                <div class="service-areas-search mb-2">
+                  <input type="text" 
+                         id="citySearch" 
+                         class="form-input" 
+                         placeholder="🔍 Search cities..."
+                         autocomplete="off">
+                </div>
+                
+                <!-- Selected Count -->
+                <div class="selected-count mb-2">
+                  <span id="selectedCount" class="badge bg-primary">0 cities selected</span>
+                  <button type="button" id="clearAll" class="btn-link-small">Clear all</button>
+                </div>
+                
+                <!-- Scrollable Checkbox List -->
+                <div class="service-areas-list" id="serviceAreasList">
                   <?php 
                   $selected_areas = !empty($profile->service_areas) ? json_decode($profile->service_areas, true) : [];
                   foreach ($service_areas as $area): 
+                    $checked = in_array($area, $selected_areas) ? 'checked' : '';
+                    $id = 'area_' . md5($area);
                   ?>
-                    <div class="checkbox-item">
-                      <label class="checkbox-label">
-                        <input type="checkbox" 
-                               name="service_areas[]" 
-                               value="<?php echo htmlspecialchars($area); ?>" 
-                               id="area_<?php echo preg_replace('/[^a-zA-Z0-9]/', '_', $area); ?>"
-                               <?php echo in_array($area, $selected_areas) ? 'checked' : ''; ?>>
-                        <span class="checkbox-custom"></span>
-                        <span class="checkbox-text"><?php echo htmlspecialchars($area); ?></span>
-                      </label>
-                    </div>
+                    <label class="service-area-item" data-city="<?php echo strtolower($area); ?>">
+                      <input type="checkbox" 
+                             name="service_areas[]" 
+                             value="<?php echo htmlspecialchars($area); ?>" 
+                             id="<?php echo $id; ?>"
+                             <?php echo $checked; ?>>
+                      <span class="checkmark"></span>
+                      <span class="city-label"><?php echo htmlspecialchars($area); ?></span>
+                    </label>
                   <?php endforeach; ?>
                 </div>
+                
+                <small class="form-help mt-2 d-block">
+                  <i class="fas fa-info-circle"></i> Type to search, click to select/deselect cities
+                </small>
               </div>
               
             </div>
@@ -297,66 +307,75 @@
                 <label class="form-label required">
                   <i class="fas fa-broom"></i> What cleaning services do you specialize in?
                 </label>
-                <small class="form-help">
+                <small class="form-help mb-2 d-block">
                   <i class="fas fa-info-circle"></i> Select all cleaning services you can provide (15 points)
                 </small>
                 
-                <div class="checkbox-grid">
+                <!-- Search Box -->
+                <div class="service-areas-search mb-2">
+                  <input type="text" 
+                         id="specialtySearch" 
+                         class="form-input" 
+                         placeholder="🔍 Search services..."
+                         autocomplete="off">
+                </div>
+                
+                <!-- Selected Count -->
+                <div class="selected-count mb-2">
+                  <span id="specialtyCount" class="badge bg-primary">0 services selected</span>
+                  <button type="button" id="clearSpecialties" class="btn-link-small">Clear all</button>
+                </div>
+                
+                <!-- Scrollable Checkbox List -->
+                <div class="service-areas-list" id="specialtiesList">
                   <?php 
                   $selected_specialties = !empty($profile->specialties) ? json_decode($profile->specialties, true) : [];
                   foreach ($specialties as $specialty): 
+                    $checked = in_array($specialty, $selected_specialties) ? 'checked' : '';
+                    $id = 'specialty_' . md5($specialty);
                   ?>
-                    <div class="checkbox-item">
-                      <label class="checkbox-label">
-                        <input type="checkbox" 
-                               name="specialties[]" 
-                               value="<?php echo htmlspecialchars($specialty); ?>" 
-                               id="specialty_<?php echo preg_replace('/[^a-zA-Z0-9]/', '_', $specialty); ?>"
-                               <?php echo in_array($specialty, $selected_specialties) ? 'checked' : ''; ?>>
-                        <span class="checkbox-custom"></span>
-                        <span class="checkbox-text"><?php echo htmlspecialchars($specialty); ?></span>
-                      </label>
-                    </div>
+                    <label class="service-area-item" data-city="<?php echo strtolower($specialty); ?>">
+                      <input type="checkbox" 
+                             name="specialties[]" 
+                             value="<?php echo htmlspecialchars($specialty); ?>" 
+                             id="<?php echo $id; ?>"
+                             <?php echo $checked; ?>>
+                      <span class="checkmark"></span>
+                      <span class="city-label"><?php echo htmlspecialchars($specialty); ?></span>
+                    </label>
                   <?php endforeach; ?>
+                </div>
+                
+                <small class="form-help mt-2 d-block">
+                  <i class="fas fa-info-circle"></i> Type to search, click to select/deselect services
+                </small>
+              </div>
+              
+              <!-- STR Services -->
+              <div class="form-group mt-3">
+                <div class="str-service-option">
+                  <label class="str-checkbox-label">
+                    <input type="checkbox" 
+                           name="services_str" 
+                           id="services_str" 
+                           value="1"
+                           <?php echo !empty($profile->services_str) ? 'checked' : ''; ?>>
+                    <span class="str-checkmark"></span>
+                    <div class="str-text">
+                      <strong><i class="fas fa-home me-2"></i>I provide Short Term Rental (STR) Cleaning Services</strong>
+                      <small class="d-block text-muted mt-1">
+                        Check this if you specialize in turnover cleaning for vacation rentals, Airbnb, VRBO, etc.
+                      </small>
+                    </div>
+                  </label>
                 </div>
               </div>
               
             </div>
           </div>
 
-          <!-- Profile Settings Card -->
-          <div class="form-card">
-            <div class="card-header">
-              <h3><i class="fas fa-cog"></i> Profile Settings</h3>
-            </div>
-            <div class="card-content">
-              
-              <div class="form-group">
-                <label class="form-label">
-                  <i class="fas fa-eye"></i> Profile Visibility
-                </label>
-                
-                <div class="checkbox-group">
-                  <label class="checkbox-item">
-                    <input type="checkbox" 
-                           id="is_public" 
-                           name="is_public" 
-                           <?php echo ($profile->is_public ?? 1) ? 'checked' : ''; ?>>
-                    <span class="checkbox-custom"></span>
-                    <span class="checkbox-label">
-                      <i class="fas fa-globe"></i>
-                      Make my profile public
-                    </span>
-                  </label>
-                </div>
-                
-                <small class="form-help">
-                  Public profiles can be viewed by hosts when you make offers on their jobs
-                </small>
-              </div>
-              
-            </div>
-          </div>
+          <!-- Hidden: All profiles are public by default -->
+          <input type="hidden" name="is_public" value="1">
 
           <!-- Form Actions Card -->
           <div class="form-card actions-card">
@@ -556,13 +575,11 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
   transition: all 0.3s ease;
   margin-bottom: 2rem;
 }
 
 .form-card:hover {
-  transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
@@ -728,32 +745,6 @@
   font-weight: 500;
 }
 
-/* Profile Settings Checkbox */
-.checkbox-group {
-  margin: 1rem 0;
-}
-
-.checkbox-group .checkbox-item {
-  border: 2px solid transparent;
-}
-
-.checkbox-group .checkbox-item:hover {
-  background: rgba(102, 126, 234, 0.05);
-  border-color: rgba(102, 126, 234, 0.2);
-}
-
-.checkbox-group .checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: 500;
-  color: #495057;
-}
-
-.checkbox-group .checkbox-label i {
-  color: #667eea;
-  font-size: 0.9rem;
-}
 
 /* Form Actions */
 .form-actions {
@@ -913,11 +904,264 @@
     padding: 1rem;
   }
 }
+
+/* Custom Service Areas List */
+.service-areas-search input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.service-areas-search input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.selected-count {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.selected-count .badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.selected-count .bg-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-link-small {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  text-decoration: underline;
+}
+
+.btn-link-small:hover {
+  color: #764ba2;
+}
+
+.service-areas-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.5rem;
+  background: white;
+}
+
+.service-area-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  margin-bottom: 0.25rem;
+}
+
+.service-area-item:hover {
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.service-area-item input[type="checkbox"] {
+  display: none;
+}
+
+.service-area-item .checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #dee2e6;
+  border-radius: 4px;
+  margin-right: 0.75rem;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.service-area-item input[type="checkbox"]:checked + .checkmark {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+}
+
+.service-area-item input[type="checkbox"]:checked + .checkmark::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.service-area-item .city-label {
+  font-size: 0.95rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+.service-area-item input[type="checkbox"]:checked ~ .city-label {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.service-area-item.hidden {
+  display: none;
+}
+
+/* STR Service Option */
+.str-service-option {
+  background: linear-gradient(135deg, #fff5e6 0%, #ffe6f0 100%);
+  border: 2px solid #667eea;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.str-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+  margin: 0;
+}
+
+.str-checkbox-label input[type="checkbox"] {
+  display: none;
+}
+
+.str-checkmark {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #667eea;
+  border-radius: 6px;
+  margin-right: 1rem;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  margin-top: 2px;
+}
+
+.str-checkbox-label input[type="checkbox"]:checked + .str-checkmark {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+}
+
+.str-checkbox-label input[type="checkbox"]:checked + .str-checkmark::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.str-text strong {
+  color: #667eea;
+  font-size: 1.05rem;
+  display: block;
+}
+
+.str-text small {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
 </style>
 
-<!-- JavaScript -->
 <script>
 $(document).ready(function() {
+    // Service Areas Search and Filter
+    const searchInput = $('#citySearch');
+    const serviceItems = $('.service-area-item');
+    const selectedCount = $('#selectedCount');
+    const clearAllBtn = $('#clearAll');
+    
+    // Update selected count
+    function updateCount() {
+        const count = $('input[name="service_areas[]"]:checked').length;
+        selectedCount.text(count + ' ' + (count === 1 ? 'city' : 'cities') + ' selected');
+    }
+    
+    // Search functionality
+    searchInput.on('input', function() {
+        const searchTerm = $(this).val().toLowerCase().trim();
+        
+        serviceItems.each(function() {
+            const cityText = $(this).attr('data-city');
+            if (cityText.includes(searchTerm)) {
+                $(this).removeClass('hidden');
+            } else {
+                $(this).addClass('hidden');
+            }
+        });
+    });
+    
+    // Clear all selections
+    clearAllBtn.on('click', function(e) {
+        e.preventDefault();
+        $('input[name="service_areas[]"]').prop('checked', false);
+        updateCount();
+    });
+    
+    // Update count when checkboxes change
+    $('input[name="service_areas[]"]').on('change', updateCount);
+    
+    // Initial count
+    updateCount();
+    
+    // Specialties Search and Filter
+    const specialtySearchInput = $('#specialtySearch');
+    const specialtyItems = $('#specialtiesList .service-area-item');
+    const specialtyCountBadge = $('#specialtyCount');
+    const clearSpecialtiesBtn = $('#clearSpecialties');
+    
+    // Update specialty count
+    function updateSpecialtyCount() {
+        const count = $('input[name="specialties[]"]:checked').length;
+        specialtyCountBadge.text(count + ' ' + (count === 1 ? 'service' : 'services') + ' selected');
+    }
+    
+    // Specialty search functionality
+    specialtySearchInput.on('input', function() {
+        const searchTerm = $(this).val().toLowerCase().trim();
+        
+        specialtyItems.each(function() {
+            const specialtyText = $(this).attr('data-city');
+            if (specialtyText.includes(searchTerm)) {
+                $(this).removeClass('hidden');
+            } else {
+                $(this).addClass('hidden');
+            }
+        });
+    });
+    
+    // Clear all specialties
+    clearSpecialtiesBtn.on('click', function(e) {
+        e.preventDefault();
+        $('input[name="specialties[]"]').prop('checked', false);
+        updateSpecialtyCount();
+    });
+    
+    // Update count when checkboxes change
+    $('input[name="specialties[]"]').on('change', updateSpecialtyCount);
+    
+    // Initial count
+    updateSpecialtyCount();
+    
     // Character counter for bio
     function updateCharCount() {
         const bioLength = $('#bio').val().length;

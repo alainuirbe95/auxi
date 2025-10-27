@@ -19,21 +19,65 @@
       </div>
       
       <div class="profile-info-section">
-        <h1 class="profile-name"><?php echo htmlspecialchars($profile->username); ?></h1>
-        <p class="profile-role">Professional Cleaning Services</p>
+        <div class="name-badges-row">
+          <h1 class="profile-name"><?php echo htmlspecialchars($profile->username); ?></h1>
+          <?php if (!empty($profile->services_str)): ?>
+          <span class="str-badge">
+            <i class="fas fa-home"></i> STR Specialist
+          </span>
+          <?php endif; ?>
+        </div>
+        <p class="profile-role">
+          Professional Cleaning Services
+          <?php if (!empty($profile->first_name) && !empty($profile->last_name)): ?>
+          · <?php echo htmlspecialchars($profile->first_name . ' ' . $profile->last_name); ?>
+          <?php endif; ?>
+        </p>
+        
+        <!-- Quick Stats Row -->
+        <div class="quick-stats-row">
+          <div class="quick-stat">
+            <i class="fas fa-calendar-check"></i>
+            <span>Member since <?php echo date('M Y', strtotime($profile->created_at ?? 'now')); ?></span>
+          </div>
+          <?php if (isset($job_stats['completed_jobs']) && $job_stats['completed_jobs'] > 0): ?>
+          <div class="quick-stat">
+            <i class="fas fa-check-circle"></i>
+            <span><?php echo $job_stats['completed_jobs']; ?> jobs completed</span>
+          </div>
+          <?php endif; ?>
+          <?php if (isset($review_stats['total_reviews']) && $review_stats['total_reviews'] > 0): ?>
+          <div class="quick-stat">
+            <i class="fas fa-star"></i>
+            <span><?php echo number_format($review_stats['overall_average'], 1); ?> rating (<?php echo $review_stats['total_reviews']; ?>)</span>
+          </div>
+          <?php endif; ?>
+        </div>
         
         <div class="profile-completion">
           <div class="completion-circle">
             <div class="completion-percentage <?php echo $completion['percentage'] >= 50 ? 'success' : 'warning'; ?>">
               <?php echo number_format($completion['percentage'], 0); ?>%
             </div>
-            <div class="completion-label">Complete</div>
+            <div class="completion-label">Profile Complete</div>
           </div>
+          <?php if ($completion['percentage'] >= 50): ?>
+          <div class="can-work-badge">
+            <i class="fas fa-check-circle"></i> Ready to work
+          </div>
+          <?php else: ?>
+          <div class="cannot-work-badge">
+            <i class="fas fa-exclamation-circle"></i> Complete to work
+          </div>
+          <?php endif; ?>
         </div>
         
         <div class="profile-actions">
           <a href="<?php echo base_url('cleaner/edit-profile'); ?>" class="btn btn-primary">
             <i class="fas fa-edit"></i> Edit Profile
+          </a>
+          <a href="<?php echo base_url('cleaner/jobs'); ?>" class="btn btn-secondary">
+            <i class="fas fa-search"></i> Browse Jobs
           </a>
         </div>
       </div>
@@ -160,6 +204,21 @@
                 <a href="<?php echo base_url('cleaner/edit-profile'); ?>" class="btn btn-outline">Add specialties</a>
               </div>
             <?php endif; ?>
+            
+            <!-- STR Services Indicator -->
+            <?php if (!empty($profile->services_str)): ?>
+            <div class="str-service-indicator mt-3">
+              <div class="str-indicator-content">
+                <div class="str-indicator-icon">
+                  <i class="fas fa-home"></i>
+                </div>
+                <div class="str-indicator-text">
+                  <strong>Short Term Rental Specialist</strong>
+                  <p>This cleaner specializes in STR turnover cleaning for vacation rentals, Airbnb, VRBO, and similar properties.</p>
+                </div>
+              </div>
+            </div>
+            <?php endif; ?>
           </div>
         </div>
 
@@ -254,6 +313,145 @@
                   <div class="stat-label">Total Earnings</div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- My Reviews Section -->
+        <?php if (isset($review_stats) && isset($review_stats['total_reviews']) && $review_stats['total_reviews'] > 0): ?>
+        <div class="profile-card">
+          <div class="card-header">
+            <h3><i class="fas fa-star"></i> My Reviews (<?php echo $review_stats['total_reviews']; ?>)</h3>
+          </div>
+          <div class="card-content">
+            <!-- Rating Summary -->
+            <div class="rating-summary-box">
+              <div class="overall-rating">
+                <div class="rating-number"><?php echo number_format($review_stats['overall_average'] ?? 0, 1); ?></div>
+                <div class="rating-stars">
+                  <?php for($i = 1; $i <= 5; $i++): ?>
+                    <i class="fas fa-star <?php echo $i <= round($review_stats['overall_average'] ?? 0) ? 'filled' : 'empty'; ?>"></i>
+                  <?php endfor; ?>
+                </div>
+                <div class="rating-text"><?php echo $review_stats['total_reviews'] ?? 0; ?> reviews</div>
+              </div>
+              
+              <!-- Category Ratings -->
+              <?php if (isset($review_stats['category_averages'])): ?>
+              <div class="category-ratings-list">
+                <?php if ($review_stats['category_averages']['professionalism'] > 0): ?>
+                <div class="category-rating-item">
+                  <span class="category-label">Professionalism</span>
+                  <div class="category-stars">
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                      <i class="fas fa-star <?php echo $i <= round($review_stats['category_averages']['professionalism']) ? 'filled' : 'empty'; ?>"></i>
+                    <?php endfor; ?>
+                    <span class="category-score"><?php echo number_format($review_stats['category_averages']['professionalism'], 1); ?></span>
+                  </div>
+                </div>
+                <?php endif; ?>
+                
+                <?php if ($review_stats['category_averages']['quality'] > 0): ?>
+                <div class="category-rating-item">
+                  <span class="category-label">Quality</span>
+                  <div class="category-stars">
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                      <i class="fas fa-star <?php echo $i <= round($review_stats['category_averages']['quality']) ? 'filled' : 'empty'; ?>"></i>
+                    <?php endfor; ?>
+                    <span class="category-score"><?php echo number_format($review_stats['category_averages']['quality'], 1); ?></span>
+                  </div>
+                </div>
+                <?php endif; ?>
+                
+                <?php if ($review_stats['category_averages']['communication'] > 0): ?>
+                <div class="category-rating-item">
+                  <span class="category-label">Communication</span>
+                  <div class="category-stars">
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                      <i class="fas fa-star <?php echo $i <= round($review_stats['category_averages']['communication']) ? 'filled' : 'empty'; ?>"></i>
+                    <?php endfor; ?>
+                    <span class="category-score"><?php echo number_format($review_stats['category_averages']['communication'], 1); ?></span>
+                  </div>
+                </div>
+                <?php endif; ?>
+                
+                <?php if ($review_stats['category_averages']['punctuality'] > 0): ?>
+                <div class="category-rating-item">
+                  <span class="category-label">Punctuality</span>
+                  <div class="category-stars">
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                      <i class="fas fa-star <?php echo $i <= round($review_stats['category_averages']['punctuality']) ? 'filled' : 'empty'; ?>"></i>
+                    <?php endfor; ?>
+                    <span class="category-score"><?php echo number_format($review_stats['category_averages']['punctuality'], 1); ?></span>
+                  </div>
+                </div>
+                <?php endif; ?>
+              </div>
+              <?php endif; ?>
+            </div>
+            
+            <!-- Reviews List -->
+            <?php if (!empty($reviews)): ?>
+            <div class="reviews-list-container">
+              <h4 style="margin: 1.5rem 0 1rem 0; color: #495057;">Recent Reviews</h4>
+              <?php foreach ($reviews as $review): ?>
+              <div class="review-card">
+                <div class="review-header-row">
+                  <div class="reviewer-info">
+                    <strong><?php echo htmlspecialchars($review->reviewer_name ?? 'Anonymous'); ?></strong>
+                    <span class="reviewer-badge-small">Host</span>
+                  </div>
+                  <div class="review-rating-display">
+                    <?php for($i = 1; $i <= 5; $i++): ?>
+                      <i class="fas fa-star <?php echo $i <= $review->overall_rating ? 'filled' : 'empty'; ?>"></i>
+                    <?php endfor; ?>
+                    <span class="rating-value-small"><?php echo number_format($review->overall_rating, 1); ?></span>
+                  </div>
+                </div>
+                <div class="review-comment-text">
+                  <?php echo htmlspecialchars($review->public_comment); ?>
+                </div>
+                <?php if (!empty($review->job_title)): ?>
+                <div class="review-job-ref">
+                  <i class="fas fa-briefcase"></i> Job: <?php echo htmlspecialchars($review->job_title); ?>
+                </div>
+                <?php endif; ?>
+                <div class="review-date-text">
+                  <?php 
+                  $review_date = new DateTime($review->created_at);
+                  $now = new DateTime();
+                  $diff = $now->diff($review_date);
+                  
+                  if ($diff->days == 0) {
+                    echo 'Today';
+                  } elseif ($diff->days == 1) {
+                    echo 'Yesterday';
+                  } elseif ($diff->days < 7) {
+                    echo $diff->days . ' days ago';
+                  } elseif ($diff->days < 30) {
+                    echo floor($diff->days / 7) . ' week' . (floor($diff->days / 7) > 1 ? 's' : '') . ' ago';
+                  } else {
+                    echo $review_date->format('M j, Y');
+                  }
+                  ?>
+                </div>
+              </div>
+              <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+          </div>
+        </div>
+        <?php else: ?>
+        <div class="profile-card">
+          <div class="card-header">
+            <h3><i class="fas fa-star"></i> My Reviews</h3>
+          </div>
+          <div class="card-content">
+            <div class="empty-state-box">
+              <i class="fas fa-comments"></i>
+              <p>No reviews yet</p>
+              <small>Reviews from hosts will appear here after you complete jobs.</small>
             </div>
           </div>
         </div>
@@ -415,21 +613,67 @@
   flex: 1;
 }
 
+.name-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
 .profile-name {
   font-size: 2.5rem;
   font-weight: 700;
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+.str-badge {
+  background: rgba(255, 193, 7, 0.9);
+  color: #333;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
 .profile-role {
-  font-size: 1.2rem;
-  margin: 0 0 1.5rem 0;
+  font-size: 1.1rem;
+  margin: 0 0 1rem 0;
   opacity: 0.9;
+}
+
+.quick-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.quick-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  opacity: 0.95;
+}
+
+.quick-stat i {
+  font-size: 1.1rem;
 }
 
 .profile-completion {
   margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
 }
 
 .completion-circle {
@@ -437,7 +681,7 @@
 }
 
 .completion-percentage {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
 }
@@ -452,7 +696,33 @@
 
 .completion-label {
   font-size: 0.9rem;
-  opacity: 0.8;
+  opacity: 0.9;
+}
+
+.can-work-badge {
+  background: rgba(40, 167, 69, 0.2);
+  border: 2px solid rgba(40, 167, 69, 0.5);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cannot-work-badge {
+  background: rgba(255, 193, 7, 0.2);
+  border: 2px solid rgba(255, 193, 7, 0.5);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .profile-actions {
@@ -637,6 +907,58 @@
 .tag-success {
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   color: white;
+}
+
+/* STR Service Indicator */
+.str-service-indicator {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px dashed #dee2e6;
+}
+
+.str-indicator-content {
+  background: linear-gradient(135deg, #fff9e6 0%, #ffe6f0 100%);
+  border: 2px solid #ffc107;
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.str-indicator-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.str-indicator-text {
+  flex: 1;
+}
+
+.str-indicator-text strong {
+  display: block;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.str-indicator-text p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.mt-3 {
+  margin-top: 1rem;
 }
 
 /* Empty State */
@@ -875,6 +1197,19 @@
   text-decoration: none;
 }
 
+.btn-secondary {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+  color: white;
+  text-decoration: none;
+}
+
 .btn-warning {
   background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
   color: white;
@@ -898,6 +1233,184 @@
   text-decoration: none;
 }
 
+/* Reviews Section */
+.rating-summary-box {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.overall-rating {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.rating-number {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #f57c00;
+  line-height: 1;
+}
+
+.rating-stars {
+  font-size: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.rating-stars i.filled {
+  color: #ffc107;
+}
+
+.rating-stars i.empty {
+  color: #dee2e6;
+}
+
+.rating-text {
+  font-size: 1rem;
+  color: #6c757d;
+}
+
+.category-ratings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.category-rating-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+}
+
+.category-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.category-stars {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.category-stars i {
+  font-size: 1rem;
+}
+
+.category-stars i.filled {
+  color: #ffc107;
+}
+
+.category-stars i.empty {
+  color: #dee2e6;
+}
+
+.category-score {
+  margin-left: 0.5rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.reviews-list-container {
+  margin-top: 1.5rem;
+}
+
+.review-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid #667eea;
+}
+
+.review-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.reviewer-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reviewer-badge-small {
+  font-size: 0.75rem;
+  background: #667eea;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.review-rating-display {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.review-rating-display i {
+  font-size: 0.9rem;
+}
+
+.review-rating-display i.filled {
+  color: #ffc107;
+}
+
+.review-rating-display i.empty {
+  color: #dee2e6;
+}
+
+.rating-value-small {
+  margin-left: 0.5rem;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.review-comment-text {
+  color: #495057;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.review-job-ref {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.review-date-text {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.empty-state-box {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6c757d;
+}
+
+.empty-state-box i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state-box p {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-box small {
+  color: #6c757d;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .profile-header-content {
@@ -906,8 +1419,28 @@
     gap: 1.5rem;
   }
   
+  .name-badges-row {
+    flex-direction: column;
+    align-items: center;
+  }
+  
   .profile-name {
     font-size: 2rem;
+  }
+  
+  .quick-stats-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .profile-completion {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .profile-actions {
+    flex-direction: column;
   }
   
   .profile-grid {

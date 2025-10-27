@@ -23,11 +23,11 @@
 }
 
 .page-header {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 20px;
     padding: 2rem;
     margin-bottom: 2rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     backdrop-filter: blur(10px);
     color: white;
     text-align: center;
@@ -98,13 +98,13 @@
 }
 
 .date-input-group input:focus {
-    border-color: #28a745;
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     outline: none;
 }
 
 .filter-btn {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
     padding: 0.75rem 2rem;
@@ -113,12 +113,12 @@
     font-size: 1rem;
     transition: all 0.3s ease;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .filter-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
 }
 
 /* Summary Cards */
@@ -147,25 +147,26 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .summary-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.15);
 }
 
 .summary-card-icon {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 1rem;
     color: white;
     font-size: 1.5rem;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .summary-card-title {
@@ -180,7 +181,10 @@
 .summary-card-value {
     font-size: 2rem;
     font-weight: 800;
-    color: #333;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin-bottom: 0.5rem;
 }
 
@@ -198,9 +202,9 @@
 }
 
 .table-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 1.5rem 2rem;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: none;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -208,8 +212,12 @@
 
 .table-header h5 {
     margin: 0;
-    color: #495057;
+    color: white;
     font-weight: 600;
+}
+
+.table-header .text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
 }
 
 .table-responsive {
@@ -228,12 +236,12 @@
 }
 
 .table-responsive::-webkit-scrollbar-thumb {
-    background: #28a745;
+    background: #667eea;
     border-radius: 10px;
 }
 
 .table-responsive::-webkit-scrollbar-thumb:hover {
-    background: #218838;
+    background: #764ba2;
 }
 
 .table {
@@ -264,19 +272,22 @@
 
 /* Action Buttons */
 .btn-details {
-    background: #6c757d;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    padding: 0.4rem 0.8rem;
+    padding: 0.5rem 1rem;
     border-radius: 8px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
     transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
 }
 
 .btn-details:hover {
-    background: #5a6268;
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     color: white;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
 /* Job Details Row */
@@ -440,7 +451,7 @@
     <div class="date-filter-card">
         <div class="date-filter-header">
             <h5>
-                <i class="fas fa-calendar-alt text-success me-2"></i>
+                <i class="fas fa-calendar-alt me-2" style="color: #667eea;"></i>
                 Filter by Date Range
             </h5>
         </div>
@@ -518,9 +529,9 @@
                             <th>Job Title</th>
                             <th>Host</th>
                             <th>Payment Released</th>
-                            <th>Original Price</th>
-                            <th>Final Payment</th>
-                            <th>Status</th>
+                            <th>Your Payout</th>
+                            <th>Payment Status</th>
+                            <th>Job Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -539,31 +550,24 @@
                                         <span class="text-muted">Not released</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-success fw-bold">
-                                    $<?php echo number_format($job->suggested_price, 2); ?>
-                                    <?php if (!empty($job->price_adjustments)): ?>
-                                        <?php 
-                                        $approved_adjustment = null;
-                                        foreach ($job->price_adjustments as $adjustment) {
-                                            if ($adjustment->status === 'approved') {
-                                                $approved_adjustment = $adjustment;
-                                                break;
-                                            }
-                                        }
-                                        ?>
-                                        <?php if ($approved_adjustment): ?>
-                                            <br><small class="text-info">
-                                                <i class="fas fa-arrow-up"></i> Counter: $<?php echo number_format($approved_adjustment->requested_amount, 2); ?>
-                                            </small>
-                                        <?php endif; ?>
+                                <td style="font-size: 1.1rem;">
+                                    <span class="fw-bold" style="color: #667eea;">$<?php echo number_format($job->cleaner_payout, 2); ?></span>
+                                    <?php if ($job->accepted_offer && $job->accepted_offer->offer_type === 'counter'): ?>
+                                        <br><small style="color: #667eea;">
+                                            <i class="fas fa-info-circle"></i> Counter Offer
+                                        </small>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-primary fw-bold">
-                                    $<?php 
-                                        // Calculate final payment with proper priority
-                                        $final_payment = $job->payment_amount ?? $job->final_price ?? $job->accepted_price ?? $job->suggested_price;
-                                        echo number_format($final_payment, 2); 
-                                    ?>
+                                <td>
+                                    <?php if ($job->payment_released_at): ?>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle"></i> Paid
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-clock"></i> Pending
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php if ($job->status === 'recall_settled'): ?>
@@ -593,7 +597,7 @@
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <h6 class="mb-3">
-                                                    <i class="fas fa-info-circle text-primary me-2"></i>
+                                                    <i class="fas fa-info-circle me-2" style="color: #667eea;"></i>
                                                     Job Information
                                                 </h6>
                                                 <table class="table table-sm table-borderless">
@@ -606,38 +610,13 @@
                                                         <td><?php echo htmlspecialchars($job->description); ?></td>
                                                     </tr>
                                                     <tr>
-                                                        <td><strong>Original Price:</strong></td>
-                                                        <td class="text-success fw-bold">$<?php echo number_format($job->suggested_price, 2); ?></td>
-                                                    </tr>
-                                                    <?php if (!empty($job->price_adjustments)): ?>
-                                                        <?php 
-                                                        $approved_adjustment = null;
-                                                        foreach ($job->price_adjustments as $adjustment) {
-                                                            if ($adjustment->status === 'approved') {
-                                                                $approved_adjustment = $adjustment;
-                                                                break;
-                                                            }
-                                                        }
-                                                        ?>
-                                                        <?php if ($approved_adjustment): ?>
-                                                            <tr>
-                                                                <td><strong>Counter Offer:</strong></td>
-                                                                <td class="text-info fw-bold">
-                                                                    $<?php echo number_format($approved_adjustment->requested_amount, 2); ?>
-                                                                    <small class="text-muted d-block">
-                                                                        Approved on <?php echo date('M j, Y', strtotime($approved_adjustment->approved_at)); ?>
-                                                                    </small>
-                                                                </td>
-                                                            </tr>
-                                                        <?php endif; ?>
-                                                    <?php endif; ?>
-                                                    <tr>
-                                                        <td><strong>Final Payment:</strong></td>
-                                                        <td class="text-primary fw-bold">$<?php 
-                                                            // Calculate final payment with proper priority
-                                                            $final_payment = $job->payment_amount ?? $job->final_price ?? $job->accepted_price ?? $job->suggested_price;
-                                                            echo number_format($final_payment, 2); 
-                                                        ?></td>
+                                                        <td><strong>Your Payout:</strong></td>
+                                                        <td class="fw-bold" style="font-size: 1.3rem; color: #667eea;">
+                                                            $<?php echo number_format($job->cleaner_payout, 2); ?>
+                                                            <?php if ($job->accepted_offer && $job->accepted_offer->offer_type === 'counter'): ?>
+                                                                <br><small style="color: #667eea;">✓ Counter Offer Accepted</small>
+                                                            <?php endif; ?>
+                                                        </td>
                                                     </tr>
                                                     <tr>
                                                         <td><strong>Completed:</strong></td>
@@ -651,7 +630,7 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <h6 class="mb-3">
-                                                    <i class="fas fa-user text-info me-2"></i>
+                                                    <i class="fas fa-user me-2" style="color: #667eea;"></i>
                                                     Host Information
                                                 </h6>
                                                 <table class="table table-sm table-borderless">
@@ -765,7 +744,7 @@
                                                 
                                                 <?php if (!empty($job->price_adjustments)): ?>
                                                     <h6 class="mb-3 mt-4">
-                                                        <i class="fas fa-dollar-sign text-success me-2"></i>
+                                                        <i class="fas fa-dollar-sign me-2" style="color: #667eea;"></i>
                                                         Price Adjustments History
                                                     </h6>
                                                     <div class="price-adjustments">

@@ -290,7 +290,30 @@ if (!function_exists('time_ago')) {
 
 .offers-grid {
     display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+/* Custom scrollbar */
+.offers-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.offers-grid::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.offers-grid::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.offers-grid::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 .offer-card {
@@ -300,11 +323,14 @@ if (!function_exists('time_ago')) {
     border-left: 4px solid #e9ecef;
     transition: all 0.3s ease;
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .offer-card:hover {
     background: #e9ecef;
-    transform: translateX(5px);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .offer-card.counter-offer {
@@ -379,10 +405,42 @@ if (!function_exists('time_ago')) {
 }
 
 .offer-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
     margin-bottom: 1rem;
+}
+
+.cleaner-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+}
+
+.cleaner-rating .stars {
+    color: #ffc107;
+    font-size: 1rem;
+}
+
+.cleaner-rating .rating-value {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.cleaner-rating .review-count {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.no-rating {
+    color: #999;
+    font-style: italic;
+    font-size: 0.9rem;
 }
 
 .offer-detail {
@@ -641,8 +699,11 @@ if (!function_exists('time_ago')) {
         padding: 1rem;
     }
     
+    .offers-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
     .offer-details {
-        grid-template-columns: 1fr;
         gap: 0.75rem;
     }
     
@@ -669,6 +730,10 @@ if (!function_exists('time_ago')) {
     }
     
     .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .offers-grid {
         grid-template-columns: 1fr;
     }
     
@@ -803,7 +868,19 @@ if (!function_exists('time_ago')) {
                     <div class="job-header">
                         <h3 class="job-title"><?php echo htmlspecialchars($job->title); ?></h3>
                         <div class="job-meta">
-                            <div class="job-price">$<?php echo number_format($job->suggested_price, 2); ?></div>
+                            <?php 
+                            // Calculate cleaner payout from host's suggested price
+                            $tax_amount = ($job->suggested_price * $pricing_params['tax_percent']) / 100;
+                            $app_fee = ($job->suggested_price * $pricing_params['app_percent']) / 100;
+                            $cleaner_payout = $job->suggested_price - $pricing_params['base_charge'] - $tax_amount - $app_fee;
+                            ?>
+                            <div class="job-price">
+                                <span style="font-size: 1.2rem; opacity: 0.9;">Your Price:</span> 
+                                <strong>$<?php echo number_format($job->suggested_price, 2); ?></strong>
+                                <span style="font-size: 0.9rem; opacity: 0.85; display: block; margin-top: 0.25rem;">
+                                    (Cleaner earns: $<?php echo number_format($cleaner_payout, 2); ?>)
+                                </span>
+                            </div>
                             <div class="job-date">
                                 <i class="fas fa-clock"></i>
                                 <?php 
@@ -865,11 +942,37 @@ if (!function_exists('time_ago')) {
                                     </div>
                                     
                                     <div class="offer-amount">
-                                        $<?php echo number_format($offer->amount, 2); ?>
                                         <?php if ($offer->offer_type === 'counter'): ?>
-                                            <small style="color: #666; font-weight: 400;">
-                                                (Original: $<?php echo number_format($offer->original_price, 2); ?>)
-                                            </small>
+                                            <!-- Counter Offer: Show host price and difference -->
+                                            <div style="margin-bottom: 0.5rem;">
+                                                <div style="font-size: 1.2rem; color: #666;">You'll Pay:</div>
+                                                <div style="font-size: 1.8rem; font-weight: 800;">$<?php echo number_format($offer->amount, 2); ?></div>
+                                            </div>
+                                            <?php 
+                                            $price_difference = $offer->amount - $offer->original_price;
+                                            $diff_percent = ($price_difference / $offer->original_price) * 100;
+                                            ?>
+                                            <div style="padding: 0.75rem; background: <?php echo $price_difference > 0 ? 'rgba(255, 193, 7, 0.2)' : 'rgba(40, 167, 69, 0.2)'; ?>; border-radius: 8px; margin-top: 0.5rem;">
+                                                <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">
+                                                    Original Price: $<?php echo number_format($offer->original_price, 2); ?>
+                                                </div>
+                                                <div style="font-size: 1rem; font-weight: 700; color: <?php echo $price_difference > 0 ? '#f57c00' : '#28a745'; ?>;">
+                                                    <?php echo $price_difference > 0 ? '+' : ''; ?><?php echo $price_difference > 0 ? '$' : '-$'; ?><?php echo number_format(abs($price_difference), 2); ?> 
+                                                    (<?php echo $price_difference > 0 ? '+' : ''; ?><?php echo number_format(abs($diff_percent), 1); ?>%)
+                                                </div>
+                                                <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                                                    Cleaner's payout: $<?php echo number_format($offer->cleaner_payout_calculated ?? 0, 2); ?>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <!-- Accept Offer: Show host price and cleaner payout -->
+                                            <div style="margin-bottom: 0.5rem;">
+                                                <div style="font-size: 1.2rem; color: #666;">You'll Pay:</div>
+                                                <div style="font-size: 1.8rem; font-weight: 800;">$<?php echo number_format($offer->amount, 2); ?></div>
+                                            </div>
+                                            <div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
+                                                Cleaner's payout: $<?php echo number_format($offer->cleaner_payout_calculated ?? 0, 2); ?>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
                                     
@@ -878,10 +981,31 @@ if (!function_exists('time_ago')) {
                                             <i class="fas fa-user"></i>
                                             <span><?php echo htmlspecialchars($offer->cleaner_username); ?></span>
                                         </div>
-                                        <div class="offer-detail">
-                                            <i class="fas fa-envelope"></i>
-                                            <span><?php echo htmlspecialchars($offer->cleaner_email); ?></span>
+                                        
+                                        <!-- Cleaner Rating -->
+                                        <div class="cleaner-rating">
+                                            <?php if ($offer->cleaner_rating > 0): ?>
+                                                <div class="stars">
+                                                    <?php
+                                                    $rating = $offer->cleaner_rating;
+                                                    for ($i = 1; $i <= 5; $i++) {
+                                                        if ($i <= floor($rating)) {
+                                                            echo '<i class="fas fa-star"></i>';
+                                                        } elseif ($i - 0.5 <= $rating) {
+                                                            echo '<i class="fas fa-star-half-alt"></i>';
+                                                        } else {
+                                                            echo '<i class="far fa-star"></i>';
+                                                        }
+                                                    }
+                                                    ?>
+                                                </div>
+                                                <span class="rating-value"><?php echo number_format($offer->cleaner_rating, 1); ?></span>
+                                                <span class="review-count">(<?php echo $offer->cleaner_review_count; ?> <?php echo $offer->cleaner_review_count == 1 ? 'review' : 'reviews'; ?>)</span>
+                                            <?php else: ?>
+                                                <span class="no-rating">No reviews yet</span>
+                                            <?php endif; ?>
                                         </div>
+                                        
                                         <div class="offer-detail">
                                             <i class="fas fa-calendar"></i>
                                             <span><?php echo date('M j, Y', strtotime($offer->created_at)); ?></span>

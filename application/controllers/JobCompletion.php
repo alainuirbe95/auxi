@@ -77,10 +77,41 @@ class JobCompletion extends MY_Controller
         // Get any existing inconsistencies for this job
         $inconsistencies = $this->M_jobs->get_job_inconsistencies($job_id);
         
+        // Get pricing parameters
+        $pricing_params = [
+            'base_charge' => 25.00,
+            'tax_percent' => 10,
+            'app_percent' => 15
+        ];
+        
+        if ($this->db->table_exists('pricing_settings')) {
+            $pricing_row = $this->db->get('pricing_settings')->row();
+            if ($pricing_row) {
+                $pricing_params = [
+                    'base_charge' => $pricing_row->base_charge,
+                    'tax_percent' => $pricing_row->tax_percent,
+                    'app_percent' => $pricing_row->app_percent
+                ];
+            }
+        }
+        
+        // Get accepted offer details
+        $this->load->model('M_offers');
+        $accepted_offer = null;
+        $offers = $this->M_offers->get_offers_by_job($job_id);
+        foreach ($offers as $offer) {
+            if ($offer->status === 'accepted' && $offer->cleaner_id == $cleaner_id) {
+                $accepted_offer = $offer;
+                break;
+            }
+        }
+        
         $data = [
             'job' => $job,
             'inconsistencies' => $inconsistencies,
-            'cleaner_id' => $cleaner_id
+            'cleaner_id' => $cleaner_id,
+            'pricing_params' => $pricing_params,
+            'accepted_offer' => $accepted_offer
         ];
         
         $view["title"] = 'Complete Job - ' . $job->title;
@@ -117,13 +148,76 @@ class JobCompletion extends MY_Controller
             return;
         }
         
-        // Set validation rules
+        // Set validation rules for job completion
         $this->form_validation->set_rules('job_id', 'Job ID', 'required|integer');
         $this->form_validation->set_rules('completion_notes', 'Completion Notes', 'max_length[1000]');
         $this->form_validation->set_rules('final_price', 'Final Price', 'decimal');
         
+        // Set validation rules for review (MANDATORY - ratings only, comments optional)
+        $this->form_validation->set_rules('overall_rating', 'Overall Rating', 'required|integer|greater_than[0]|less_than[6]');
+        $this->form_validation->set_rules('public_comment', 'Public Comment', 'max_length[500]'); // Optional, but max 500 chars
+        $this->form_validation->set_rules('professionalism_rating', 'Professionalism Rating', 'required|integer|greater_than[0]|less_than[6]');
+        $this->form_validation->set_rules('quality_rating', 'Quality Rating', 'required|integer|greater_than[0]|less_than[6]');
+        $this->form_validation->set_rules('communication_rating', 'Communication Rating', 'required|integer|greater_than[0]|less_than[6]');
+        $this->form_validation->set_rules('punctuality_rating', 'Punctuality Rating', 'required|integer|greater_than[0]|less_than[6]');
+        $this->form_validation->set_rules('professionalism_comment', 'Professionalism Comment', 'max_length[500]');
+        $this->form_validation->set_rules('quality_comment', 'Quality Comment', 'max_length[500]');
+        $this->form_validation->set_rules('communication_comment', 'Communication Comment', 'max_length[500]');
+        $this->form_validation->set_rules('punctuality_comment', 'Punctuality Comment', 'max_length[500]');
+        $this->form_validation->set_rules('private_notes', 'Private Notes', 'max_length[500]');
+        
         if ($this->form_validation->run()) {
-            // Format final price as decimal
+            // Load reviews model
+            $this->load->model('M_reviews');
+            
+            // Get job details to find host_id
+            $job = $this->M_jobs->get_job_by_id($job_id);
+            if (!$job) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Job not found.'
+                ]);
+                return;
+            }
+            
+            // Start database transaction
+            $this->db->trans_start();
+            
+            // 1. Create the review
+            $review_data = [
+                'job_id' => $job_id,
+                'reviewer_id' => $cleaner_id,
+                'reviewee_id' => $job->host_id,
+                'review_type' => 'cleaner_to_host',
+                
+                // Public data
+                'overall_rating' => $this->input->post('overall_rating'),
+                'public_comment' => $this->input->post('public_comment'),
+                
+                // Private category data
+                'professionalism_rating' => $this->input->post('professionalism_rating'),
+                'professionalism_comment' => $this->input->post('professionalism_comment'),
+                'quality_rating' => $this->input->post('quality_rating'),
+                'quality_comment' => $this->input->post('quality_comment'),
+                'communication_rating' => $this->input->post('communication_rating'),
+                'communication_comment' => $this->input->post('communication_comment'),
+                'punctuality_rating' => $this->input->post('punctuality_rating'),
+                'punctuality_comment' => $this->input->post('punctuality_comment'),
+                'private_notes' => $this->input->post('private_notes')
+            ];
+            
+            $review_id = $this->M_reviews->create_review($review_data);
+            
+            if (!$review_id) {
+                $this->db->trans_rollback();
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to submit review. Please try again.'
+                ]);
+                return;
+            }
+            
+            // 2. Complete the job
             $final_price = $this->input->post('final_price');
             if (!empty($final_price)) {
                 $final_price = number_format((float)$final_price, 2, '.', '');
@@ -135,22 +229,43 @@ class JobCompletion extends MY_Controller
                 'price_reason' => $this->input->post('price_reason')
             ];
             
-            // Complete the job
             $result = $this->M_jobs->complete_job($job_id, $cleaner_id, $completion_data);
             
-            if ($result === true) {
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Job completed successfully!',
-                    'redirect' => base_url('cleaner')
-                ]);
-            } elseif ($result === 'counter_offer_created') {
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Price adjustment request sent to host. You will be notified once they respond.',
-                    'redirect' => base_url('cleaner/jobs-in-progress')
-                ]);
+            if ($result === true || $result === 'counter_offer_created') {
+                // 3. Mark cleaner as reviewed in jobs table
+                $this->db->where('id', $job_id);
+                $this->db->update('jobs', ['cleaner_reviewed' => 1]);
+                
+                // 4. Send notification to host about review
+                $this->load->model('M_notifications');
+                $this->M_notifications->create_notification(
+                    $job->host_id,
+                    'New Review from Cleaner',
+                    'A cleaner has completed the job "' . $job->title . '" and left you a review.',
+                    base_url('host/completed-jobs')
+                );
+                
+                // Complete transaction
+                $this->db->trans_complete();
+                
+                if ($this->db->trans_status() === FALSE) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Failed to complete job. Please try again.'
+                    ]);
+                } else {
+                    $message = $result === 'counter_offer_created' 
+                        ? 'Job completed and review submitted! Price adjustment request sent to host.'
+                        : 'Job completed and review submitted successfully!';
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'message' => $message,
+                        'redirect' => base_url('cleaner')
+                    ]);
+                }
             } else {
+                $this->db->trans_rollback();
                 echo json_encode([
                     'success' => false,
                     'message' => 'Failed to complete job. Please try again.'
@@ -159,7 +274,7 @@ class JobCompletion extends MY_Controller
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => 'Validation failed: ' . validation_errors()
+                'message' => 'Validation failed: ' . strip_tags(validation_errors())
             ]);
         }
     }

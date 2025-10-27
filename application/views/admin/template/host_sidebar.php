@@ -67,6 +67,16 @@
           </a>
         </li>
 
+        <!-- Upcoming Jobs (Assigned) -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('host/upcoming-jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'upcoming-jobs') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-calendar-check"></i>
+            </div>
+            <span class="nav-text">Upcoming Jobs</span>
+          </a>
+        </li>
+
         <!-- Review Offers -->
         <li class="nav-item">
           <a href="<?php echo base_url('host/offers'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'host/offers') ? 'active' : ''; ?>">

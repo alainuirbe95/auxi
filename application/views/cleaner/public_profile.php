@@ -1,5 +1,21 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 
+<?php
+// Helper function for time formatting
+if (!function_exists('time_ago')) {
+    function time_ago($datetime) {
+        $time = time() - strtotime($datetime);
+        
+        if ($time < 60) return 'just now';
+        if ($time < 3600) return floor($time/60) . ' minutes ago';
+        if ($time < 86400) return floor($time/3600) . ' hours ago';
+        if ($time < 2592000) return floor($time/86400) . ' days ago';
+        if ($time < 31536000) return floor($time/2592000) . ' months ago';
+        return floor($time/31536000) . ' years ago';
+    }
+}
+?>
+
 <!-- Cleaner Public Profile View - For Hosts -->
 <div class="public-profile-container">
   
@@ -171,10 +187,72 @@
           </div>
         </div>
 
+        <!-- Rating Summary Card -->
+        <div class="profile-card">
+          <div class="card-header">
+            <h3><i class="fas fa-chart-bar"></i> Rating Summary</h3>
+          </div>
+          <div class="card-content">
+            <div class="rating-summary-grid">
+              <div class="overall-rating-large">
+                <div class="rating-number"><?php echo number_format($review_stats['overall_average'] ?? 0, 1); ?></div>
+                <div class="rating-stars-large">
+                  <?php 
+                  $avg_rating = $review_stats['overall_average'] ?? 0;
+                  for ($i = 1; $i <= 5; $i++) {
+                      if ($i <= floor($avg_rating)) {
+                          echo '<i class="fas fa-star"></i>';
+                      } elseif ($i - 0.5 <= $avg_rating) {
+                          echo '<i class="fas fa-star-half-alt"></i>';
+                      } else {
+                          echo '<i class="far fa-star"></i>';
+                      }
+                  }
+                  ?>
+                </div>
+                <div class="rating-count-text"><?php echo $review_stats['total_reviews'] ?? 0; ?> reviews</div>
+              </div>
+              
+              <?php if (isset($review_stats['category_averages'])): ?>
+              <div class="category-ratings">
+                <div class="category-rating-item">
+                  <span class="category-label">Professionalism</span>
+                  <div class="category-bar">
+                    <div class="category-fill" style="width: <?php echo ($review_stats['category_averages']['professionalism'] / 5) * 100; ?>%"></div>
+                  </div>
+                  <span class="category-value"><?php echo number_format($review_stats['category_averages']['professionalism'], 1); ?></span>
+                </div>
+                <div class="category-rating-item">
+                  <span class="category-label">Quality</span>
+                  <div class="category-bar">
+                    <div class="category-fill" style="width: <?php echo ($review_stats['category_averages']['quality'] / 5) * 100; ?>%"></div>
+                  </div>
+                  <span class="category-value"><?php echo number_format($review_stats['category_averages']['quality'], 1); ?></span>
+                </div>
+                <div class="category-rating-item">
+                  <span class="category-label">Communication</span>
+                  <div class="category-bar">
+                    <div class="category-fill" style="width: <?php echo ($review_stats['category_averages']['communication'] / 5) * 100; ?>%"></div>
+                  </div>
+                  <span class="category-value"><?php echo number_format($review_stats['category_averages']['communication'], 1); ?></span>
+                </div>
+                <div class="category-rating-item">
+                  <span class="category-label">Punctuality</span>
+                  <div class="category-bar">
+                    <div class="category-fill" style="width: <?php echo ($review_stats['category_averages']['punctuality'] / 5) * 100; ?>%"></div>
+                  </div>
+                  <span class="category-value"><?php echo number_format($review_stats['category_averages']['punctuality'], 1); ?></span>
+                </div>
+              </div>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+        
         <!-- Reviews Card -->
         <div class="profile-card">
           <div class="card-header">
-            <h3><i class="fas fa-comments"></i> Reviews</h3>
+            <h3><i class="fas fa-comments"></i> Recent Reviews</h3>
           </div>
           <div class="card-content">
             <?php if (!empty($reviews)): ?>
@@ -182,17 +260,29 @@
                 <?php foreach ($reviews as $review): ?>
                   <div class="review-item">
                     <div class="review-header">
-                      <div class="reviewer-name"><?php echo htmlspecialchars($review->reviewer_name); ?></div>
+                      <div class="reviewer-info">
+                        <div class="reviewer-name"><?php echo htmlspecialchars($review->reviewer_name ?? 'Anonymous'); ?></div>
+                        <?php if (!empty($review->job_title)): ?>
+                          <div class="review-job-title">
+                            <i class="fas fa-briefcase"></i>
+                            <?php echo htmlspecialchars($review->job_title); ?>
+                          </div>
+                        <?php endif; ?>
+                      </div>
                       <div class="review-rating">
                         <?php for($i = 1; $i <= 5; $i++): ?>
-                          <i class="fas fa-star <?php echo $i <= $review->rating ? 'filled' : 'empty'; ?>"></i>
+                          <i class="fas fa-star <?php echo $i <= $review->overall_rating ? 'filled' : 'empty'; ?>"></i>
                         <?php endfor; ?>
+                        <span class="rating-number"><?php echo number_format($review->overall_rating, 1); ?></span>
                       </div>
                     </div>
-                    <div class="review-content">
-                      <?php echo nl2br(htmlspecialchars($review->comment)); ?>
-                    </div>
+                    <?php if (!empty($review->public_comment)): ?>
+                      <div class="review-content">
+                        <?php echo nl2br(htmlspecialchars($review->public_comment)); ?>
+                      </div>
+                    <?php endif; ?>
                     <div class="review-date">
+                      <i class="far fa-clock"></i>
                       <?php echo time_ago($review->created_at); ?>
                     </div>
                   </div>
@@ -512,6 +602,84 @@
   font-weight: 500;
 }
 
+/* Rating Summary */
+.rating-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.overall-rating-large {
+  text-align: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+}
+
+.rating-number {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.rating-stars-large {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.rating-stars-large i {
+  color: #ffc107;
+  margin: 0 2px;
+}
+
+.rating-count-text {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.category-ratings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.category-rating-item {
+  display: grid;
+  grid-template-columns: 120px 1fr 50px;
+  align-items: center;
+  gap: 1rem;
+}
+
+.category-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.category-bar {
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.category-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.category-value {
+  font-weight: 700;
+  color: #667eea;
+  font-size: 1.1rem;
+  text-align: right;
+}
+
 /* Reviews */
 .reviews-list {
   display: flex;
@@ -529,13 +697,34 @@
 .review-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 0.75rem;
+}
+
+.reviewer-info {
+  flex: 1;
 }
 
 .reviewer-name {
   font-weight: 600;
   color: #495057;
+  font-size: 1.05rem;
+}
+
+.review-job-title {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+}
+
+.review-job-title i {
+  margin-right: 0.25rem;
+}
+
+.review-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .review-rating i.filled {
@@ -546,15 +735,26 @@
   color: #dee2e6;
 }
 
+.review-rating .rating-number {
+  font-weight: 700;
+  color: #495057;
+  font-size: 1.1rem;
+  margin-left: 0.25rem;
+}
+
 .review-content {
   color: #495057;
-  line-height: 1.5;
+  line-height: 1.6;
   margin-bottom: 0.75rem;
+  font-size: 0.95rem;
 }
 
 .review-date {
   font-size: 0.85rem;
   color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* Privacy Notice */
@@ -613,6 +813,20 @@
   .profile-stats-inline {
     flex-direction: column;
     gap: 1rem;
+  }
+  
+  .rating-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .category-rating-item {
+    grid-template-columns: 100px 1fr 40px;
+    gap: 0.75rem;
+  }
+  
+  .category-label {
+    font-size: 0.85rem;
   }
   
   .stats-grid {

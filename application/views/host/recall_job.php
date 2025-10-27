@@ -146,9 +146,206 @@
                             </select>
                         </div>
 
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Warning:</strong> False or malicious recalls may result in account suspension. Please ensure your recall is legitimate and well-documented. All recalls are reviewed by admin and may result in legal action.
+                        <!-- Review Section -->
+                        <div class="card mt-4">
+                            <?php if (!$existing_review): ?>
+                                <!-- New Review Form -->
+                                <div class="card-header bg-warning text-dark">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-star"></i>
+                                        Review the Cleaner (Required)
+                                    </h5>
+                                    <small>Your honest feedback helps maintain quality standards</small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        <strong>Review Required:</strong> You must review the cleaner before submitting this recall. Reviews cannot be edited after submission.
+                                        <br><br>
+                                        <i class="fas fa-shield-alt text-info"></i> <strong>Fair Review Process:</strong> The cleaner has also submitted a review, but you won't be able to see it until after you submit yours. This ensures both reviews are honest and unbiased.
+                                    </div>
+                                
+                                <!-- Public Review Section -->
+                                <div class="review-section public-review">
+                                    <h6 class="section-title">
+                                        <i class="fas fa-globe mr-2"></i>
+                                        Public Review (Visible on Cleaner's Profile)
+                                    </h6>
+                                    
+                                    <!-- Overall Rating -->
+                                    <div class="form-group">
+                                        <label class="required-label">
+                                            Overall Rating
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="star-rating-input" id="overall-stars">
+                                            <i class="far fa-star" data-rating="1"></i>
+                                            <i class="far fa-star" data-rating="2"></i>
+                                            <i class="far fa-star" data-rating="3"></i>
+                                            <i class="far fa-star" data-rating="4"></i>
+                                            <i class="far fa-star" data-rating="5"></i>
+                                        </div>
+                                        <input type="hidden" name="overall_rating" id="overall_rating" required>
+                                        <small class="form-text text-muted">Click on a star to rate (1-5 stars)</small>
+                                    </div>
+                                    
+                                    <!-- Public Comment -->
+                                    <div class="form-group">
+                                        <label class="required-label">
+                                            Public Comment
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <textarea class="form-control" 
+                                                  id="public_comment" 
+                                                  name="public_comment" 
+                                                  rows="3" 
+                                                  minlength="30"
+                                                  maxlength="100"
+                                                  placeholder="Share your experience with this cleaner (30-100 characters, will be public)"
+                                                  required></textarea>
+                                        <small class="form-text">
+                                            <span id="publicCommentCount" class="text-muted">0/100 characters</span>
+                                            <span id="publicCommentWarning" class="text-danger ml-2" style="display:none;">Minimum 30 characters required</span>
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Private Review Section -->
+                                <div class="review-section private-review mt-4">
+                                    <h6 class="section-title">
+                                        <i class="fas fa-lock mr-2"></i>
+                                        Private Feedback (Only Visible to You & Cleaner)
+                                    </h6>
+                                    <p class="text-muted small mb-3">This detailed feedback is private and will only be shared between you and the cleaner.</p>
+                                    
+                                    <!-- Professionalism -->
+                                    <div class="category-review">
+                                        <label class="required-label">
+                                            Professionalism
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="star-rating-input" id="professionalism-stars">
+                                            <i class="far fa-star" data-rating="1"></i>
+                                            <i class="far fa-star" data-rating="2"></i>
+                                            <i class="far fa-star" data-rating="3"></i>
+                                            <i class="far fa-star" data-rating="4"></i>
+                                            <i class="far fa-star" data-rating="5"></i>
+                                        </div>
+                                        <input type="hidden" name="professionalism_rating" id="professionalism_rating" required>
+                                        <textarea class="form-control mt-2" 
+                                                  name="professionalism_comment" 
+                                                  rows="2" 
+                                                  maxlength="100"
+                                                  placeholder="Optional: Add specific feedback about professionalism (max 100 chars)"></textarea>
+                                        <small class="form-text text-muted char-counter">0/100 characters</small>
+                                    </div>
+                                    
+                                    <!-- Quality -->
+                                    <div class="category-review">
+                                        <label class="required-label">
+                                            Quality of Work
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="star-rating-input" id="quality-stars">
+                                            <i class="far fa-star" data-rating="1"></i>
+                                            <i class="far fa-star" data-rating="2"></i>
+                                            <i class="far fa-star" data-rating="3"></i>
+                                            <i class="far fa-star" data-rating="4"></i>
+                                            <i class="far fa-star" data-rating="5"></i>
+                                        </div>
+                                        <input type="hidden" name="quality_rating" id="quality_rating" required>
+                                        <textarea class="form-control mt-2" 
+                                                  name="quality_comment" 
+                                                  rows="2" 
+                                                  maxlength="100"
+                                                  placeholder="Optional: Add specific feedback about work quality (max 100 chars)"></textarea>
+                                        <small class="form-text text-muted char-counter">0/100 characters</small>
+                                    </div>
+                                    
+                                    <!-- Communication -->
+                                    <div class="category-review">
+                                        <label class="required-label">
+                                            Communication
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="star-rating-input" id="communication-stars">
+                                            <i class="far fa-star" data-rating="1"></i>
+                                            <i class="far fa-star" data-rating="2"></i>
+                                            <i class="far fa-star" data-rating="3"></i>
+                                            <i class="far fa-star" data-rating="4"></i>
+                                            <i class="far fa-star" data-rating="5"></i>
+                                        </div>
+                                        <input type="hidden" name="communication_rating" id="communication_rating" required>
+                                        <textarea class="form-control mt-2" 
+                                                  name="communication_comment" 
+                                                  rows="2" 
+                                                  maxlength="100"
+                                                  placeholder="Optional: Add specific feedback about communication (max 100 chars)"></textarea>
+                                        <small class="form-text text-muted char-counter">0/100 characters</small>
+                                    </div>
+                                    
+                                    <!-- Punctuality -->
+                                    <div class="category-review">
+                                        <label class="required-label">
+                                            Punctuality & Reliability
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="star-rating-input" id="punctuality-stars">
+                                            <i class="far fa-star" data-rating="1"></i>
+                                            <i class="far fa-star" data-rating="2"></i>
+                                            <i class="far fa-star" data-rating="3"></i>
+                                            <i class="far fa-star" data-rating="4"></i>
+                                            <i class="far fa-star" data-rating="5"></i>
+                                        </div>
+                                        <input type="hidden" name="punctuality_rating" id="punctuality_rating" required>
+                                        <textarea class="form-control mt-2" 
+                                                  name="punctuality_comment" 
+                                                  rows="2" 
+                                                  maxlength="100"
+                                                  placeholder="Optional: Add specific feedback about punctuality (max 100 chars)"></textarea>
+                                        <small class="form-text text-muted char-counter">0/100 characters</small>
+                                    </div>
+                                    
+                                    <!-- Private Notes -->
+                                    <div class="form-group">
+                                        <label>Additional Private Notes (Optional)</label>
+                                        <textarea class="form-control" 
+                                                  name="private_notes" 
+                                                  rows="2" 
+                                                  maxlength="100"
+                                                  placeholder="Any additional private feedback (max 100 chars)"></textarea>
+                                        <small class="form-text text-muted char-counter">0/100 characters</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info mt-3">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <strong>Note:</strong> Your review will be visible on the cleaner's profile immediately after submission. You cannot edit your review once submitted.
+                                </div>
+                            </div>
+                            <?php else: ?>
+                                <!-- Review Already Submitted -->
+                                <div class="card-header bg-success text-white" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;">
+                                    <h5 class="mb-0" style="color: #ffffff !important;">
+                                        <i class="fas fa-check-circle" style="color: #ffffff !important;"></i>
+                                        Review Already Submitted
+                                    </h5>
+                                    <small style="color: #ffffff !important; opacity: 0.95;">You have already reviewed this cleaner for this job</small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-success" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%) !important; border: 2px solid #28a745 !important;">
+                                        <i class="fas fa-check-circle mr-2" style="color: #155724 !important;"></i>
+                                        <strong style="color: #155724 !important;">Review Complete:</strong> 
+                                        <span style="color: #155724 !important;">You have already submitted a review for this cleaner. You can proceed with the recall without submitting another review.</span>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="alert alert-danger" style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%) !important; border: 3px solid #dc3545 !important; box-shadow: none !important;">
+                            <i class="fas fa-exclamation-triangle me-2" style="color: #721c24 !important;"></i>
+                            <strong style="color: #721c24 !important;">Warning:</strong> 
+                            <span style="color: #721c24 !important;">False or malicious recalls may result in account suspension. Please ensure your recall is legitimate and well-documented. All recalls are reviewed by admin and may result in legal action.</span>
                         </div>
 
                         <div class="form-actions">
@@ -202,6 +399,74 @@
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     margin-bottom: 2rem;
+}
+
+/* Review Section Styles */
+.review-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.review-section.public-review {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border: 2px solid #4caf50;
+}
+
+.review-section.private-review {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    border: 2px solid #ff9800;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.required-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Star Rating Input */
+.star-rating-input {
+    display: inline-flex;
+    gap: 0.5rem;
+    font-size: 2rem;
+    cursor: pointer;
+    margin: 0.5rem 0;
+}
+
+.star-rating-input i {
+    color: #ddd;
+    transition: all 0.2s ease;
+}
+
+.star-rating-input i:hover,
+.star-rating-input i.active {
+    color: #ffc107;
+    transform: scale(1.1);
+}
+
+.star-rating-input i.fas {
+    color: #ffc107;
+}
+
+.category-review {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 1rem;
+}
+
+.category-review .star-rating-input {
+    font-size: 1.5rem;
 }
 
 .card-header {
@@ -349,6 +614,64 @@
 
 <script>
 $(document).ready(function() {
+    // Star Rating Functionality
+    $('.star-rating-input').each(function() {
+        const $container = $(this);
+        const targetId = $container.attr('id').replace('-stars', '_rating');
+        const $hiddenInput = $('#' + targetId);
+        
+        $container.find('i').on('click', function() {
+            const rating = $(this).data('rating');
+            $hiddenInput.val(rating);
+            
+            // Update star display
+            $container.find('i').each(function(index) {
+                if (index < rating) {
+                    $(this).removeClass('far').addClass('fas');
+                } else {
+                    $(this).removeClass('fas').addClass('far');
+                }
+            });
+        });
+        
+        // Hover effect
+        $container.find('i').on('mouseenter', function() {
+            const rating = $(this).data('rating');
+            $container.find('i').each(function(index) {
+                if (index < rating) {
+                    $(this).addClass('active');
+                } else {
+                    $(this).removeClass('active');
+                }
+            });
+        });
+        
+        $container.on('mouseleave', function() {
+            $container.find('i').removeClass('active');
+        });
+    });
+    
+    // Character counters for all textareas
+    $('textarea[maxlength]').on('input', function() {
+        const length = $(this).val().length;
+        const maxLength = $(this).attr('maxlength');
+        $(this).siblings('.form-text').find('.char-counter').text(length + '/' + maxLength + ' characters');
+    });
+    
+    // Public comment character counter with validation
+    $('#public_comment').on('input', function() {
+        const length = $(this).val().length;
+        $('#publicCommentCount').text(length + '/100 characters');
+        
+        if (length > 0 && length < 30) {
+            $('#publicCommentWarning').show();
+            $(this).addClass('is-invalid');
+        } else {
+            $('#publicCommentWarning').hide();
+            $(this).removeClass('is-invalid');
+        }
+    });
+    
     // Character counters
     $('#recall_details').on('input', function() {
         const count = $(this).val().length;
@@ -396,6 +719,37 @@ $(document).ready(function() {
         if ($('#recall_details').val().length < 20) {
             alert('Please provide a more detailed description (at least 20 characters).');
             return;
+        }
+        
+        // Validate review fields (ONLY if review form exists - i.e., no existing review)
+        if ($('#overall_rating').length > 0) {
+            const requiredRatings = ['overall', 'professionalism', 'quality', 'communication', 'punctuality'];
+            let missingRatings = [];
+            
+            requiredRatings.forEach(function(category) {
+                const ratingValue = $('#' + category + '_rating').val();
+                if (!ratingValue || ratingValue < 1 || ratingValue > 5) {
+                    missingRatings.push(category.charAt(0).toUpperCase() + category.slice(1));
+                }
+            });
+            
+            if (missingRatings.length > 0) {
+                alert('Please provide star ratings for: ' + missingRatings.join(', '));
+                return;
+            }
+            
+            // Validate public comment
+            const publicComment = $('#public_comment').val().trim();
+            if (publicComment.length < 30) {
+                alert('Public comment must be at least 30 characters.');
+                $('#public_comment').focus();
+                return;
+            }
+            if (publicComment.length > 100) {
+                alert('Public comment must not exceed 100 characters.');
+                $('#public_comment').focus();
+                return;
+            }
         }
         
         // Show loading state

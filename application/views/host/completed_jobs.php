@@ -9,6 +9,10 @@
                         Completed Jobs
                     </h2>
                     <p class="page-subtitle">Review and complete jobs that cleaners have finished</p>
+                    <div class="alert alert-info mt-3" style="font-size: 0.9rem;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Review Policy:</strong> To ensure unbiased reviews, you can only see the cleaner's review after you've submitted your own review. This prevents either party from being influenced by the other's feedback.
+                    </div>
                     <div class="header-stats">
                         <div class="stat-item">
                             <span class="stat-number"><?php echo count($jobs_needing_review); ?></span>
@@ -738,38 +742,12 @@ $(document).ready(function() {
         }, 500);
     });
 
-    // Complete job functionality
+    // Complete job functionality - redirect to review & confirmation page
     $('.complete-job-btn').on('click', function() {
         const jobId = $(this).data('job-id');
-        const jobTitle = $(this).data('job-title');
-        const $button = $(this);
         
-        if (confirm(`Are you sure you want to complete the job "${jobTitle}"? This will release payment to the cleaner and cannot be undone.`)) {
-            // Show loading state
-            $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Processing...');
-            
-            $.ajax({
-                url: '<?php echo base_url("host/complete_job"); ?>',
-                type: 'POST',
-                data: {
-                    job_id: jobId
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.message);
-                        $button.prop('disabled', false).html('<i class="fas fa-check-circle me-1"></i>Complete Job');
-                    }
-                },
-                error: function() {
-                    alert('An error occurred. Please try again.');
-                    $button.prop('disabled', false).html('<i class="fas fa-check-circle me-1"></i>Complete Job');
-                }
-            });
-        }
+        // Redirect to confirmation page with review form
+        window.location.href = '<?php echo base_url("host/confirm-completion/"); ?>' + jobId;
     });
 
     // Recall job functionality

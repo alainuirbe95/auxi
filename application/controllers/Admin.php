@@ -1021,6 +1021,44 @@ class Admin extends MY_Controller {
         
         $rejected_users = $this->M_users->get_rejected_users();
         
+        // Calculate statistics
+        $stats = [
+            'total_rejected' => count($rejected_users),
+            'rejected_today' => 0,
+            'rejected_this_week' => 0,
+            'rejected_this_month' => 0,
+            'by_role' => [
+                'cleaner' => 0,
+                'host' => 0,
+                'admin' => 0
+            ]
+        ];
+        
+        foreach ($rejected_users as $user) {
+            // Count by time period
+            $rejected_at = strtotime($user->rejected_at ?? $user->created_at);
+            $now = time();
+            
+            if ($rejected_at >= strtotime('today')) {
+                $stats['rejected_today']++;
+            }
+            if ($rejected_at >= strtotime('-7 days')) {
+                $stats['rejected_this_week']++;
+            }
+            if ($rejected_at >= strtotime('-30 days')) {
+                $stats['rejected_this_month']++;
+            }
+            
+            // Count by role
+            if ($user->auth_level == 3) {
+                $stats['by_role']['cleaner']++;
+            } elseif ($user->auth_level == 6) {
+                $stats['by_role']['host']++;
+            } elseif ($user->auth_level == 9) {
+                $stats['by_role']['admin']++;
+            }
+        }
+        
         $view["title"] = 'Rejected Users';
         $view["page_icon"] = 'user-times';
         $view["breadcrumbs"] = array(
@@ -1028,7 +1066,10 @@ class Admin extends MY_Controller {
             array('title' => 'Rejected Users', 'url' => '', 'active' => true)
         );
         $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
-        $view["body"] = $this->load->view("admin/users/rejected_users", array('rejected_users' => $rejected_users), TRUE);
+        $view["body"] = $this->load->view("admin/users/rejected_users", array(
+            'rejected_users' => $rejected_users,
+            'stats' => $stats
+        ), TRUE);
         
         $this->load->view("admin/template/layout_with_sidebar", $view);
     }
@@ -2250,6 +2291,7 @@ class Admin extends MY_Controller {
     public function profile_statistics()
     {
         $this->load->model('M_user_profiles');
+        $this->load->model('M_reviews');
         
         // Get statistics
         $total_profiles = $this->db->count_all('user_profiles');
@@ -2257,21 +2299,49 @@ class Admin extends MY_Controller {
         // Profiles by verification status
         $verification_stats = array(
             'verified' => $this->db->where('verification_status', 'verified')->count_all_results('user_profiles', false),
-            'pending' => $this->db->where('verification_status', 'pending')->count_all_results('user_profiles', false),
-            'unverified' => $this->db->where('verification_status', 'unverified')->count_all_results('user_profiles', false),
-            'rejected' => $this->db->where('verification_status', 'rejected')->count_all_results('user_profiles', false)
+            'pending' => $this->db->reset_query()->where('verification_status', 'pending')->count_all_results('user_profiles', false),
+            'unverified' => $this->db->reset_query()->where('verification_status', 'unverified')->count_all_results('user_profiles', false),
+            'rejected' => $this->db->reset_query()->where('verification_status', 'rejected')->count_all_results('user_profiles', false)
         );
         $this->db->reset_query();
         
         // Public vs private profiles
         $visibility_stats = array(
             'public' => $this->db->where('is_public', 1)->count_all_results('user_profiles', false),
-            'private' => $this->db->where('is_public', 0)->count_all_results('user_profiles', false)
+            'private' => $this->db->reset_query()->where('is_public', 0)->count_all_results('user_profiles', false)
         );
         $this->db->reset_query();
         
         // Top rated profiles
         $top_profiles = $this->M_user_profiles->get_top_rated_profiles(10);
+        
+        // Review statistics
+        $review_stats = $this->M_reviews->get_review_statistics();
+        
+        // Additional review breakdown statistics
+        if ($this->db->table_exists('reviews')) {
+            // Reviews by rating
+            $this->db->select('overall_rating, COUNT(*) as count');
+            $this->db->where('is_hidden', 0);
+            $this->db->group_by('overall_rating');
+            $this->db->order_by('overall_rating', 'DESC');
+            $rating_breakdown = $this->db->get('reviews')->result();
+            
+            $reviews_by_rating = array(5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0);
+            foreach ($rating_breakdown as $row) {
+                $reviews_by_rating[$row->overall_rating] = $row->count;
+            }
+            
+            // Reviews by type
+            $host_to_cleaner = $this->db->where('review_type', 'host_to_cleaner')->where('is_hidden', 0)->count_all_results('reviews');
+            $cleaner_to_host = $this->db->reset_query()->where('review_type', 'cleaner_to_host')->where('is_hidden', 0)->count_all_results('reviews');
+            
+            $review_stats['by_rating'] = $reviews_by_rating;
+            $review_stats['host_to_cleaner'] = $host_to_cleaner;
+            $review_stats['cleaner_to_host'] = $cleaner_to_host;
+            
+            $this->db->reset_query();
+        }
         
         $data = array(
             'title' => 'Profile Statistics',
@@ -2284,7 +2354,8 @@ class Admin extends MY_Controller {
             'total_profiles' => $total_profiles,
             'verification_stats' => $verification_stats,
             'visibility_stats' => $visibility_stats,
-            'top_profiles' => $top_profiles
+            'top_profiles' => $top_profiles,
+            'review_stats' => $review_stats
         );
         
         $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
@@ -2341,10 +2412,12 @@ class Admin extends MY_Controller {
             ],
             'filters' => $filters,
             'recalled_jobs' => $recalled_jobs,
-            'pending_review' => $pending_review,
-            'under_investigation' => $under_investigation,
-            'resolved' => $resolved,
-            'total_recalls' => count($recalled_jobs)
+            'recall_stats' => [
+                'pending' => $pending_review,
+                'under_investigation' => $under_investigation,
+                'resolved' => $resolved,
+                'total' => count($recalled_jobs)
+            ]
         ];
         
         $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
@@ -2499,6 +2572,336 @@ class Admin extends MY_Controller {
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to settle recall']);
         }
+    }
+
+    /**
+     * Reviews Management
+     * Display all reviews with moderation tools
+     */
+    public function reviews()
+    {
+        $this->load->model('M_reviews');
+        
+        // Get filters from query params
+        $filters = [
+            'rating' => $this->input->get('rating'),
+            'review_type' => $this->input->get('review_type'),
+            'is_hidden' => $this->input->get('is_hidden'),
+            'search' => $this->input->get('search'),
+            'sort_by' => $this->input->get('sort_by') ?? 'created_at',
+            'sort_order' => $this->input->get('sort_order') ?? 'DESC'
+        ];
+        
+        // Pagination
+        $per_page = $this->input->get('per_page') ?? 20;
+        $page = $this->input->get('page') ?? 1;
+        $offset = ($page - 1) * $per_page;
+        
+        // Get reviews
+        $reviews = $this->M_reviews->get_all_reviews_admin($filters, $per_page, $offset);
+        $total_reviews = $this->M_reviews->count_all_reviews_admin($filters);
+        $total_pages = ceil($total_reviews / $per_page);
+        
+        // Get review statistics
+        $stats = $this->M_reviews->get_review_statistics();
+        
+        // Additional review statistics
+        if ($this->db->table_exists('reviews')) {
+            // Reviews by rating
+            $this->db->select('overall_rating, COUNT(*) as count');
+            $this->db->where('is_hidden', 0);
+            $this->db->group_by('overall_rating');
+            $this->db->order_by('overall_rating', 'DESC');
+            $rating_breakdown = $this->db->get('reviews')->result();
+            
+            $reviews_by_rating = array(5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0);
+            foreach ($rating_breakdown as $row) {
+                $reviews_by_rating[$row->overall_rating] = $row->count;
+            }
+            
+            // Reviews by type
+            $host_to_cleaner = $this->db->where('review_type', 'host_to_cleaner')->where('is_hidden', 0)->count_all_results('reviews');
+            $cleaner_to_host = $this->db->reset_query()->where('review_type', 'cleaner_to_host')->where('is_hidden', 0)->count_all_results('reviews');
+            
+            // Reviews this week
+            $reviews_this_week = $this->db->reset_query()
+                ->where('created_at >=', date('Y-m-d', strtotime('-7 days')))
+                ->where('is_hidden', 0)
+                ->count_all_results('reviews');
+            
+            // Reviews this month
+            $reviews_this_month = $this->db->reset_query()
+                ->where('created_at >=', date('Y-m-d', strtotime('-30 days')))
+                ->where('is_hidden', 0)
+                ->count_all_results('reviews');
+            
+            // Average category ratings
+            $this->db->reset_query();
+            $this->db->select('
+                AVG(professionalism_rating) as avg_professionalism,
+                AVG(quality_rating) as avg_quality,
+                AVG(communication_rating) as avg_communication,
+                AVG(punctuality_rating) as avg_punctuality
+            ');
+            $this->db->where('is_hidden', 0);
+            $category_avgs = $this->db->get('reviews')->row();
+            
+            $stats['by_rating'] = $reviews_by_rating;
+            $stats['host_to_cleaner'] = $host_to_cleaner;
+            $stats['cleaner_to_host'] = $cleaner_to_host;
+            $stats['reviews_this_week'] = $reviews_this_week;
+            $stats['reviews_this_month'] = $reviews_this_month;
+            $stats['category_averages'] = $category_avgs;
+            
+            $this->db->reset_query();
+        }
+        
+        $data = [
+            'title' => 'Review Management',
+            'page_icon' => 'fas fa-star',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin'],
+                ['title' => 'Reviews', 'url' => '', 'active' => true]
+            ],
+            'reviews' => $reviews,
+            'stats' => $stats,
+            'filters' => $filters,
+            'pagination' => [
+                'total' => $total_reviews,
+                'per_page' => $per_page,
+                'current_page' => $page,
+                'total_pages' => $total_pages
+            ],
+            'user_info' => $this->M_users->get_user_by_id($this->auth_user_id)
+        ];
+        
+        // Load sidebar
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', NULL, TRUE);
+        
+        // Load the reviews view
+        $data['body'] = $this->load->view('admin/reviews/reviews_management', $data, TRUE);
+        
+        // Load layout
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+    
+    /**
+     * Hide Review (AJAX)
+     * Hide inappropriate review from public view
+     */
+    public function hide_review()
+    {
+        if ($this->input->method() !== 'post') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            return;
+        }
+        
+        $review_id = $this->input->post('review_id');
+        $reason = $this->input->post('reason');
+        
+        if (!$review_id || !$reason) {
+            echo json_encode(['success' => false, 'message' => 'Review ID and reason are required']);
+            return;
+        }
+        
+        $this->load->model('M_reviews');
+        $result = $this->M_reviews->hide_review($review_id, $this->auth_user_id, $reason);
+        
+        if ($result) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Review hidden successfully'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to hide review'
+            ]);
+        }
+    }
+    
+    /**
+     * Unhide Review (AJAX)
+     * Restore hidden review to public view
+     */
+    public function unhide_review()
+    {
+        if ($this->input->method() !== 'post') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            return;
+        }
+        
+        $review_id = $this->input->post('review_id');
+        
+        if (!$review_id) {
+            echo json_encode(['success' => false, 'message' => 'Review ID is required']);
+            return;
+        }
+        
+        $this->load->model('M_reviews');
+        $result = $this->M_reviews->unhide_review($review_id);
+        
+        if ($result) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Review restored successfully'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to restore review'
+            ]);
+        }
+    }
+    
+    /**
+     * Delete Review (AJAX)
+     * Permanently delete a review
+     */
+    public function delete_review()
+    {
+        if ($this->input->method() !== 'post') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            return;
+        }
+        
+        $review_id = $this->input->post('review_id');
+        
+        if (!$review_id) {
+            echo json_encode(['success' => false, 'message' => 'Review ID is required']);
+            return;
+        }
+        
+        $this->load->model('M_reviews');
+        $result = $this->M_reviews->delete_review($review_id);
+        
+        if ($result) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Review deleted permanently'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to delete review'
+            ]);
+        }
+    }
+    
+    /**
+     * Get Review Details (AJAX)
+     * Fetch full review details for modal display
+     */
+    public function get_review_details()
+    {
+        $review_id = $this->input->get('review_id');
+        
+        if (!$review_id) {
+            echo json_encode(['success' => false, 'message' => 'Review ID is required']);
+            return;
+        }
+        
+        $this->load->model('M_reviews');
+        $review = $this->M_reviews->get_review_by_id($review_id);
+        
+        if ($review) {
+            echo json_encode([
+                'success' => true,
+                'review' => $review
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Review not found'
+            ]);
+        }
+    }
+    
+    /**
+     * Pricing Settings - Manage pricing parameters
+     */
+    public function pricing_settings()
+    {
+        // Handle form submission
+        if ($this->input->method() === 'post') {
+            $base_charge = $this->input->post('base_charge');
+            $tax_percent = $this->input->post('tax_percent');
+            $app_percent = $this->input->post('app_percent');
+            
+            // Validate inputs
+            if (!is_numeric($base_charge) || !is_numeric($tax_percent) || !is_numeric($app_percent)) {
+                $this->session->set_flashdata('text', 'All values must be numeric.');
+                $this->session->set_flashdata('type', 'error');
+                redirect('admin/pricing_settings');
+                return;
+            }
+            
+            // Update or insert pricing settings
+            if ($this->db->table_exists('pricing_settings')) {
+                $existing = $this->db->get('pricing_settings')->row();
+                
+                if ($existing) {
+                    // Update existing
+                    $this->db->where('id', $existing->id);
+                    $this->db->update('pricing_settings', [
+                        'base_charge' => $base_charge,
+                        'tax_percent' => $tax_percent,
+                        'app_percent' => $app_percent,
+                        'updated_by' => $this->auth_user_id
+                    ]);
+                } else {
+                    // Insert new
+                    $this->db->insert('pricing_settings', [
+                        'base_charge' => $base_charge,
+                        'tax_percent' => $tax_percent,
+                        'app_percent' => $app_percent,
+                        'updated_by' => $this->auth_user_id
+                    ]);
+                }
+                
+                $this->session->set_flashdata('text', 'Pricing settings updated successfully!');
+                $this->session->set_flashdata('type', 'success');
+            } else {
+                $this->session->set_flashdata('text', 'Pricing settings table does not exist. Please run the SQL migration first.');
+                $this->session->set_flashdata('type', 'error');
+            }
+            
+            redirect('admin/pricing_settings');
+            return;
+        }
+        
+        // Get current settings
+        $current_settings = [
+            'base_charge' => 25.00,
+            'tax_percent' => 10,
+            'app_percent' => 15
+        ];
+        
+        if ($this->db->table_exists('pricing_settings')) {
+            $settings = $this->db->get('pricing_settings')->row();
+            if ($settings) {
+                $current_settings = [
+                    'base_charge' => floatval($settings->base_charge),
+                    'tax_percent' => floatval($settings->tax_percent),
+                    'app_percent' => floatval($settings->app_percent)
+                ];
+            }
+        }
+        
+        $data = [
+            'title' => 'Pricing Settings',
+            'page_icon' => 'fas fa-dollar-sign',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin/dashboard'],
+                ['title' => 'Pricing Settings', 'url' => '', 'active' => true]
+            ],
+            'settings' => $current_settings,
+            'table_exists' => $this->db->table_exists('pricing_settings')
+        ];
+        
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
+        $data['body'] = $this->load->view('admin/pricing_settings', $data, TRUE);
+        $this->load->view('admin/template/layout_with_sidebar', $data);
     }
 
 }

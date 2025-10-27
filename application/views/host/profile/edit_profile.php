@@ -199,37 +199,27 @@
               
               <div class="form-group">
                 <label for="city" class="form-label required">
-                  <i class="fas fa-city"></i> City
+                  <i class="fas fa-city"></i> City / Municipality and State
                 </label>
-                <input type="text" 
-                       class="form-input" 
-                       id="city" 
-                       name="city" 
-                       value="<?php echo htmlspecialchars($profile->user_city ?? ''); ?>" 
-                       placeholder="City">
-              </div>
-              
-              <div class="form-group">
-                <label for="state" class="form-label required">
-                  <i class="fas fa-map"></i> State
-                </label>
-                <select class="form-select" id="state" name="state">
-                  <option value="">Select State</option>
+                <select class="form-select" id="city" name="city">
+                  <option value="">Select City and State</option>
                   <?php 
-                  $mexican_states = [
-                    'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche', 
-                    'Chiapas', 'Chihuahua', 'Coahuila', 'Colima', 'Durango', 'Guanajuato', 
-                    'Guerrero', 'Hidalgo', 'Jalisco', 'México', 'Michoacán', 'Morelos', 
-                    'Nayarit', 'Nuevo León', 'Oaxaca', 'Puebla', 'Querétaro', 'Quintana Roo', 
-                    'San Luis Potosí', 'Sinaloa', 'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 
-                    'Veracruz', 'Yucatán', 'Zacatecas', 'Ciudad de México'
-                  ];
-                  foreach ($mexican_states as $state): 
-                    $selected = ($profile->user_country ?? '') === $state ? 'selected' : '';
+                  // Combine current city and state for comparison
+                  $current_city = $profile->user_city ?? '';
+                  $current_state = $profile->user_country ?? '';
+                  $current_location = trim($current_city . ', ' . $current_state);
+                  
+                  foreach ($service_areas as $area): 
+                    $selected = (trim($area) === trim($current_location)) ? 'selected' : '';
                   ?>
-                    <option value="<?php echo $state; ?>" <?php echo $selected; ?>><?php echo $state; ?></option>
+                    <option value="<?php echo htmlspecialchars($area); ?>" <?php echo $selected; ?>>
+                      <?php echo htmlspecialchars($area); ?>
+                    </option>
                   <?php endforeach; ?>
                 </select>
+                <small class="form-help">
+                  <i class="fas fa-info-circle"></i> Select your city/municipality and state (e.g., "San Carlos, Sonora")
+                </small>
               </div>
               
             </div>
@@ -263,39 +253,8 @@
             </div>
           </div>
 
-          <!-- Profile Settings Card -->
-          <div class="form-card">
-            <div class="card-header">
-              <h3><i class="fas fa-cog"></i> Profile Settings</h3>
-            </div>
-            <div class="card-content">
-              
-              <div class="form-group">
-                <label class="form-label">
-                  <i class="fas fa-eye"></i> Profile Visibility
-                </label>
-                
-                <div class="checkbox-group">
-                  <label class="checkbox-item">
-                    <input type="checkbox" 
-                           id="is_public" 
-                           name="is_public" 
-                           <?php echo $profile->is_public ? 'checked' : ''; ?>>
-                    <span class="checkbox-custom"></span>
-                    <span class="checkbox-label">
-                      <i class="fas fa-globe"></i>
-                      Make my profile public
-                    </span>
-                  </label>
-                </div>
-                
-                <small class="form-help">
-                  Public profiles can be viewed by cleaners when you post jobs
-                </small>
-              </div>
-              
-            </div>
-          </div>
+          <!-- Hidden: All profiles are public by default -->
+          <input type="hidden" name="is_public" value="1">
 
           <!-- Profile Statistics Card -->
           <div class="form-card">

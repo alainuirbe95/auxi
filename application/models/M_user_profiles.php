@@ -104,7 +104,7 @@ class M_user_profiles extends CI_Model
         }
         
         // Only update fields that are provided
-        $allowed_fields = ['bio', 'phone', 'service_areas', 'specialties', 'profile_picture_url', 
+        $allowed_fields = ['bio', 'phone', 'service_areas', 'specialties', 'services_str', 'profile_picture_url', 
                           'cover_photo_url', 'availability_schedule', 'is_public', 'has_supplies', 'updated_at'];
         
         $data = [];
@@ -536,77 +536,260 @@ class M_user_profiles extends CI_Model
     }
     
     /**
-     * Get available service areas for cleaners
+     * Get available service areas for cleaners (Mexican States and Cities)
      */
     public function get_service_areas()
     {
         return [
-            // ===== MARICOPA COUNTY =====
+            // Format: 'City, State'
             
-            // Major Cities
-            'Phoenix, AZ',
-            'Mesa, AZ',
-            'Chandler, AZ',
-            'Scottsdale, AZ',
-            'Glendale, AZ',
-            'Gilbert, AZ',
-            'Tempe, AZ',
-            'Peoria, AZ',
-            'Surprise, AZ',
-            'Goodyear, AZ',
-            'Avondale, AZ',
-            'Buckeye, AZ',
+            // ===== AGUASCALIENTES =====
+            'Aguascalientes, Aguascalientes',
+            'Calvillo, Aguascalientes',
+            'Jesús María, Aguascalientes',
+            'Pabellón de Arteaga, Aguascalientes',
+            'Rincón de Romos, Aguascalientes',
             
-            // Smaller Cities & Towns
-            'Fountain Hills, AZ',
-            'Cave Creek, AZ',
-            'Carefree, AZ',
-            'Paradise Valley, AZ',
-            'Tolleson, AZ',
-            'El Mirage, AZ',
-            'Youngtown, AZ',
-            'Litchfield Park, AZ',
-            'Wickenburg, AZ',
-            'Queen Creek, AZ',
-            'Apache Junction, AZ',
-            'Guadalupe, AZ',
+            // ===== BAJA CALIFORNIA =====
+            'Tijuana, Baja California',
+            'Mexicali, Baja California',
+            'Ensenada, Baja California',
+            'Rosarito, Baja California',
+            'Tecate, Baja California',
+            'San Felipe, Baja California',
+            'Valle de Guadalupe, Baja California',
             
-            // ===== PINAL COUNTY =====
+            // ===== BAJA CALIFORNIA SUR =====
+            'La Paz, Baja California Sur',
+            'Cabo San Lucas, Baja California Sur',
+            'San José del Cabo, Baja California Sur',
+            'Todos Santos, Baja California Sur',
+            'Loreto, Baja California Sur',
+            'Mulegé, Baja California Sur',
             
-            'Casa Grande, AZ',
-            'Maricopa, AZ',
-            'Apache Junction, AZ',
-            'Eloy, AZ',
-            'Coolidge, AZ',
-            'Florence, AZ',
-            'Arizona City, AZ',
-            'San Tan Valley, AZ',
-            'Gold Canyon, AZ',
-            'Kearny, AZ',
-            'Superior, AZ',
-            'Oracle, AZ',
+            // ===== CAMPECHE =====
+            'Campeche, Campeche',
+            'Ciudad del Carmen, Campeche',
+            'Champotón, Campeche',
+            'Escárcega, Campeche',
             
-            // ===== PIMA COUNTY =====
+            // ===== CHIAPAS =====
+            'Tuxtla Gutiérrez, Chiapas',
+            'San Cristóbal de las Casas, Chiapas',
+            'Tapachula, Chiapas',
+            'Comitán, Chiapas',
+            'Palenque, Chiapas',
+            'Ocosingo, Chiapas',
             
-            'Tucson, AZ',
-            'Oro Valley, AZ',
-            'Marana, AZ',
-            'Sahuarita, AZ',
-            'South Tucson, AZ',
-            'Catalina Foothills, AZ',
-            'Catalina, AZ',
-            'Green Valley, AZ',
-            'Vail, AZ',
-            'Tanque Verde, AZ',
-            'Three Points, AZ',
-            'Flowing Wells, AZ',
-            'Drexel Heights, AZ',
-            'Casas Adobes, AZ',
-            'Ajo, AZ',
-            'Sells, AZ',
+            // ===== CHIHUAHUA =====
+            'Chihuahua, Chihuahua',
+            'Ciudad Juárez, Chihuahua',
+            'Cuauhtémoc, Chihuahua',
+            'Delicias, Chihuahua',
+            'Hidalgo del Parral, Chihuahua',
+            'Nuevo Casas Grandes, Chihuahua',
             
-            // Other option for custom locations
-            'Other'
+            // ===== COAHUILA =====
+            'Saltillo, Coahuila',
+            'Torreón, Coahuila',
+            'Monclova, Coahuila',
+            'Piedras Negras, Coahuila',
+            'Ciudad Acuña, Coahuila',
+            'Ramos Arizpe, Coahuila',
+            
+            // ===== COLIMA =====
+            'Colima, Colima',
+            'Manzanillo, Colima',
+            'Tecomán, Colima',
+            'Villa de Álvarez, Colima',
+            
+            // ===== DURANGO =====
+            'Durango, Durango',
+            'Gómez Palacio, Durango',
+            'Lerdo, Durango',
+            'Ciudad Lerdo, Durango',
+            'Santiago Papasquiaro, Durango',
+            
+            // ===== GUANAJUATO =====
+            'León, Guanajuato',
+            'Irapuato, Guanajuato',
+            'Celaya, Guanajuato',
+            'Salamanca, Guanajuato',
+            'Guanajuato, Guanajuato',
+            'San Miguel de Allende, Guanajuato',
+            'Silao, Guanajuato',
+            'Pénjamo, Guanajuato',
+            
+            // ===== GUERRERO =====
+            'Acapulco, Guerrero',
+            'Chilpancingo, Guerrero',
+            'Iguala, Guerrero',
+            'Zihuatanejo, Guerrero',
+            'Taxco, Guerrero',
+            'Ixtapa, Guerrero',
+            
+            // ===== HIDALGO =====
+            'Pachuca, Hidalgo',
+            'Tulancingo, Hidalgo',
+            'Tula de Allende, Hidalgo',
+            'Tizayuca, Hidalgo',
+            'Tepeji del Río, Hidalgo',
+            
+            // ===== JALISCO =====
+            'Guadalajara, Jalisco',
+            'Zapopan, Jalisco',
+            'Tlaquepaque, Jalisco',
+            'Tonalá, Jalisco',
+            'Puerto Vallarta, Jalisco',
+            'Lagos de Moreno, Jalisco',
+            'Tepatitlán, Jalisco',
+            'Chapala, Jalisco',
+            'Ajijic, Jalisco',
+            
+            // ===== MÉXICO =====
+            'Toluca, México',
+            'Ecatepec, México',
+            'Naucalpan, México',
+            'Tlalnepantla, México',
+            'Nezahualcóyotl, México',
+            'Cuautitlán Izcalli, México',
+            'Metepec, México',
+            'Valle de Chalco, México',
+            
+            // ===== MICHOACÁN =====
+            'Morelia, Michoacán',
+            'Uruapan, Michoacán',
+            'Zamora, Michoacán',
+            'Lázaro Cárdenas, Michoacán',
+            'Pátzcuaro, Michoacán',
+            'Zitácuaro, Michoacán',
+            
+            // ===== MORELOS =====
+            'Cuernavaca, Morelos',
+            'Jiutepec, Morelos',
+            'Cuautla, Morelos',
+            'Temixco, Morelos',
+            'Yautepec, Morelos',
+            
+            // ===== NAYARIT =====
+            'Tepic, Nayarit',
+            'Bahía de Banderas, Nayarit',
+            'Nuevo Vallarta, Nayarit',
+            'San Blas, Nayarit',
+            'Compostela, Nayarit',
+            
+            // ===== NUEVO LEÓN =====
+            'Monterrey, Nuevo León',
+            'San Pedro Garza García, Nuevo León',
+            'Guadalupe, Nuevo León',
+            'San Nicolás de los Garza, Nuevo León',
+            'Apodaca, Nuevo León',
+            'Santa Catarina, Nuevo León',
+            'Escobedo, Nuevo León',
+            
+            // ===== OAXACA =====
+            'Oaxaca de Juárez, Oaxaca',
+            'Salina Cruz, Oaxaca',
+            'Puerto Escondido, Oaxaca',
+            'Huatulco, Oaxaca',
+            'Juchitán, Oaxaca',
+            
+            // ===== PUEBLA =====
+            'Puebla, Puebla',
+            'Tehuacán, Puebla',
+            'San Martín Texmelucan, Puebla',
+            'Atlixco, Puebla',
+            'Cholula, Puebla',
+            
+            // ===== QUERÉTARO =====
+            'Querétaro, Querétaro',
+            'San Juan del Río, Querétaro',
+            'Corregidora, Querétaro',
+            'El Marqués, Querétaro',
+            
+            // ===== QUINTANA ROO =====
+            'Cancún, Quintana Roo',
+            'Playa del Carmen, Quintana Roo',
+            'Tulum, Quintana Roo',
+            'Chetumal, Quintana Roo',
+            'Cozumel, Quintana Roo',
+            'Isla Mujeres, Quintana Roo',
+            
+            // ===== SAN LUIS POTOSÍ =====
+            'San Luis Potosí, San Luis Potosí',
+            'Soledad de Graciano Sánchez, San Luis Potosí',
+            'Ciudad Valles, San Luis Potosí',
+            'Matehuala, San Luis Potosí',
+            
+            // ===== SINALOA =====
+            'Culiacán, Sinaloa',
+            'Mazatlán, Sinaloa',
+            'Los Mochis, Sinaloa',
+            'Guasave, Sinaloa',
+            'Guamúchil, Sinaloa',
+            
+            // ===== SONORA =====
+            'Hermosillo, Sonora',
+            'Ciudad Obregón, Sonora',
+            'Nogales, Sonora',
+            'San Carlos, Sonora',
+            'Guaymas, Sonora',
+            'Navojoa, Sonora',
+            'Puerto Peñasco, Sonora',
+            'Caborca, Sonora',
+            'Agua Prieta, Sonora',
+            
+            // ===== TABASCO =====
+            'Villahermosa, Tabasco',
+            'Cárdenas, Tabasco',
+            'Comalcalco, Tabasco',
+            'Paraíso, Tabasco',
+            
+            // ===== TAMAULIPAS =====
+            'Reynosa, Tamaulipas',
+            'Matamoros, Tamaulipas',
+            'Nuevo Laredo, Tamaulipas',
+            'Tampico, Tamaulipas',
+            'Ciudad Victoria, Tamaulipas',
+            'Ciudad Madero, Tamaulipas',
+            
+            // ===== TLAXCALA =====
+            'Tlaxcala, Tlaxcala',
+            'Apizaco, Tlaxcala',
+            'Huamantla, Tlaxcala',
+            
+            // ===== VERACRUZ =====
+            'Veracruz, Veracruz',
+            'Xalapa, Veracruz',
+            'Coatzacoalcos, Veracruz',
+            'Poza Rica, Veracruz',
+            'Córdoba, Veracruz',
+            'Orizaba, Veracruz',
+            'Boca del Río, Veracruz',
+            
+            // ===== YUCATÁN =====
+            'Mérida, Yucatán',
+            'Progreso, Yucatán',
+            'Valladolid, Yucatán',
+            'Tizimín, Yucatán',
+            
+            // ===== ZACATECAS =====
+            'Zacatecas, Zacatecas',
+            'Fresnillo, Zacatecas',
+            'Guadalupe, Zacatecas',
+            'Jerez, Zacatecas',
+            
+            // ===== CIUDAD DE MÉXICO =====
+            'Benito Juárez, Ciudad de México',
+            'Miguel Hidalgo, Ciudad de México',
+            'Cuauhtémoc, Ciudad de México',
+            'Coyoacán, Ciudad de México',
+            'Tlalpan, Ciudad de México',
+            'Álvaro Obregón, Ciudad de México',
+            'Gustavo A. Madero, Ciudad de México',
+            'Iztapalapa, Ciudad de México',
+            'Venustiano Carranza, Ciudad de México',
+            'Xochimilco, Ciudad de México',
         ];
     }
     

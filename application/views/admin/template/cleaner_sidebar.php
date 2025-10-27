@@ -49,7 +49,7 @@
 
         <!-- Browse Jobs -->
         <li class="nav-item">
-          <a href="<?php echo base_url('cleaner/jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/jobs') !== false) ? 'active' : ''; ?>">
+          <a href="<?php echo base_url('cleaner/jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/jobs') !== false && strpos(uri_string(), 'applications') === false) ? 'active' : ''; ?>">
             <div class="nav-icon-container">
               <i class="nav-icon fas fa-search"></i>
             </div>
@@ -57,6 +57,15 @@
           </a>
         </li>
 
+        <!-- Job Applications -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('cleaner/applications'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'cleaner/applications') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-file-invoice"></i>
+            </div>
+            <span class="nav-text">Job Applications</span>
+          </a>
+        </li>
 
         <!-- Declined Offers -->
         <li class="nav-item">
@@ -90,16 +99,6 @@
             <span class="nav-text">Assigned Jobs</span>
           </a>
         </li>
-
-            <!-- Jobs in Progress -->
-            <li class="nav-item">
-              <a href="<?php echo base_url('cleaner/jobs-in-progress'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'jobs-in-progress') !== false) ? 'active' : ''; ?>">
-                <div class="nav-icon-container">
-                  <i class="nav-icon fas fa-tasks"></i>
-                </div>
-                <span class="nav-text">Jobs in Progress</span>
-              </a>
-            </li>
 
 
         <!-- Completed Jobs -->

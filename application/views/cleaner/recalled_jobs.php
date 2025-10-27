@@ -5,7 +5,7 @@
             <div class="page-header">
                 <div class="header-content">
                     <h2 class="page-title">
-                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        <i class="fas fa-exclamation-triangle me-2"></i>
                         Recalled Jobs
                     </h2>
                     <p class="page-subtitle">Jobs that have been recalled by the host for admin review</p>
@@ -152,7 +152,7 @@
                                     <div class="d-flex w-100 justify-content-between align-items-start">
                                         <div class="flex-grow-1">
                                             <h5 class="mb-1">
-                                                <i class="fas fa-broom text-primary me-2"></i>
+                                                <i class="fas fa-broom me-2" style="color: #667eea;"></i>
                                                 <?php echo htmlspecialchars($job->title); ?>
                                             </h5>
                                             <p class="mb-1 text-muted">
@@ -190,7 +190,7 @@
                                         <hr>
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <h6 class="text-primary"><i class="fas fa-info-circle me-2"></i>Job Information</h6>
+                                                <h6 style="color: #667eea;"><i class="fas fa-info-circle me-2"></i>Job Information</h6>
                                                 <p><strong>Scheduled:</strong> <?php echo date('M j, Y g:i A', strtotime($job->scheduled_date . ' ' . $job->scheduled_time)); ?></p>
                                                 <p><strong>Completed:</strong> <?php echo $job->completed_at ? date('M j, Y g:i A', strtotime($job->completed_at)) : 'N/A'; ?></p>
                                                 <p><strong>Amount:</strong> $<?php 
@@ -200,7 +200,7 @@
                                                 <p><strong>Payment Released:</strong> <?php echo $job->payment_released_at ? date('M j, Y g:i A', strtotime($job->payment_released_at)) : 'Not released'; ?></p>
                                             </div>
                                             <div class="col-md-6">
-                                                <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Recall Information</h6>
+                                                <h6 style="color: #ff9800;"><i class="fas fa-exclamation-triangle me-2"></i>Recall Information</h6>
                                                 <?php if (!empty($job->recall_reason)): ?>
                                                     <p><strong>Reason:</strong> <?php echo ucfirst(str_replace('_', ' ', $job->recall_reason)); ?></p>
                                                 <?php endif; ?>
@@ -220,8 +220,8 @@
                                         
                                         <?php if (!empty($job->recall_details)): ?>
                                             <div class="mt-3">
-                                                <h6 class="text-danger"><i class="fas fa-file-alt me-2"></i>Host's Recall Details</h6>
-                                                <div class="alert alert-light">
+                                                <h6 style="color: #dc3545;"><i class="fas fa-file-alt me-2"></i>Host's Recall Details</h6>
+                                                <div class="alert alert-light" style="border-left: 4px solid #dc3545;">
                                                     <?php echo nl2br(htmlspecialchars($job->recall_details)); ?>
                                                 </div>
                                             </div>
@@ -229,7 +229,7 @@
                                         
                                         <?php if ($job->status === 'recall_settled' || !empty($job->admin_notes) || !empty($job->admin_decision)): ?>
                                             <div class="mt-3 resolution-section">
-                                                <h6 class="<?php echo $job->status === 'recall_settled' ? 'text-success' : 'text-info'; ?>">
+                                                <h6 style="color: <?php echo $job->status === 'recall_settled' ? '#28a745' : '#667eea'; ?>;">
                                                     <i class="fas fa-<?php echo $job->status === 'recall_settled' ? 'check-circle' : 'info-circle'; ?> me-2"></i>
                                                     <?php echo $job->status === 'recall_settled' ? 'Resolution' : 'Admin Updates'; ?>
                                                 </h6>
@@ -264,22 +264,38 @@
 <style>
 /* Page Header */
 .page-header {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 2rem;
-    border-radius: 15px;
+    border-radius: 20px;
     margin-bottom: 2rem;
-    box-shadow: 0 8px 32px rgba(245, 87, 108, 0.3);
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.page-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    opacity: 0.3;
 }
 
 .header-content {
     text-align: center;
+    position: relative;
+    z-index: 1;
 }
 
 .page-title {
     font-size: 2rem;
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .page-subtitle {
@@ -291,29 +307,42 @@
 /* Summary Cards */
 .summary-card {
     background: white;
-    border-radius: 10px;
+    border-radius: 15px;
     padding: 1.5rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
     display: flex;
     align-items: center;
     gap: 1rem;
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .summary-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.15);
 }
 
 .card-icon {
     width: 60px;
     height: 60px;
-    border-radius: 10px;
+    border-radius: 12px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .card-icon i {
@@ -327,27 +356,116 @@
 
 .card-value {
     font-size: 1.8rem;
-    font-weight: 700;
+    font-weight: 800;
     margin-bottom: 0.25rem;
-    color: #2d3748;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .card-label {
     font-size: 0.9rem;
     color: #718096;
+    font-weight: 500;
     margin-bottom: 0;
+}
+
+/* Cards Styling */
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.card-header.bg-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none;
+    padding: 1.25rem 1.5rem;
+}
+
+.card-header .btn-light {
+    background: white;
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.card-header .btn-light:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Form Controls */
+.form-control, .form-select {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+/* Buttons */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-outline-primary {
+    border: 2px solid #667eea;
+    color: #667eea;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-outline-secondary {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-secondary:hover {
+    transform: translateY(-1px);
 }
 
 /* Recalled Job Items */
 .recalled-job-item {
-    border-left: 4px solid #f5576c;
+    border-left: 4px solid #667eea;
     margin-bottom: 1rem;
     transition: all 0.2s ease;
+    border-radius: 8px;
 }
 
 .recalled-job-item:hover {
-    background-color: #f8f9fa;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background-color: #f8f9ff;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
 }
 
 .toggle-details {
@@ -387,14 +505,36 @@
 }
 
 .resolution-section {
-    background: #f8f9fa;
+    background: #f8f9ff;
     padding: 1rem;
     border-radius: 8px;
-    border-left: 4px solid #28a745;
+    border-left: 4px solid #667eea;
 }
 
 .resolution-section .alert {
     margin-bottom: 0;
+}
+
+/* Job Details Section */
+.job-details h6 {
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.job-details h6 i {
+    margin-right: 0.5rem;
+}
+
+/* Icons and text colors matching purple theme */
+.text-primary, .recalled-job-item h5 i {
+    color: #667eea !important;
+}
+
+/* Alert styling */
+.alert-info {
+    background-color: #e8f0ff;
+    border-color: #b8d4ff;
+    color: #004085;
 }
 </style>
 

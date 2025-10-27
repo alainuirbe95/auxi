@@ -1,94 +1,89 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+?>
+
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="page-header">
-                <div class="header-content">
-                    <h2 class="page-title">
-                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                        Recalled Jobs Management
-                    </h2>
-                    <p class="page-subtitle">Review and manage all recalled jobs from hosts - Take necessary action and mark as settled</p>
-                </div>
+                <h1 class="page-title">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Recalled Jobs Management
+                </h1>
+                <p class="page-subtitle">Review and manage all recalled jobs from hosts</p>
             </div>
         </div>
     </div>
 
     <!-- Summary Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="summary-card">
-                <div class="card-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <div class="card-content">
-                    <h3 class="card-value"><?php echo $total_recalls; ?></h3>
-                    <p class="card-label">Total Recalls</p>
-                </div>
+    <div class="dashboard-stats">
+        <div class="stat-card pending">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3><?php echo $recall_stats['pending'] ?? 0; ?></h3>
+                <p>Pending Review</p>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="summary-card">
-                <div class="card-icon">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="card-content">
-                    <h3 class="card-value"><?php echo $pending_review; ?></h3>
-                    <p class="card-label">Pending Review</p>
-                </div>
+        <div class="stat-card investigating">
+            <div class="stat-icon">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="stat-content">
+                <h3><?php echo $recall_stats['under_investigation'] ?? 0; ?></h3>
+                <p>Under Investigation</p>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="summary-card">
-                <div class="card-icon">
-                    <i class="fas fa-gavel"></i>
-                </div>
-                <div class="card-content">
-                    <h3 class="card-value"><?php echo $under_investigation; ?></h3>
-                    <p class="card-label">Under Investigation</p>
-                </div>
+        <div class="stat-card resolved">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3><?php echo $recall_stats['resolved'] ?? 0; ?></h3>
+                <p>Resolved</p>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="summary-card">
-                <div class="card-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="card-content">
-                    <h3 class="card-value"><?php echo $resolved; ?></h3>
-                    <p class="card-label">Resolved</p>
-                </div>
+        <div class="stat-card total">
+            <div class="stat-icon">
+                <i class="fas fa-list"></i>
+            </div>
+            <div class="stat-content">
+                <h3><?php echo $recall_stats['total'] ?? 0; ?></h3>
+                <p>Total Recalls</p>
             </div>
         </div>
     </div>
 
-    <!-- Filter Section -->
+    <!-- Filters -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="filter-card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-filter text-info me-2"></i>
-                        Filters & Search
+                        <i class="fas fa-filter text-primary me-2"></i>
+                        Filter Recalled Jobs
                     </h5>
-                    <button class="btn btn-sm btn-outline-secondary" id="toggleFilters">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
                 </div>
-                <div class="card-body" id="filterBody">
-                    <form method="GET" action="<?php echo base_url('admin/recalled-jobs'); ?>" id="filterForm">
+                <div class="card-body">
+                    <form method="get" action="<?php echo base_url('admin/recalled-jobs'); ?>" id="filterForm">
                         <div class="row">
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Date From</label>
+                                <input type="date" class="form-control" name="date_from" value="<?php echo htmlspecialchars($filters['date_from'] ?? ''); ?>">
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Date To</label>
+                                <input type="date" class="form-control" name="date_to" value="<?php echo htmlspecialchars($filters['date_to'] ?? ''); ?>">
+                            </div>
+                            <div class="col-md-2 mb-3">
                                 <label class="form-label">Reason</label>
                                 <select class="form-select" name="reason">
                                     <option value="">All Reasons</option>
-                                    <option value="poor_quality" <?php echo ($filters['reason'] ?? '') === 'poor_quality' ? 'selected' : ''; ?>>Poor Quality Work</option>
-                                    <option value="incomplete_service" <?php echo ($filters['reason'] ?? '') === 'incomplete_service' ? 'selected' : ''; ?>>Incomplete Service</option>
-                                    <option value="damage_caused" <?php echo ($filters['reason'] ?? '') === 'damage_caused' ? 'selected' : ''; ?>>Damage to Property</option>
+                                    <option value="poor_quality" <?php echo ($filters['reason'] ?? '') === 'poor_quality' ? 'selected' : ''; ?>>Poor Quality</option>
                                     <option value="unprofessional_behavior" <?php echo ($filters['reason'] ?? '') === 'unprofessional_behavior' ? 'selected' : ''; ?>>Unprofessional Behavior</option>
                                     <option value="safety_concerns" <?php echo ($filters['reason'] ?? '') === 'safety_concerns' ? 'selected' : ''; ?>>Safety Concerns</option>
-                                    <option value="contract_violation" <?php echo ($filters['reason'] ?? '') === 'contract_violation' ? 'selected' : ''; ?>>Contract Violation</option>
-                                    <option value="other" <?php echo ($filters['reason'] ?? '') === 'other' ? 'selected' : ''; ?>>Other</option>
                                 </select>
                             </div>
                             <div class="col-md-2 mb-3">
@@ -110,7 +105,17 @@
                                     <option value="resolved" <?php echo ($filters['recall_status'] ?? '') === 'resolved' ? 'selected' : ''; ?>>Resolved</option>
                                 </select>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label">Sort By</label>
+                                <select class="form-select" name="sort">
+                                    <option value="recalled_at" <?php echo ($filters['sort'] ?? '') === 'recalled_at' ? 'selected' : ''; ?>>Recall Date</option>
+                                    <option value="title" <?php echo ($filters['sort'] ?? '') === 'title' ? 'selected' : ''; ?>>Job Title</option>
+                                    <option value="severity" <?php echo ($filters['sort'] ?? '') === 'severity' ? 'selected' : ''; ?>>Severity</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
                                 <label class="form-label">Search Jobs</label>
                                 <div class="input-group">
                                     <span class="input-group-text">
@@ -123,23 +128,16 @@
                                            placeholder="Search by title, host, or cleaner name">
                                 </div>
                             </div>
-                            <div class="col-md-2 mb-3">
-                                <label class="form-label">Sort By</label>
-                                <select class="form-select" name="sort">
-                                    <option value="recalled_at" <?php echo ($filters['sort'] ?? '') === 'recalled_at' ? 'selected' : ''; ?>>Recall Date</option>
-                                    <option value="title" <?php echo ($filters['sort'] ?? '') === 'title' ? 'selected' : ''; ?>>Job Title</option>
-                                    <option value="severity" <?php echo ($filters['sort'] ?? '') === 'severity' ? 'selected' : ''; ?>>Severity</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-12 text-end">
-                                <button type="submit" class="btn btn-primary me-2">
-                                    <i class="fas fa-filter me-1"></i> Apply Filters
-                                </button>
-                                <a href="<?php echo base_url('host/recalled-jobs'); ?>" class="btn btn-outline-secondary">
-                                    <i class="fas fa-times me-1"></i> Clear Filters
-                                </a>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-filter me-1"></i> Apply Filters
+                                    </button>
+                                    <a href="<?php echo base_url('admin/recalled-jobs'); ?>" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i> Clear Filters
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -160,273 +158,127 @@
                 </div>
                 <div class="card-body">
                     <?php if (!empty($recalled_jobs)): ?>
-                        <div class="recalled-jobs-list">
+                        <div class="table-responsive">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 80px;">Job ID</th>
+                                        <th style="width: 200px;">Title</th>
+                                        <th style="width: 180px;">Host</th>
+                                        <th style="width: 180px;">Cleaner</th>
+                                        <th style="width: 120px;">Recall Date</th>
+                                        <th style="width: 120px;">Reason</th>
+                                        <th style="width: 100px;">Severity</th>
+                                        <th style="width: 120px;">Status</th>
+                                        <th style="width: 150px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                             <?php foreach ($recalled_jobs as $job): ?>
-                                <div class="recalled-job-item">
-                                    <div class="job-header">
-                                        <div class="job-info">
-                                            <h6 class="job-title"><?php echo htmlspecialchars($job->title); ?></h6>
-                                            <div class="job-meta">
-                                                <span class="host-info">
-                                                    <i class="fas fa-home me-1"></i>
-                                                    Host: <?php echo htmlspecialchars($job->host_name); ?>
-                                                </span>
-                                                <span class="cleaner-info">
-                                                    <i class="fas fa-user me-1"></i>
-                                                    Cleaner: <?php echo htmlspecialchars($job->cleaner_name); ?>
-                                                </span>
-                                                <span class="recall-date">
-                                                    <i class="fas fa-calendar me-1"></i>
-                                                    Recalled: <?php echo !empty($job->recalled_at) ? date('M j, Y g:i A', strtotime($job->recalled_at)) : date('M j, Y g:i A', strtotime($job->updated_at)); ?>
-                                                </span>
-                                            </div>
+                                <!-- Main Row -->
+                                <tr class="recall-job-row" data-job-id="<?php echo $job->id; ?>">
+                                    <td>
+                                        <span class="badge bg-secondary">#<?php echo $job->id; ?></span>
+                                    </td>
+                                    <td>
+                                        <div class="job-title-cell">
+                                            <strong><?php echo htmlspecialchars($job->title); ?></strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                $<?php echo number_format($job->final_price ?? $job->accepted_price ?? $job->suggested_price, 2); ?>
+                                            </small>
                                         </div>
-                                        <div class="job-status">
-                                            <span class="status-badge status-<?php echo $job->recall_status ?? 'pending'; ?>">
-                                                <?php echo ucfirst($job->recall_status ?? 'pending'); ?>
-                                            </span>
+                                    </td>
+                                    <td>
+                                        <div class="user-info-cell">
+                                            <strong><?php echo htmlspecialchars($job->host_name); ?></strong>
+                                            <br>
+                                            <small class="text-muted"><?php echo htmlspecialchars($job->host_email); ?></small>
                                         </div>
-                                        <div class="job-toggle">
-                                            <i class="fas fa-chevron-down toggle-icon"></i>
+                                    </td>
+                                    <td>
+                                        <div class="user-info-cell">
+                                            <strong><?php echo htmlspecialchars($job->cleaner_name); ?></strong>
+                                            <br>
+                                            <small class="text-muted"><?php echo htmlspecialchars($job->cleaner_email); ?></small>
                                         </div>
-                                    </div>
-                                    
-                                    <!-- Expandable Job Details -->
-                                    <div class="job-details" id="job-details-<?php echo $job->id; ?>" style="display: none;">
-                                        <div class="details-content">
+                                    </td>
+                                    <td>
+                                        <small><?php echo date('M j, Y', strtotime($job->recalled_at ?? $job->updated_at)); ?></small>
+                                        <br>
+                                        <small class="text-muted"><?php echo date('g:i A', strtotime($job->recalled_at ?? $job->updated_at)); ?></small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-<?php echo $job->recall_reason === 'poor_quality' ? 'danger' : ($job->recall_reason === 'unprofessional_behavior' ? 'warning' : 'info'); ?>">
+                                            <?php echo ucfirst(str_replace('_', ' ', $job->recall_reason ?? 'unknown')); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-<?php echo $job->recall_severity === 'high' ? 'danger' : ($job->recall_severity === 'medium' ? 'warning' : 'info'); ?>">
+                                            <?php echo ucfirst($job->recall_severity ?? 'low'); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-<?php echo $job->recall_status === 'pending' ? 'warning' : ($job->recall_status === 'under_investigation' ? 'info' : 'success'); ?>">
+                                            <?php echo ucfirst(str_replace('_', ' ', $job->recall_status ?? 'pending')); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary toggle-details" data-job-id="<?php echo $job->id; ?>">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                            <a href="<?php echo base_url('host/public_profile/' . $job->host_id); ?>" class="btn btn-sm btn-outline-info" target="_blank">
+                                                <i class="fas fa-user"></i>
+                                            </a>
+                                            <a href="<?php echo base_url('cleaner/public_profile/' . $job->assigned_cleaner_id); ?>" class="btn btn-sm btn-outline-info" target="_blank">
+                                                <i class="fas fa-user-tie"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Details Row -->
+                                <tr class="recall-details-row" id="details-<?php echo $job->id; ?>" style="display: none;">
+                                    <td colspan="9">
+                                        <div class="recall-details-content p-3 bg-light">
                                             <div class="row">
                                                 <div class="col-md-6">
-                                                    <h6 class="details-title">Job Information</h6>
+                                                    <h6 class="details-title">
+                                                        <i class="fas fa-info-circle text-primary me-2"></i>
+                                                        Recall Details
+                                                    </h6>
                                                     <div class="detail-item">
-                                                        <label>Description:</label>
-                                                        <p><?php echo htmlspecialchars($job->description); ?></p>
+                                                        <strong>Recall Reason:</strong>
+                                                        <span class="ms-2"><?php echo ucfirst(str_replace('_', ' ', $job->recall_reason ?? 'Not specified')); ?></span>
                                                     </div>
                                                     <div class="detail-item">
-                                                        <label>Full Address:</label>
-                                                        <p><?php 
-                                                            $full_address = $job->address . ', ' . $job->city . ', ' . $job->state;
-                                                            if (!empty($job->zip)) {
-                                                                $full_address .= ' ' . $job->zip;
-                                                            }
-                                                            echo htmlspecialchars($full_address);
-                                                        ?></p>
+                                                        <strong>Recall Details:</strong>
+                                                        <p class="ms-2 mt-1"><?php echo htmlspecialchars($job->recall_details ?? 'No details provided'); ?></p>
                                                     </div>
                                                     <div class="detail-item">
-                                                        <label>Scheduled:</label>
-                                                        <p><?php echo date('M j, Y g:i A', strtotime($job->scheduled_date . ' ' . $job->scheduled_time)); ?></p>
+                                                        <strong>Severity:</strong>
+                                                        <span class="ms-2 badge bg-<?php echo $job->recall_severity === 'high' ? 'danger' : ($job->recall_severity === 'medium' ? 'warning' : 'info'); ?>">
+                                                            <?php echo ucfirst($job->recall_severity ?? 'low'); ?>
+                                                        </span>
                                                     </div>
                                                     <div class="detail-item">
-                                                        <label>Completed:</label>
-                                                        <p><?php echo $job->completed_at ? date('M j, Y g:i A', strtotime($job->completed_at)) : 'N/A'; ?></p>
+                                                        <strong>Evidence Notes:</strong>
+                                                        <p class="ms-2 mt-1"><?php echo htmlspecialchars($job->evidence_notes ?? 'No evidence provided'); ?></p>
                                                     </div>
                                                     <div class="detail-item">
-                                                        <label>Duration:</label>
-                                                        <p><?php echo htmlspecialchars($job->estimated_duration); ?> hours</p>
+                                                        <strong>Desired Resolution:</strong>
+                                                        <span class="ms-2"><?php echo ucfirst(str_replace('_', ' ', $job->desired_resolution ?? 'Not specified')); ?></span>
                                                     </div>
-                                                    <div class="detail-item">
-                                                        <label>Rooms:</label>
-                                                        <p><?php 
-                                                            $rooms = is_string($job->rooms) ? json_decode($job->rooms, true) : $job->rooms;
-                                                            echo is_array($rooms) ? htmlspecialchars(implode(', ', $rooms)) : htmlspecialchars($job->rooms);
-                                                        ?></p>
-                                                    </div>
-                                                    <?php if (!empty($job->extras)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Extras:</label>
-                                                            <p><?php 
-                                                                $extras = is_string($job->extras) ? json_decode($job->extras, true) : $job->extras;
-                                                                echo is_array($extras) ? htmlspecialchars(implode(', ', $extras)) : htmlspecialchars($job->extras);
-                                                            ?></p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div class="detail-item">
-                                                        <label>Pets:</label>
-                                                        <p><?php echo $job->pets ? 'Yes' : 'No'; ?></p>
-                                                    </div>
-                                                    <?php if (!empty($job->special_instructions)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Special Instructions:</label>
-                                                            <p><?php echo nl2br(htmlspecialchars($job->special_instructions)); ?></p>
-                                                        </div>
-                                                    <?php endif; ?>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <h6 class="details-title">Payment Information</h6>
-                                                    <div class="detail-item">
-                                                        <label>Suggested Price:</label>
-                                                        <p>$<?php echo number_format($job->suggested_price, 2); ?></p>
-                                                    </div>
-                                                    <?php if ($job->accepted_price): ?>
-                                                        <div class="detail-item">
-                                                            <label>Accepted Price:</label>
-                                                            <p>$<?php echo number_format($job->accepted_price, 2); ?></p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <?php if ($job->final_price): ?>
-                                                        <div class="detail-item">
-                                                            <label>Final Price:</label>
-                                                            <p>$<?php echo number_format($job->final_price, 2); ?></p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div class="detail-item">
-                                                        <label>Payment Released:</label>
-                                                        <p><?php echo $job->payment_released_at ? date('M j, Y g:i A', strtotime($job->payment_released_at)) : 'Not released'; ?></p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="row mt-3">
-                                                <div class="col-md-6">
-                                                    <h6 class="details-title">Host Information</h6>
-                                                    <div class="detail-item">
-                                                        <label>Host Name:</label>
-                                                        <p><?php echo htmlspecialchars($job->host_name); ?></p>
-                                                    </div>
-                                                    <?php if (!empty($job->host_phone)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Host Phone:</label>
-                                                            <p>
-                                                                <i class="fas fa-phone text-primary me-1"></i>
-                                                                <a href="tel:<?php echo htmlspecialchars($job->host_phone); ?>" class="text-decoration-none">
-                                                                    <?php echo htmlspecialchars($job->host_phone); ?>
-                                                                </a>
-                                                            </p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <?php if (!empty($job->host_email)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Host Email:</label>
-                                                            <p>
-                                                                <i class="fas fa-envelope text-primary me-1"></i>
-                                                                <a href="mailto:<?php echo htmlspecialchars($job->host_email); ?>" class="text-decoration-none">
-                                                                    <?php echo htmlspecialchars($job->host_email); ?>
-                                                                </a>
-                                                            </p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <h6 class="details-title">Cleaner Information</h6>
-                                                    <div class="detail-item">
-                                                        <label>Cleaner Name:</label>
-                                                        <p><?php echo htmlspecialchars($job->cleaner_name); ?></p>
-                                                    </div>
-                                                    <?php if (!empty($job->cleaner_phone)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Cleaner Phone:</label>
-                                                            <p>
-                                                                <i class="fas fa-phone text-success me-1"></i>
-                                                                <a href="tel:<?php echo htmlspecialchars($job->cleaner_phone); ?>" class="text-decoration-none">
-                                                                    <?php echo htmlspecialchars($job->cleaner_phone); ?>
-                                                                </a>
-                                                            </p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <?php if (!empty($job->cleaner_email)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Cleaner Email:</label>
-                                                            <p>
-                                                                <i class="fas fa-envelope text-success me-1"></i>
-                                                                <a href="mailto:<?php echo htmlspecialchars($job->cleaner_email); ?>" class="text-decoration-none">
-                                                                    <?php echo htmlspecialchars($job->cleaner_email); ?>
-                                                                </a>
-                                                            </p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <?php if (!empty($job->completion_notes)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Completion Notes:</label>
-                                                            <p><?php echo nl2br(htmlspecialchars($job->completion_notes)); ?></p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                            </div>
-                                            
-                                            <div class="row mt-3">
-                                                <div class="col-12">
-                                                    <h6 class="details-title">Recall Information</h6>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <?php if (!empty($job->recall_reason)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Reason:</label>
-                                                            <p><?php echo ucfirst(str_replace('_', ' ', $job->recall_reason)); ?></p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if (!empty($job->recall_severity)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Severity:</label>
-                                                            <p><span class="severity-badge severity-<?php echo $job->recall_severity; ?>">
-                                                                <?php echo ucfirst($job->recall_severity); ?>
-                                                            </span></p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if (!empty($job->desired_resolution)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Desired Resolution:</label>
-                                                            <p><?php echo ucfirst(str_replace('_', ' ', $job->desired_resolution)); ?></p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if (empty($job->recall_reason) && empty($job->recall_severity) && empty($job->desired_resolution)): ?>
-                                                        <div class="detail-item">
-                                                            <p class="text-muted">
-                                                                <i class="fas fa-info-circle me-2"></i>
-                                                                Recall details are stored in admin notifications.
-                                                            </p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <?php if (!empty($job->recalled_at)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Recalled At:</label>
-                                                            <p><?php echo date('M j, Y g:i A', strtotime($job->recalled_at)); ?></p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div class="detail-item">
-                                                        <label>Recall Status:</label>
-                                                        <p><span class="status-badge status-<?php echo $job->recall_status ?? 'pending'; ?>">
-                                                            <?php echo ucfirst(str_replace('_', ' ', $job->recall_status ?? 'pending')); ?>
-                                                        </span></p>
-                                                    </div>
-                                                    <?php if (!empty($job->recall_settled_at)): ?>
-                                                        <div class="detail-item">
-                                                            <label>Settled At:</label>
-                                                            <p><?php echo date('M j, Y g:i A', strtotime($job->recall_settled_at)); ?></p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                            
-                                            <?php if (!empty($job->recall_details) || !empty($job->evidence_notes)): ?>
-                                                <div class="row mt-3">
-                                                    <div class="col-12">
-                                                        <?php if (!empty($job->recall_details)): ?>
-                                                            <h6 class="details-title">Recall Details</h6>
-                                                            <div class="recall-details">
-                                                                <p><?php echo nl2br(htmlspecialchars($job->recall_details)); ?></p>
-                                                            </div>
-                                                        <?php endif; ?>
-                                                        
-                                                        <?php if (!empty($job->evidence_notes)): ?>
-                                                            <h6 class="details-title mt-3">Evidence & Supporting Information</h6>
-                                                            <div class="evidence-details">
-                                                                <p><?php echo nl2br(htmlspecialchars($job->evidence_notes)); ?></p>
-                                                            </div>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                </div>
-                                            <?php endif; ?>
-                                            
-                                            <!-- Admin Actions & Settlement Form -->
-                                            <div class="row mt-3">
-                                                <div class="col-12">
-                                                    <h6 class="details-title">Admin Actions</h6>
+                                                    <h6 class="details-title">
+                                                        <i class="fas fa-gavel text-warning me-2"></i>
+                                                        Admin Actions
+                                                    </h6>
                                                     
                                                     <!-- Settlement Form -->
-                                                    <div class="settlement-form mb-3 p-3 border rounded bg-light">
+                                                    <div class="settlement-form mb-3 p-3 border rounded bg-white">
                                                         <h6 class="mb-3">
                                                             <i class="fas fa-gavel me-2"></i>
                                                             Settle This Recall
@@ -434,118 +286,77 @@
                                                         <form class="settle-recall-form" data-job-id="<?php echo $job->id; ?>">
                                                             <div class="row">
                                                                 <div class="col-md-6 mb-3">
-                                                                    <label for="admin_decision_<?php echo $job->id; ?>" class="form-label">
-                                                                        Admin Decision <span class="text-danger">*</span>
-                                                                    </label>
-                                                                    <select class="form-select form-select-sm admin-decision" 
-                                                                            id="admin_decision_<?php echo $job->id; ?>" 
-                                                                            name="admin_decision" 
-                                                                            required>
-                                                                        <option value="">Select decision...</option>
-                                                                        <option value="favor_host">In Favor of Host</option>
-                                                                        <option value="favor_cleaner">In Favor of Cleaner</option>
-                                                                        <option value="mutual_agreement">Mutual Agreement Reached</option>
-                                                                        <option value="no_action">No Action Required</option>
-                                                                        <option value="mediation_required">Mediation Required</option>
-                                                                        <option value="escalated_legal">Escalated to Legal</option>
-                                                                        <option value="insufficient_evidence">Insufficient Evidence</option>
+                                                                    <label class="form-label">Admin Decision</label>
+                                                                    <select name="admin_decision" class="form-select" required>
+                                                                        <option value="">Select Decision</option>
+                                                                        <option value="uphold_recall">Uphold Recall</option>
+                                                                        <option value="dismiss_recall">Dismiss Recall</option>
+                                                                        <option value="partial_resolution">Partial Resolution</option>
+                                                                        <option value="require_mediation">Require Mediation</option>
                                                                     </select>
                                                                 </div>
                                                                 <div class="col-md-6 mb-3">
-                                                                    <label for="resolution_type_<?php echo $job->id; ?>" class="form-label">
-                                                                        Resolution Type
-                                                                    </label>
-                                                                    <select class="form-select form-select-sm" 
-                                                                            id="resolution_type_<?php echo $job->id; ?>" 
-                                                                            name="resolution_type">
-                                                                        <option value="">Select type...</option>
-                                                                        <option value="warning_issued">Warning Issued</option>
-                                                                        <option value="verbal_warning">Verbal Warning</option>
-                                                                        <option value="written_warning">Written Warning</option>
-                                                                        <option value="account_suspended">Account Suspended</option>
-                                                                        <option value="temporary_suspension">Temporary Suspension</option>
-                                                                        <option value="resolved_amicably">Resolved Amicably</option>
-                                                                        <option value="both_parties_counseled">Both Parties Counseled</option>
-                                                                        <option value="re_training_required">Re-training Required</option>
-                                                                        <option value="no_resolution_needed">No Resolution Needed</option>
-                                                                        <option value="case_closed">Case Closed</option>
+                                                                    <label class="form-label">Resolution Type</label>
+                                                                    <select name="resolution_type" class="form-select" required>
+                                                                        <option value="">Select Resolution</option>
+                                                                        <option value="cleaner_improvement">Cleaner Improvement Required</option>
+                                                                        <option value="host_education">Host Education Required</option>
+                                                                        <option value="mutual_understanding">Mutual Understanding</option>
+                                                                        <option value="system_improvement">System Improvement</option>
                                                                     </select>
                                                                 </div>
                                                             </div>
-                                                            
                                                             <div class="mb-3">
-                                                                <label for="admin_notes_<?php echo $job->id; ?>" class="form-label">
-                                                                    Admin Notes / Resolution Details <span class="text-danger">*</span>
-                                                                </label>
-                                                                <textarea class="form-control form-control-sm admin-notes" 
-                                                                          id="admin_notes_<?php echo $job->id; ?>" 
-                                                                          name="admin_notes" 
-                                                                          rows="4" 
-                                                                          placeholder="Provide detailed notes about your decision, actions taken, and resolution details..."
-                                                                          required></textarea>
-                                                                <small class="text-muted">These notes will be visible to the host.</small>
+                                                                <label class="form-label">Admin Notes</label>
+                                                                <textarea name="admin_notes" class="form-control" rows="3" placeholder="Add your notes about this recall settlement..."></textarea>
                                                             </div>
-                                                            
-                                                            <div class="d-flex gap-2 justify-content-end">
-                                                                <button type="submit" class="btn btn-success btn-sm">
-                                                                    <i class="fas fa-check-circle me-1"></i>
+                                                            <div class="d-flex gap-2">
+                                                                <button type="submit" class="btn btn-success">
+                                                                    <i class="fas fa-check me-1"></i>
                                                                     Mark as Settled
+                                                                </button>
+                                                                <button type="button" class="btn btn-outline-secondary" onclick="toggleDetails(<?php echo $job->id; ?>)">
+                                                                    <i class="fas fa-times me-1"></i>
+                                                                    Cancel
                                                                 </button>
                                                             </div>
                                                         </form>
                                                     </div>
                                                     
                                                     <!-- Quick Actions -->
-                                                    <div class="admin-actions">
-                                                        <a href="<?php echo base_url('host/public-profile/' . $job->host_id); ?>" 
-                                                           class="btn btn-outline-secondary btn-sm">
-                                                            <i class="fas fa-user me-1"></i>
-                                                            Host Profile
-                                                        </a>
-                                                        <a href="<?php echo base_url('cleaner/public-profile/' . $job->assigned_cleaner_id); ?>" 
-                                                           class="btn btn-outline-secondary btn-sm">
-                                                            <i class="fas fa-user-shield me-1"></i>
-                                                            Cleaner Profile
-                                                        </a>
-                                                        <a href="<?php echo base_url('admin/ban_user/' . $job->host_id); ?>" 
-                                                           class="btn btn-danger btn-sm"
-                                                           onclick="return confirm('Are you sure you want to ban this host?');"
-                                                           title="Ban Host">
-                                                            <i class="fas fa-ban me-1"></i>
-                                                            Ban Host
-                                                        </a>
-                                                        <a href="<?php echo base_url('admin/ban_user/' . $job->assigned_cleaner_id); ?>" 
-                                                           class="btn btn-danger btn-sm"
-                                                           onclick="return confirm('Are you sure you want to ban this cleaner?');"
-                                                           title="Ban Cleaner">
-                                                            <i class="fas fa-ban me-1"></i>
-                                                            Ban Cleaner
-                                                        </a>
+                                                    <div class="quick-actions">
+                                                        <h6 class="mb-2">Quick Actions</h6>
+                                                        <div class="d-flex gap-2 flex-wrap">
+                                                            <a href="<?php echo base_url('admin/ban_user/' . $job->host_id); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to ban this host?')">
+                                                                <i class="fas fa-ban me-1"></i>
+                                                                Ban Host
+                                                            </a>
+                                                            <a href="<?php echo base_url('admin/ban_user/' . $job->assigned_cleaner_id); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to ban this cleaner?')">
+                                                                <i class="fas fa-ban me-1"></i>
+                                                                Ban Cleaner
+                                                            </a>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    </td>
+                                </tr>
                             <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
                     <?php else: ?>
-                        <div class="empty-state">
-                            <i class="fas fa-exclamation-triangle fa-3x text-muted mb-3"></i>
+                        <div class="empty-state text-center py-5">
+                            <div class="empty-icon mb-3">
+                                <i class="fas fa-clipboard-list fa-3x text-muted"></i>
+                            </div>
                             <h5>No Recalled Jobs Found</h5>
-                            <p class="text-muted">
-                                <?php if (!empty(array_filter($filters))): ?>
-                                    No recalled jobs match your current filters. Try adjusting your search criteria.
-                                <?php else: ?>
-                                    No recalled jobs at this time. Recalled jobs from hosts will appear here for admin review.
-                                <?php endif; ?>
-                            </p>
-                            <?php if (!empty(array_filter($filters))): ?>
-                                <a href="<?php echo base_url('admin/recalled-jobs'); ?>" class="btn btn-outline-secondary">
-                                    <i class="fas fa-times me-2"></i>
-                                    Clear Filters
-                                </a>
-                            <?php endif; ?>
+                            <p class="text-muted">No jobs match your current filter criteria.</p>
+                            <a href="<?php echo base_url('admin/recalled-jobs'); ?>" class="btn btn-primary">
+                                <i class="fas fa-refresh me-1"></i>
+                                Clear Filters
+                            </a>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -555,387 +366,346 @@
 </div>
 
 <style>
-/* Page Header */
-.page-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 2rem;
-    border-radius: 15px;
+/* Enhanced Admin Recalled Jobs Styles - Matching App Theme */
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
 }
 
-.header-content {
-    text-align: center;
-}
-
-.page-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.page-subtitle {
-    font-size: 1.1rem;
-    opacity: 0.9;
-    margin-bottom: 0;
-}
-
-/* Summary Cards */
-.summary-card {
+.stat-card {
     background: white;
     border-radius: 15px;
     padding: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    transition: transform 0.3s ease;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
 }
 
-.summary-card:hover {
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--card-gradient);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
 }
 
-.card-icon {
+.stat-card.pending::before {
+    background: linear-gradient(135deg, #ffc107, #ff8f00);
+}
+
+.stat-card.investigating::before {
+    background: linear-gradient(135deg, #17a2b8, #007bff);
+}
+
+.stat-card.resolved::before {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.stat-card.total::before {
+    background: linear-gradient(135deg, #6f42c1, #e83e8c);
+}
+
+.stat-icon {
     width: 60px;
     height: 60px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 24px;
     color: white;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin-bottom: 1rem;
+    position: relative;
+    overflow: hidden;
 }
 
-.card-content {
-    flex: 1;
+.stat-card.pending .stat-icon {
+    background: linear-gradient(135deg, #ffc107, #ff8f00);
 }
 
-.card-value {
+.stat-card.investigating .stat-icon {
+    background: linear-gradient(135deg, #17a2b8, #007bff);
+}
+
+.stat-card.resolved .stat-icon {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.stat-card.total .stat-icon {
+    background: linear-gradient(135deg, #6f42c1, #e83e8c);
+}
+
+.stat-content h3 {
     font-size: 2rem;
     font-weight: 700;
-    color: #495057;
-    margin: 0;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
 }
 
-.card-label {
+.stat-content p {
     color: #6c757d;
+    font-weight: 500;
     margin: 0;
-    font-size: 0.9rem;
 }
 
-/* Filter Card */
-.filter-card {
+/* Filter and Jobs Cards */
+.filter-card, .jobs-card {
     background: white;
     border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    border: none;
     margin-bottom: 2rem;
+    overflow: hidden;
 }
 
-.filter-card .card-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-bottom: 2px solid #dee2e6;
-    border-radius: 15px 15px 0 0 !important;
-    padding: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.filter-card .card-title {
-    font-weight: 600;
-    color: #495057;
-    margin: 0;
-}
-
-.filter-card .card-body {
-    padding: 2rem;
-}
-
-/* Jobs Card */
-.jobs-card {
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.jobs-card .card-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-bottom: 2px solid #dee2e6;
-    border-radius: 15px 15px 0 0 !important;
+.filter-card .card-header, .jobs-card .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
     padding: 1.5rem;
 }
 
-.jobs-card .card-title {
-    font-weight: 600;
-    color: #495057;
-    margin: 0;
-}
-
-.jobs-card .card-body {
-    padding: 2rem;
-}
-
-/* Recalled Job Items */
-.recalled-job-item {
-    background: #f8f9fa;
-    border: 2px solid #e9ecef;
-    border-radius: 12px;
-    margin-bottom: 1.5rem;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.recalled-job-item:hover {
-    border-color: #667eea;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-}
-
-.recalled-job-item.expanded {
-    border-color: #667eea;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-}
-
-.job-header {
-    display: flex;
-    align-items: center;
-    padding: 1.5rem;
-    gap: 1rem;
-}
-
-.job-info {
-    flex: 1;
-}
-
-.job-title {
+.filter-card .card-title, .jobs-card .card-title {
     font-size: 1.25rem;
     font-weight: 600;
+    margin: 0;
+}
+
+.filter-card .card-body, .jobs-card .card-body {
+    padding: 2rem;
+}
+
+/* Modern Table Styling */
+.table-responsive {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.modern-table {
+    width: 100%;
+    margin-bottom: 0;
+    background: white;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.modern-table thead {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.modern-table thead th {
+    padding: 1rem 0.75rem;
+    font-weight: 600;
     color: #495057;
-    margin-bottom: 0.5rem;
+    border-bottom: 2px solid #dee2e6;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
-.job-meta {
-    display: flex;
-    gap: 1.5rem;
-    color: #6c757d;
-    font-size: 0.9rem;
+.modern-table tbody td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #e9ecef;
 }
 
-.job-status {
+.modern-table tbody tr:hover {
+    background-color: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+.job-title-cell strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.user-info-cell strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Button Styling */
+.btn-group .btn {
+    margin-right: 2px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.toggle-details {
+    transition: all 0.3s ease;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
     display: flex;
     align-items: center;
+    justify-content: center;
 }
 
-.status-badge {
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
+.toggle-details:hover {
+    transform: scale(1.1);
 }
 
-.status-pending {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.status-under_investigation {
-    background: #d1ecf1;
-    color: #0c5460;
-}
-
-.status-resolved {
-    background: #d4edda;
-    color: #155724;
-}
-
-.job-toggle {
-    color: #6c757d;
-    font-size: 1.2rem;
-    transition: transform 0.3s ease;
-}
-
-.recalled-job-item.expanded .job-toggle {
-    transform: rotate(180deg);
-}
-
-/* Job Details */
-.job-details {
-    border-top: 1px solid #dee2e6;
-    background: white;
-    border-radius: 0 0 12px 12px;
-}
-
-.details-content {
-    padding: 2rem;
+/* Details Section Styling */
+.recall-details-content {
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+    border-left: 4px solid #667eea;
+    border-radius: 10px;
+    margin: 1rem;
 }
 
 .details-title {
+    color: #2c3e50;
     font-weight: 600;
-    color: #495057;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 2px solid #e9ecef;
+    display: flex;
+    align-items: center;
 }
 
 .detail-item {
     margin-bottom: 1rem;
+    padding: 0.5rem 0;
 }
 
-.detail-item label {
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.5rem;
-    display: block;
-}
-
-.detail-item p {
-    margin: 0;
-    color: #6c757d;
-}
-
-.severity-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
+.detail-item strong {
+    color: #2c3e50;
     font-weight: 600;
 }
 
-.severity-low {
-    background: #d4edda;
-    color: #155724;
+.settlement-form {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    border: 2px solid #28a745;
+    transition: all 0.3s ease;
 }
 
-.severity-medium {
-    background: #fff3cd;
-    color: #856404;
+.settlement-form:hover {
+    box-shadow: 0 10px 30px rgba(40, 167, 69, 0.2);
 }
 
-.severity-high {
-    background: #f8d7da;
-    color: #721c24;
+.quick-actions {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 2px solid #e9ecef;
 }
 
-.severity-critical {
-    background: #f5c6cb;
-    color: #721c24;
-}
-
-.recall-details, .evidence-details {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 8px;
-    border-left: 4px solid #667eea;
-}
-
-/* Job Actions & Admin Actions */
-.job-actions, .admin-actions {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    padding: 1rem 0;
-    border-top: 1px solid #e9ecef;
-    margin-top: 1rem;
-    flex-wrap: wrap;
-}
-
-.status-info {
-    color: #6c757d;
-    font-size: 0.9rem;
-    font-style: italic;
+.quick-actions h6 {
+    color: #dc3545;
+    font-weight: 600;
+    margin-bottom: 1rem;
 }
 
 /* Empty State */
 .empty-state {
+    padding: 4rem 2rem;
     text-align: center;
-    padding: 3rem 2rem;
-    color: #6c757d;
 }
 
-.empty-state i {
-    margin-bottom: 1rem;
+.empty-icon {
+    margin-bottom: 1.5rem;
 }
 
 .empty-state h5 {
-    color: #495057;
+    color: #2c3e50;
+    font-weight: 600;
     margin-bottom: 1rem;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .page-title {
-        font-size: 2rem;
-    }
-    
-    .summary-card {
-        flex-direction: column;
-        text-align: center;
-        gap: 0.5rem;
-    }
-    
-    .job-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-    
-    .job-meta {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .details-content {
-        padding: 1.5rem;
-    }
-    
-    .job-actions {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
+.empty-state p {
+    color: #6c757d;
+    margin-bottom: 2rem;
+}
+
+/* Animation for details row */
+.recall-details-row {
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+}
+
+/* Form Styling */
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.btn-outline-danger {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
 }
 </style>
 
 <script>
 $(document).ready(function() {
-    // Toggle filters visibility
-    $('#toggleFilters').click(function() {
-        $('#filterBody').slideToggle();
-        const icon = $(this).find('i');
-        icon.toggleClass('fa-chevron-down fa-chevron-up');
-    });
-    
-    // Auto-submit form on filter change
-    $('#filterForm select').change(function() {
-        $('#filterForm').submit();
-    });
-    
-    // Search with debounce
-    let searchTimeout;
-    $('#filterForm input[name="search"]').on('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(function() {
+    // Filter form auto-submit
+    $('#filterForm select, #filterForm input').on('change keyup', function() {
+        clearTimeout(window.filterTimeout);
+        window.filterTimeout = setTimeout(function() {
             $('#filterForm').submit();
         }, 500);
     });
-
-    // Toggle job details
-    $('.recalled-job-item').on('click', function(e) {
-        // Don't toggle if clicking on buttons, links, or form elements
-        if ($(e.target).closest('.admin-actions').length || 
-            $(e.target).closest('.settlement-form').length ||
-            $(e.target).is('a') || 
-            $(e.target).is('button') || 
-            $(e.target).is('input') || 
-            $(e.target).is('select') || 
-            $(e.target).is('textarea')) {
-            return;
-        }
-        const jobId = $(this).find('.job-details').attr('id').replace('job-details-', '');
-        toggleJobDetails(jobId);
+    
+    // Toggle details for each row
+    $('.toggle-details').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const jobId = $(this).data('job-id');
+        toggleDetails(jobId);
     });
     
     // Prevent clicks inside the settlement form from collapsing the dropdown
@@ -948,70 +718,60 @@ $(document).ready(function() {
         e.preventDefault();
         e.stopPropagation();
         
-        const $form = $(this);
-        const $button = $form.find('button[type="submit"]');
-        const jobId = $form.data('job-id');
+        const form = $(this);
+        const jobId = form.data('job-id');
+        const formData = form.serialize();
         
-        // Get form values
-        const adminDecision = $form.find('.admin-decision').val();
-        const adminNotes = $form.find('.admin-notes').val();
-        const resolutionType = $form.find('[name="resolution_type"]').val();
+        // Show loading state
+        const submitBtn = form.find('button[type="submit"]');
+        const originalText = submitBtn.html();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Settling...');
         
-        // Validate required fields
-        if (!adminDecision) {
-            alert('Please select an admin decision.');
-            return;
-        }
-        
-        if (!adminNotes.trim()) {
-            alert('Please provide admin notes about the resolution.');
-            return;
-        }
-        
-        if (confirm('Are you sure you want to mark this recall as settled? This action will close the recall and notify the host.')) {
-            $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Settling...');
-            
-            $.ajax({
-                url: '<?php echo base_url("admin/settle_recall"); ?>',
-                type: 'POST',
-                data: {
-                    job_id: jobId,
-                    admin_decision: adminDecision,
-                    resolution_type: resolutionType,
-                    admin_notes: adminNotes
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.message);
-                        $button.prop('disabled', false).html('<i class="fas fa-check-circle me-1"></i>Mark as Settled');
-                    }
-                },
-                error: function() {
-                    alert('An error occurred. Please try again.');
-                    $button.prop('disabled', false).html('<i class="fas fa-check-circle me-1"></i>Mark as Settled');
+        $.ajax({
+            url: '<?php echo base_url("admin/settle_recall"); ?>',
+            type: 'POST',
+            data: formData + '&job_id=' + jobId,
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Show success message
+                    alert('Recall settled successfully!');
+                    
+                    // Reload the page to show updated status
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                    submitBtn.prop('disabled', false).html(originalText);
                 }
-            });
-        } else {
-            return false;
-        }
+            },
+            error: function() {
+                alert('An error occurred while settling the recall. Please try again.');
+                submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
     });
-
 });
 
-function toggleJobDetails(jobId) {
-    const details = $('#job-details-' + jobId);
-    const jobItem = details.closest('.recalled-job-item');
+// Toggle details function
+function toggleDetails(jobId) {
+    const detailsRow = $('#details-' + jobId);
+    const toggleBtn = $('.toggle-details[data-job-id="' + jobId + '"]');
+    const icon = toggleBtn.find('i');
     
-    if (details.is(':visible')) {
-        details.slideUp();
-        jobItem.removeClass('expanded');
+    if (detailsRow.is(':visible')) {
+        detailsRow.slideUp(300);
+        icon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+        toggleBtn.removeClass('btn-primary').addClass('btn-outline-primary');
     } else {
-        details.slideDown();
-        jobItem.addClass('expanded');
+        // Close all other open details
+        $('.recall-details-row:visible').slideUp(300);
+        $('.toggle-details i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+        $('.toggle-details').removeClass('btn-primary').addClass('btn-outline-primary');
+        
+        // Open this one
+        detailsRow.slideDown(300);
+        icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+        toggleBtn.removeClass('btn-outline-primary').addClass('btn-primary');
     }
 }
 </script>
