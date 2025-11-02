@@ -43,6 +43,16 @@ class Cleaner extends MY_Controller
     {
         $user_id = $this->auth_user_id;
         
+        // Check profile completion - cleaners need 50%+ completion to access jobs
+        $this->load->model('M_user_profiles');
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        if ($completion['percentage'] < 50) {
+            $this->session->set_flashdata('text', 'Please complete your profile setup to access job listings. You need at least 50% profile completion.');
+            $this->session->set_flashdata('type', 'warning');
+            redirect('cleaner/profile-setup-required');
+        }
+        
         // Get cleaner statistics
         $stats = [
             'total_jobs' => $this->M_jobs->get_total_jobs_for_cleaner($user_id),
@@ -61,6 +71,11 @@ class Cleaner extends MY_Controller
         $pending_disputes = $this->M_jobs->get_cleaner_disputed_jobs($user_id);
         $pending_price_adjustments = $this->M_jobs->get_pending_price_adjustments_for_cleaner($user_id);
         
+        // Add review summary
+        $this->load->model('M_reviews');
+        $review_stats = $this->M_reviews->calculate_user_average_ratings($user_id);
+        $recent_reviews = $this->M_reviews->get_public_reviews_for_user($user_id, 3);
+        
         // Get dashboard data
         $data = [
             'title' => 'Cleaner Dashboard',
@@ -73,7 +88,9 @@ class Cleaner extends MY_Controller
             'recent_jobs' => $recent_jobs,
             'assigned_jobs' => $assigned_jobs,
             'pending_disputes' => $pending_disputes,
-            'pending_price_adjustments' => $pending_price_adjustments
+            'pending_price_adjustments' => $pending_price_adjustments,
+            'review_stats' => $review_stats,
+            'recent_reviews' => $recent_reviews
         ];
         
         // Load the cleaner sidebar content as a string
@@ -94,6 +111,16 @@ class Cleaner extends MY_Controller
     {
         $user_id = $this->auth_user_id;
         
+        // Check profile completion - cleaners need 50%+ completion to access jobs
+        $this->load->model('M_user_profiles');
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        if ($completion['percentage'] < 50) {
+            $this->session->set_flashdata('text', 'Please complete your profile setup to access job listings. You need at least 50% profile completion.');
+            $this->session->set_flashdata('type', 'warning');
+            redirect('cleaner/profile-setup-required');
+        }
+        
         // Get filter parameters
         $filters = [
             'search' => $this->input->get('search'),
@@ -108,6 +135,22 @@ class Cleaner extends MY_Controller
         $per_page = 12;
         $offset = ($page - 1) * $per_page;
         
+        // Get cleaner's service areas and STR status
+        $service_areas = [];
+        $cleaner_offers_str = false;
+        if ($this->db->table_exists('user_profiles')) {
+            $this->load->model('M_user_profiles');
+            $service_areas = $this->M_user_profiles->get_cleaner_service_locations($user_id);
+            
+            // Check if cleaner offers STR services
+            $cleaner_profile = $this->M_user_profiles->get_profile_by_user_id($user_id);
+            $cleaner_offers_str = !empty($cleaner_profile->services_str);
+        }
+        
+        // Add STR filter based on cleaner's capability
+        $filters['cleaner_offers_str'] = $cleaner_offers_str;
+        $filters['cleaner_id'] = $user_id;
+
         // Get jobs data
         $data = [
             'title' => 'Browse Jobs',
@@ -119,7 +162,9 @@ class Cleaner extends MY_Controller
             'user_info' => $this->M_users->get_user_by_id($user_id),
             'filters' => $filters,
             'page' => $page,
-            'per_page' => $per_page
+            'per_page' => $per_page,
+            'service_areas' => $service_areas,
+            'cleaner_offers_str' => $cleaner_offers_str
         ];
         
         // Load jobs if tables exist
@@ -127,7 +172,7 @@ class Cleaner extends MY_Controller
             // Get jobs with favorites status, excluding ignored ones
             if ($this->db->table_exists('job_favorites')) {
                 $data['jobs'] = $this->M_favorites->get_jobs_with_favorites($user_id, $filters, $per_page, $offset);
-                $data['total_jobs'] = $this->M_jobs->count_active_jobs($filters);
+                $data['total_jobs'] = $this->M_jobs->count_active_jobs($filters, $user_id);
             } else {
                 // Fallback to regular job loading
                 if ($this->db->table_exists('ignored_jobs')) {
@@ -135,22 +180,44 @@ class Cleaner extends MY_Controller
                 } else {
                     $data['jobs'] = $this->M_jobs->get_active_jobs($filters, $per_page, $offset);
                 }
-                $data['total_jobs'] = $this->M_jobs->count_active_jobs($filters);
+                $data['total_jobs'] = $this->M_jobs->count_active_jobs($filters, $user_id);
             }
             $data['total_pages'] = ceil($data['total_jobs'] / $per_page);
             
             // Check which jobs the cleaner has already applied to and add favorite status
+            // Also fetch host ratings for each job
+            $this->load->model('M_reviews');
             if ($this->db->table_exists('offers')) {
                 foreach ($data['jobs'] as $job) {
                     $job->has_applied = $this->M_offers->cleaner_has_offered($user_id, $job->id);
                     $job->has_been_declined = $this->M_offers->cleaner_has_been_declined($user_id, $job->id);
                     $job->is_favorited = $this->db->table_exists('job_favorites') ? $this->M_favorites->is_job_favorited($user_id, $job->id) : false;
+                    
+                    // Add host rating
+                    if (!empty($job->host_id)) {
+                        $host_ratings = $this->M_reviews->calculate_user_average_ratings($job->host_id);
+                        $job->host_rating = $host_ratings['overall_average'] ?? 0;
+                        $job->host_review_count = $host_ratings['total_reviews'] ?? 0;
+                    } else {
+                        $job->host_rating = 0;
+                        $job->host_review_count = 0;
+                    }
                 }
             } else {
                 foreach ($data['jobs'] as $job) {
                     $job->has_applied = false;
                     $job->has_been_declined = false;
                     $job->is_favorited = $this->db->table_exists('job_favorites') ? $this->M_favorites->is_job_favorited($user_id, $job->id) : false;
+                    
+                    // Add host rating
+                    if (!empty($job->host_id)) {
+                        $host_ratings = $this->M_reviews->calculate_user_average_ratings($job->host_id);
+                        $job->host_rating = $host_ratings['overall_average'] ?? 0;
+                        $job->host_review_count = $host_ratings['total_reviews'] ?? 0;
+                    } else {
+                        $job->host_rating = 0;
+                        $job->host_review_count = 0;
+                    }
                 }
             }
         } else {
@@ -211,6 +278,16 @@ class Cleaner extends MY_Controller
     {
         $user_id = $this->auth_user_id;
         
+        // Check profile completion - cleaners need 50%+ completion to view job details
+        $this->load->model('M_user_profiles');
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        if ($completion['percentage'] < 50) {
+            $this->session->set_flashdata('text', 'Please complete your profile setup to view job details. You need at least 50% profile completion.');
+            $this->session->set_flashdata('type', 'warning');
+            redirect('cleaner/profile-setup-required');
+        }
+        
         // Check if jobs table exists
         if (!$this->db->table_exists('jobs')) {
             show_404();
@@ -246,6 +323,46 @@ class Cleaner extends MY_Controller
             $has_applied = $this->M_offers->cleaner_has_offered($user_id, $job_id);
         }
         
+        // Check if this cleaner is assigned to this job
+        $is_assigned = ($job->assigned_cleaner_id == $user_id);
+        
+        // Get pricing parameters for payout calculation
+        $pricing_params = [
+            'base_charge' => 25.00,
+            'tax_percent' => 10,
+            'app_percent' => 15
+        ];
+        
+        if ($this->db->table_exists('pricing_settings')) {
+            $pricing_row = $this->db->get('pricing_settings')->row();
+            if ($pricing_row) {
+                $pricing_params = [
+                    'base_charge' => $pricing_row->base_charge,
+                    'tax_percent' => $pricing_row->tax_percent,
+                    'app_percent' => $pricing_row->app_percent
+                ];
+            }
+        }
+        
+        // Load host profile information
+        $this->load->model('M_user_profiles');
+        $host_profile = $this->M_user_profiles->get_profile_with_user_data($job->host_id);
+        
+        // Get host reviews and ratings
+        $this->load->model('M_reviews');
+        $host_reviews = $this->M_reviews->get_public_reviews_for_user($job->host_id, 10);
+        $host_review_stats = $this->M_reviews->calculate_user_average_ratings($job->host_id);
+        $host_rating_distribution = $this->M_reviews->get_rating_distribution($job->host_id);
+        
+        // Get host statistics
+        $host_stats = [
+            'total_jobs' => $this->M_jobs->get_total_jobs_for_host($job->host_id),
+            'active_jobs' => count($this->M_jobs->get_host_active_jobs($job->host_id)),
+            'completed_jobs' => $this->M_jobs->get_completed_jobs_count_for_host($job->host_id),
+            'average_rating' => $host_review_stats['overall_average'] ?? 0,
+            'total_reviews' => $host_review_stats['total_reviews'] ?? 0
+        ];
+        
         $data = [
             'title' => 'Job Details - ' . $job->title,
             'page_icon' => 'fas fa-clipboard-list',
@@ -256,7 +373,14 @@ class Cleaner extends MY_Controller
             ],
             'job' => $job,
             'has_applied' => $has_applied,
-            'user_info' => $this->M_users->get_user_by_id($user_id)
+            'is_assigned' => $is_assigned,
+            'pricing_params' => $pricing_params,
+            'user_info' => $this->M_users->get_user_by_id($user_id),
+            'host_profile' => $host_profile,
+            'host_stats' => $host_stats,
+            'host_reviews' => $host_reviews,
+            'host_review_stats' => $host_review_stats,
+            'host_rating_distribution' => $host_rating_distribution
         ];
         
         // Load the cleaner sidebar content as a string
@@ -280,6 +404,20 @@ class Cleaner extends MY_Controller
         }
         
         $user_id = $this->auth_user_id;
+        
+        // Check profile completion - cleaners need 50%+ completion to make offers
+        $this->load->model('M_user_profiles');
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        if ($completion['percentage'] < 50) {
+            $this->output->set_status_header(400);
+            $this->output->set_content_type('application/json');
+            $this->output->set_output(json_encode([
+                'success' => false,
+                'message' => 'Please complete your profile setup to make offers. You need at least 50% profile completion.'
+            ]));
+            return;
+        }
         
         if (!$user_id) {
             $this->session->set_flashdata('text', 'You must be logged in to make an offer.');
@@ -327,22 +465,57 @@ class Cleaner extends MY_Controller
             redirect('cleaner/job/' . $job_id);
         }
         
-        // Prepare offer data based on offer type
-        $amount = $this->input->post('amount');
+        // Get pricing parameters for calculations
+        $pricing_params = [
+            'base_charge' => 25.00,
+            'tax_percent' => 10,
+            'app_percent' => 15
+        ];
         
-        // For accept offers, use the suggested price if amount is not provided
-        if ($offer_type === 'accept' && empty($amount)) {
-            $amount = number_format($job->suggested_price, 2, '.', '');
-        } else if (!empty($amount)) {
-            // Format amount to 2 decimal places if provided
-            $amount = number_format((float)$amount, 2, '.', '');
+        if ($this->db->table_exists('pricing_settings')) {
+            $pricing_row = $this->db->get('pricing_settings')->row();
+            if ($pricing_row) {
+                $pricing_params = [
+                    'base_charge' => $pricing_row->base_charge,
+                    'tax_percent' => $pricing_row->tax_percent,
+                    'app_percent' => $pricing_row->app_percent
+                ];
+            }
         }
+        
+        // Prepare offer data based on offer type
+        $cleaner_payout = 0;
+        $host_price = 0;
+        
+        if ($offer_type === 'accept') {
+            // Accept: Cleaner accepts the calculated payout from host's suggested price
+            $host_price = $job->suggested_price;
+            
+            // Calculate cleaner's payout
+            $tax_amount = ($host_price * $pricing_params['tax_percent']) / 100;
+            $app_fee = ($host_price * $pricing_params['app_percent']) / 100;
+            $cleaner_payout = $host_price - $pricing_params['base_charge'] - $tax_amount - $app_fee;
+            
+        } else if ($offer_type === 'counter') {
+            // Counter: Cleaner specifies desired payout, calculate adjusted host price
+            $desired_payout = (float)$this->input->post('amount');
+            
+            // Reverse calculation: host_price = (desired_payout + base_charge) / (1 - (tax% + app%)/100)
+            $fee_percentage = ($pricing_params['tax_percent'] + $pricing_params['app_percent']) / 100;
+            $host_price = ($desired_payout + $pricing_params['base_charge']) / (1 - $fee_percentage);
+            $cleaner_payout = $desired_payout;
+        }
+        
+        // Round to 2 decimal places
+        $host_price = number_format($host_price, 2, '.', '');
+        $cleaner_payout = number_format($cleaner_payout, 2, '.', '');
         
         $offer_data = [
             'job_id' => $job_id,
             'cleaner_id' => $user_id,
             'offer_type' => $offer_type,
-            'amount' => $amount,
+            'amount' => $host_price,  // What the host will pay
+            'cleaner_payout' => $cleaner_payout,  // What the cleaner will receive
             'original_price' => $job->suggested_price,
             'status' => 'pending'
         ];
@@ -350,7 +523,7 @@ class Cleaner extends MY_Controller
         // Set expiration and counter price for counter offers
         if ($offer_type === 'counter') {
             $offer_data['expires_at'] = date('Y-m-d H:i:s', strtotime('+6 hours'));
-            $offer_data['counter_price'] = $amount;
+            $offer_data['counter_price'] = $host_price;  // Host's adjusted price
             $offer_data['counter_offered_at'] = date('Y-m-d H:i:s');
         } else {
             // Accept offers don't expire
@@ -418,6 +591,105 @@ class Cleaner extends MY_Controller
         
         // Load the offers content as a string
         $data['body'] = $this->load->view('cleaner/offers', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+    
+    /**
+     * Show all job applications (offers) made by the cleaner
+     * Replaces the old "My Offers" page with better naming
+     */
+    public function applications()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Get filters
+        $date_from = $this->input->get('date_from');
+        $date_to = $this->input->get('date_to');
+        $status_filter = $this->input->get('status');
+        
+        // Check if offers table exists
+        if (!$this->db->table_exists('offers')) {
+            $data = [
+                'title' => 'My Job Applications',
+                'page_icon' => 'fas fa-file-invoice',
+                'breadcrumbs' => [
+                    ['title' => 'Dashboard', 'url' => 'cleaner'],
+                    ['title' => 'Job Applications', 'url' => '', 'active' => true]
+                ],
+                'offers' => [],
+                'pending_offers' => [],
+                'accepted_offers' => [],
+                'declined_offers' => [],
+                'user_info' => $this->M_users->get_user_by_id($user_id)
+            ];
+        } else {
+            // Get offers data (all applications)
+            $offers = $this->M_offers->get_offers_by_cleaner($user_id);
+            
+            // Apply filters
+            $filtered_offers = [];
+            foreach ($offers as $offer) {
+                // Date filter
+                if ($date_from && strtotime($offer->created_at) < strtotime($date_from)) {
+                    continue;
+                }
+                if ($date_to && strtotime($offer->created_at) > strtotime($date_to . ' 23:59:59')) {
+                    continue;
+                }
+                
+                // Status filter
+                if ($status_filter) {
+                    if ($status_filter === 'pending' && !($offer->status === 'pending' && $offer->job_status === 'open')) {
+                        continue;
+                    }
+                    if ($status_filter === 'accepted' && !($offer->status === 'accepted' || ($offer->status === 'pending' && in_array($offer->job_status, ['assigned', 'in_progress'])))) {
+                        continue;
+                    }
+                    if ($status_filter === 'declined' && !($offer->status === 'declined' || ($offer->status === 'pending' && !in_array($offer->job_status, ['open', 'assigned', 'in_progress'])))) {
+                        continue;
+                    }
+                }
+                
+                $filtered_offers[] = $offer;
+            }
+            
+            // Separate offers by status for better organization
+            $pending_offers = [];
+            $accepted_offers = [];
+            $declined_offers = [];
+            
+            foreach ($filtered_offers as $offer) {
+                if ($offer->status === 'pending' && $offer->job_status === 'open') {
+                    $pending_offers[] = $offer;
+                } elseif ($offer->status === 'accepted' || ($offer->status === 'pending' && in_array($offer->job_status, ['assigned', 'in_progress']))) {
+                    $accepted_offers[] = $offer;
+                } else {
+                    $declined_offers[] = $offer;
+                }
+            }
+            
+            $data = [
+                'title' => 'My Job Applications',
+                'page_icon' => 'fas fa-file-invoice',
+                'breadcrumbs' => [
+                    ['title' => 'Dashboard', 'url' => 'cleaner'],
+                    ['title' => 'Job Applications', 'url' => '', 'active' => true]
+                ],
+                'offers' => $filtered_offers,
+                'pending_offers' => $pending_offers,
+                'accepted_offers' => $accepted_offers,
+                'declined_offers' => $declined_offers,
+                'user_info' => $this->M_users->get_user_by_id($user_id)
+            ];
+        }
+        
+        // Load the cleaner sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        
+        // Load the applications view
+        $data['body'] = $this->load->view('cleaner/applications', $data, TRUE);
         
         // Load the layout with the content
         $this->load->view('admin/template/layout_with_sidebar', $data);
@@ -610,12 +882,58 @@ class Cleaner extends MY_Controller
         // Get closed jobs only with dispute information
         $closed_jobs = $this->M_jobs->get_closed_jobs_for_cleaner($user_id, $start_date, $end_date);
         
+        // Fetch pricing parameters
+        $pricing_params = [
+            'base_charge' => 25.00,
+            'tax_percent' => 10.00,
+            'app_percent' => 15.00
+        ];
+        
+        $pricing_settings = $this->db->get('pricing_settings')->row();
+        if ($pricing_settings) {
+            $pricing_params = [
+                'base_charge' => $pricing_settings->base_charge,
+                'tax_percent' => $pricing_settings->tax_percent,
+                'app_percent' => $pricing_settings->app_percent
+            ];
+        }
+        
         // Get dispute and price adjustment information for each job
         $jobs_with_details = [];
         foreach ($closed_jobs as $job) {
             $job_details = $job;
             $job_details->dispute_info = null;
             $job_details->price_adjustments = [];
+            $job_details->accepted_offer = null;
+            $job_details->cleaner_payout = null;
+            
+            // Get accepted offer details (for counter offers)
+            $accepted_offer = $this->db
+                ->where('job_id', $job->id)
+                ->where('status', 'accepted')
+                ->get('offers')
+                ->row();
+            
+            if ($accepted_offer) {
+                $job_details->accepted_offer = $accepted_offer;
+                
+                // Calculate actual cleaner payout
+                if (!empty($accepted_offer->cleaner_payout)) {
+                    $job_details->cleaner_payout = $accepted_offer->cleaner_payout;
+                } else {
+                    // Calculate from offer amount
+                    $offer_amount = $accepted_offer->amount;
+                    $tax_amount = ($offer_amount * $pricing_params['tax_percent']) / 100;
+                    $app_amount = ($offer_amount * $pricing_params['app_percent']) / 100;
+                    $job_details->cleaner_payout = $offer_amount - $pricing_params['base_charge'] - $tax_amount - $app_amount;
+                }
+            } else {
+                // Calculate from suggested price or final price
+                $base_price = $job->final_price ?: ($job->accepted_price ?: $job->suggested_price);
+                $tax_amount = ($base_price * $pricing_params['tax_percent']) / 100;
+                $app_amount = ($base_price * $pricing_params['app_percent']) / 100;
+                $job_details->cleaner_payout = $base_price - $pricing_params['base_charge'] - $tax_amount - $app_amount;
+            }
             
             // Get dispute information if applicable
             if ($job->dispute_resolution) {
@@ -638,8 +956,18 @@ class Cleaner extends MY_Controller
             $jobs_with_details[] = $job_details;
         }
         
-        // Get earnings summary
-        $earnings_summary = $this->M_jobs->get_cleaner_earnings_summary($user_id);
+        // Get earnings summary with date filtering
+        $earnings_summary = $this->M_jobs->get_cleaner_earnings_summary($user_id, $start_date, $end_date);
+        
+        // Calculate total cleaner payout (not host's payment amount)
+        $total_cleaner_payout = 0;
+        foreach ($jobs_with_details as $job) {
+            $total_cleaner_payout += $job->cleaner_payout;
+        }
+        
+        // Override the total_earnings with cleaner's actual payout
+        $earnings_summary['total_earnings'] = $total_cleaner_payout;
+        $earnings_summary['avg_earnings'] = count($jobs_with_details) > 0 ? ($total_cleaner_payout / count($jobs_with_details)) : 0;
         
         $data = [
             'title' => 'My Earnings',
@@ -886,9 +1214,9 @@ class Cleaner extends MY_Controller
 
         if ($this->form_validation->run() === FALSE) {
             $errors = $this->form_validation->error_array();
-            $this->session->set_flashdata('text', 'Please correct the errors: ' . implode(', ', $errors));
+            $this->session->set_flashdata('text', '⚠️ Invalid Input: The service code must be exactly 6 digits. Please try again.');
             $this->session->set_flashdata('type', 'error');
-            redirect('cleaner/assigned_jobs');
+            redirect('cleaner/start_job_page/' . $this->input->post('job_id'));
         }
 
         $job_id = $this->input->post('job_id');
@@ -914,10 +1242,11 @@ class Cleaner extends MY_Controller
             $this->session->set_flashdata('type', 'success');
             redirect('cleaner/jobs-in-progress'); // Redirect to jobs in progress page
         } else {
-            log_message('debug', "Failed to start job $job_id for user $user_id");
-            $this->session->set_flashdata('text', 'Invalid service code or job not found. Please check the code provided by the host.');
+            log_message('debug', "Failed to start job $job_id for user $user_id - Invalid OTP: $otp_code");
+            $this->session->set_flashdata('text', '❌ Incorrect Service Code! Please verify the 6-digit code provided by the host and try again.');
             $this->session->set_flashdata('type', 'error');
-            redirect('cleaner/assigned_jobs');
+            // Also pass error via URL parameter as backup
+            redirect('cleaner/start_job_page/' . $job_id . '?error=invalid_otp'); // Redirect back to start job page
         }
     }
 
@@ -974,6 +1303,43 @@ class Cleaner extends MY_Controller
             redirect('cleaner/assigned_jobs');
         }
 
+        // Get pricing parameters
+        $pricing_params = [
+            'base_charge' => 25.00,
+            'tax_percent' => 10,
+            'app_percent' => 15
+        ];
+        
+        if ($this->db->table_exists('pricing_settings')) {
+            $pricing_row = $this->db->get('pricing_settings')->row();
+            if ($pricing_row) {
+                $pricing_params = [
+                    'base_charge' => $pricing_row->base_charge,
+                    'tax_percent' => $pricing_row->tax_percent,
+                    'app_percent' => $pricing_row->app_percent
+                ];
+            }
+        }
+        
+        // Get accepted offer details
+        $accepted_offer = null;
+        $offers = $this->M_offers->get_offers_by_job($job_id);
+        foreach ($offers as $offer) {
+            if ($offer->status === 'accepted' && $offer->cleaner_id == $user_id) {
+                $accepted_offer = $offer;
+                break;
+            }
+        }
+        
+        // Load host profile and reviews
+        $this->load->model('M_user_profiles');
+        $this->load->model('M_reviews');
+        
+        $host_profile = $this->M_user_profiles->get_profile_with_user_data($job->host_id);
+        $host_reviews = $this->M_reviews->get_public_reviews_for_user($job->host_id, 10);
+        $host_review_stats = $this->M_reviews->calculate_user_average_ratings($job->host_id);
+        $host_rating_distribution = $this->M_reviews->get_rating_distribution($job->host_id);
+
         $data = [
             'title' => 'Start Job - ' . $job->title,
             'page_icon' => 'fas fa-play-circle',
@@ -983,7 +1349,13 @@ class Cleaner extends MY_Controller
                 ['title' => 'Start Job', 'url' => '', 'active' => true]
             ],
             'job' => $job,
-            'user_info' => $this->M_users->get_user_by_id($user_id)
+            'user_info' => $this->M_users->get_user_by_id($user_id),
+            'pricing_params' => $pricing_params,
+            'accepted_offer' => $accepted_offer,
+            'host_profile' => $host_profile,
+            'host_reviews' => $host_reviews,
+            'host_review_stats' => $host_review_stats,
+            'host_rating_distribution' => $host_rating_distribution
         ];
         
         // Load the sidebar content as a string
@@ -1100,12 +1472,63 @@ class Cleaner extends MY_Controller
         // Get completed jobs for this cleaner (only completed status)
         $completed_jobs = $this->M_jobs->get_completed_jobs_for_cleaner($user_id);
         
+        // Load reviews model and pricing settings
+        $this->load->model('M_reviews');
+        
+        // Fetch pricing parameters
+        $pricing_params = [
+            'base_charge' => 25.00,
+            'tax_percent' => 10.00,
+            'app_percent' => 15.00
+        ];
+        
+        $pricing_settings = $this->db->get('pricing_settings')->row();
+        if ($pricing_settings) {
+            $pricing_params = [
+                'base_charge' => $pricing_settings->base_charge,
+                'tax_percent' => $pricing_settings->tax_percent,
+                'app_percent' => $pricing_settings->app_percent
+            ];
+        }
+        
         // Get dispute and price adjustment information for each job
         $jobs_with_details = [];
         foreach ($completed_jobs as $job) {
             $job_details = $job;
             $job_details->dispute_info = null;
             $job_details->price_adjustments = [];
+            $job_details->accepted_offer = null;
+            $job_details->cleaner_payout = null;
+            
+            // Get cleaner's review of the host for this job
+            $job_details->my_review = $this->M_reviews->get_review_by_job_and_reviewer($job->id, $user_id);
+            
+            // Get accepted offer details (for counter offers)
+            $accepted_offer = $this->db
+                ->where('job_id', $job->id)
+                ->where('status', 'accepted')
+                ->get('offers')
+                ->row();
+            
+            if ($accepted_offer) {
+                $job_details->accepted_offer = $accepted_offer;
+                
+                // Calculate actual cleaner payout
+                if (!empty($accepted_offer->cleaner_payout)) {
+                    $job_details->cleaner_payout = $accepted_offer->cleaner_payout;
+                } else {
+                    // Calculate from offer amount
+                    $offer_amount = $accepted_offer->amount;
+                    $tax_amount = ($offer_amount * $pricing_params['tax_percent']) / 100;
+                    $app_amount = ($offer_amount * $pricing_params['app_percent']) / 100;
+                    $job_details->cleaner_payout = $offer_amount - $pricing_params['base_charge'] - $tax_amount - $app_amount;
+                }
+            } else {
+                // Calculate from suggested price
+                $tax_amount = ($job->suggested_price * $pricing_params['tax_percent']) / 100;
+                $app_amount = ($job->suggested_price * $pricing_params['app_percent']) / 100;
+                $job_details->cleaner_payout = $job->suggested_price - $pricing_params['base_charge'] - $tax_amount - $app_amount;
+            }
             
             // Get dispute information if applicable
             if ($job->status === 'disputed' || ($job->status === 'closed' && $job->dispute_resolution)) {
@@ -1130,8 +1553,15 @@ class Cleaner extends MY_Controller
         
         // Get summary statistics
         $total_jobs = $this->M_jobs->get_completed_jobs_count_for_cleaner($user_id);
-        $potential_earnings = $this->M_jobs->get_potential_earnings_for_cleaner($user_id);
         $disputed_count = $this->M_jobs->get_disputed_jobs_count_for_cleaner($user_id);
+        
+        // Calculate potential earnings from cleaner payouts
+        $potential_earnings = 0;
+        foreach ($jobs_with_details as $job) {
+            if ($job->cleaner_payout) {
+                $potential_earnings += $job->cleaner_payout;
+            }
+        }
         
         // Prepare view data
         $data = [
@@ -1155,6 +1585,429 @@ class Cleaner extends MY_Controller
         $data['body'] = $this->load->view('cleaner/completed_jobs', $data, TRUE);
         
         // Load the layout
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Recalled Jobs - View jobs that were recalled by the host
+     */
+    public function recalled_jobs()
+    {
+        $user_id = $this->auth_user_id;
+        
+        if (!$user_id) {
+            show_error('User not authenticated. Please login again.', 401);
+        }
+        
+        // Get filter parameters
+        $filters = [
+            'reason' => $this->input->get('reason'),
+            'severity' => $this->input->get('severity'),
+            'search' => $this->input->get('search'),
+            'sort' => $this->input->get('sort') ?? 'recalled_at',
+            'date_from' => $this->input->get('date_from'),
+            'date_to' => $this->input->get('date_to')
+        ];
+        
+        // Get recalled jobs for this cleaner
+        $recalled_jobs = $this->M_jobs->get_cleaner_recalled_jobs($user_id, $filters);
+        
+        // Calculate summary statistics
+        $total_recalled = count($recalled_jobs);
+        $settled_count = 0;
+        $pending_count = 0;
+        
+        foreach ($recalled_jobs as $job) {
+            if ($job->status === 'recall_settled') {
+                $settled_count++;
+            } else {
+                $pending_count++;
+            }
+        }
+        
+        // Prepare view data
+        $data = [
+            'title' => 'Recalled Jobs',
+            'page_icon' => 'fas fa-exclamation-triangle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'Recalled Jobs', 'url' => '', 'active' => true]
+            ],
+            'recalled_jobs' => $recalled_jobs,
+            'total_recalled' => $total_recalled,
+            'settled_count' => $settled_count,
+            'pending_count' => $pending_count,
+            'filters' => $filters
+        ];
+        
+        // Load sidebar
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', NULL, TRUE);
+        
+        // Load the main content
+        $data['body'] = $this->load->view('cleaner/recalled_jobs', $data, TRUE);
+        
+        // Load the layout
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Cleaner Profile Management
+     * View cleaner's own profile
+     */
+    public function my_profile()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Load profile model
+        $this->load->model('M_user_profiles');
+        
+        // Get profile data
+        $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        
+        if (!$profile) {
+            // Create default profile if it doesn't exist
+            $this->M_user_profiles->create_default_profile($user_id);
+            $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        }
+        
+        // Calculate profile completion
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        // Load reviews model to get cleaner's reviews
+        $this->load->model('M_reviews');
+        $reviews = $this->M_reviews->get_public_reviews_for_user($user_id, 10);
+        $review_stats = $this->M_reviews->calculate_user_average_ratings($user_id);
+        $rating_distribution = $this->M_reviews->get_rating_distribution($user_id);
+        
+        // Get job statistics
+        $job_stats = [];
+        if (isset($this->M_jobs)) {
+            $job_stats = [
+                'completed_jobs' => $this->M_jobs->get_completed_jobs_count_for_cleaner($user_id),
+                'active_jobs' => $this->M_jobs->get_active_jobs_for_cleaner($user_id),
+                'total_earnings' => $this->M_jobs->get_total_earnings_for_cleaner($user_id),
+                'average_rating' => (isset($review_stats['total_reviews']) && $review_stats['total_reviews'] > 0) ? $review_stats['overall_average'] : 0
+            ];
+        }
+        
+        $data = [
+            'title' => 'My Profile',
+            'page_icon' => 'fas fa-user-circle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'My Profile', 'url' => '', 'active' => true]
+            ],
+            'profile' => $profile,
+            'completion' => $completion,
+            'job_stats' => $job_stats,
+            'reviews' => $reviews,
+            'review_stats' => $review_stats,
+            'rating_distribution' => $rating_distribution,
+            'user_info' => $this->M_users->get_user_by_id($user_id)
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        
+        // Load the profile view content as a string
+        $data['body'] = $this->load->view('cleaner/profile/my_profile', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Edit Cleaner's Own Profile
+     * Display profile edit form
+     */
+    public function edit_my_profile()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Load profile model
+        $this->load->model('M_user_profiles');
+        
+        // Get profile data
+        $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        
+        if (!$profile) {
+            // Create default profile if it doesn't exist
+            $this->M_user_profiles->create_default_profile($user_id);
+            $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        }
+        
+        // Calculate profile completion
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        // Get service areas and specialties for cleaners
+        $service_areas = $this->M_user_profiles->get_service_areas();
+        $specialties = $this->M_user_profiles->get_specialties();
+        
+        $data = [
+            'title' => 'Edit My Profile',
+            'page_icon' => 'fas fa-user-edit',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'My Profile', 'url' => 'cleaner/my-profile'],
+                ['title' => 'Edit', 'url' => '', 'active' => true]
+            ],
+            'profile' => $profile,
+            'completion' => $completion,
+            'service_areas' => $service_areas,
+            'specialties' => $specialties,
+            'user_info' => $this->M_users->get_user_by_id($user_id)
+        ];
+        
+        // Load the sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        
+        // Load the profile edit content as a string
+        $data['body'] = $this->load->view('cleaner/profile/edit_profile', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Update Cleaner's Own Profile (AJAX)
+     * Process profile update form submission
+     */
+    public function update_my_profile()
+    {
+        // Set JSON header first
+        header('Content-Type: application/json');
+        
+        try {
+            // Log the request for debugging
+            log_message('info', 'Cleaner profile update request received');
+            
+            if ($this->input->method() !== 'post') {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Invalid request method'
+                ]);
+                return;
+            }
+            
+            $user_id = $this->auth_user_id;
+            
+            // Fallback to session if auth_user_id is not available
+            if (!$user_id) {
+                $user_id = $this->session->userdata('user_id');
+                if (!$user_id) {
+                    $user_id = $this->session->userdata('id'); // Try 'id' field
+                }
+            }
+            
+            log_message('info', 'Auth user ID: ' . ($this->auth_user_id ? $this->auth_user_id : 'NULL'));
+            log_message('info', 'Session user ID: ' . ($user_id ? $user_id : 'NULL'));
+            
+            if (!$user_id) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ]);
+                return;
+            }
+            
+            // Load required models
+            $this->load->model('M_user_profiles');
+            $this->load->model('M_users');
+            log_message('info', 'Models loaded');
+            
+            // Get form data
+            $bio = trim($this->input->post('bio'));
+            $phone = trim($this->input->post('phone'));
+            $address = trim($this->input->post('address'));
+            
+            // Parse city and state from "City, State" format
+            $city_full = trim($this->input->post('city'));
+            $city = '';
+            $country = ''; // DB column is 'country' but stores state
+            
+            if (!empty($city_full) && strpos($city_full, ',') !== false) {
+                $parts = explode(',', $city_full, 2);
+                $city = trim($parts[0]);
+                $country = trim($parts[1]);
+            } else {
+                $city = $city_full;
+            }
+            
+            $is_public = $this->input->post('is_public') ? 1 : 0;
+            
+            // Get cleaner-specific fields
+            $service_areas = $this->input->post('service_areas');
+            $specialties = $this->input->post('specialties');
+            $services_str = $this->input->post('services_str') ? 1 : 0;
+            
+            log_message('info', 'Form data received - Bio length: ' . strlen($bio) . ', Phone: ' . $phone);
+            log_message('info', 'STR services checkbox value: ' . ($this->input->post('services_str') ?? 'NULL') . ' | Converted to: ' . $services_str);
+            
+            // Prepare update data for user_profiles table
+            $update_data = [
+                'bio' => $bio,
+                'phone' => $phone,
+                'is_public' => $is_public,
+                'services_str' => $services_str,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            // Add service areas and specialties for cleaners
+            if ($service_areas) {
+                $update_data['service_areas'] = json_encode($service_areas);
+            }
+            if ($specialties) {
+                $update_data['specialties'] = json_encode($specialties);
+            }
+            
+            // Update profile
+            log_message('info', 'About to update profile for user: ' . $user_id);
+            $result = $this->M_user_profiles->update_profile($user_id, $update_data);
+            log_message('info', 'Profile update result: ' . ($result ? 'SUCCESS' : 'FAILED'));
+            
+            if ($result) {
+                // Also update address in users table if provided
+                log_message('info', 'Address fields - Address: "' . $address . '", City: "' . $city . '", Country: "' . $country . '"');
+                
+                if (!empty($address) || !empty($city) || !empty($country)) {
+                    $user_update = [];
+                    if (!empty($address)) $user_update['address'] = $address;
+                    if (!empty($city)) $user_update['city'] = $city;
+                    if (!empty($country)) $user_update['country'] = $country;
+                    
+                    log_message('info', 'User update data: ' . json_encode($user_update));
+                    
+                    if (!empty($user_update)) {
+                        $user_update_result = $this->M_users->update_user($user_id, $user_update);
+                        log_message('info', 'User address update result: ' . ($user_update_result ? 'SUCCESS' : 'FAILED'));
+                    }
+                } else {
+                    log_message('info', 'No address fields provided, skipping user table update');
+                }
+                
+                // Get updated completion percentage
+                $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Profile updated successfully!',
+                    'completion_percentage' => $completion['percentage']
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to update profile. Please try again.'
+                ]);
+            }
+        } catch (Exception $e) {
+            log_message('error', 'Cleaner profile update error: ' . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Public Profile View
+     * Display public profile for cleaners (visible to hosts)
+     * Shows: name, reviews, service areas, specialties
+     * Hides: contact information, address, email, phone
+     */
+    public function public_profile($cleaner_id)
+    {
+        // Load profile model
+        $this->load->model('M_user_profiles');
+        $this->load->model('M_reviews');
+        
+        // Get cleaner profile with user data
+        $profile = $this->M_user_profiles->get_profile_with_user_data($cleaner_id);
+        
+        if (!$profile || $profile->auth_level != 3) {
+            show_404();
+        }
+        
+        // Get review statistics
+        $review_stats = $this->M_reviews->calculate_user_average_ratings($cleaner_id);
+        
+        // Get cleaner statistics
+        $job_stats = [
+            'completed_jobs' => $this->M_jobs->get_completed_jobs_count_for_cleaner($cleaner_id),
+            'active_jobs' => $this->M_jobs->get_active_jobs_for_cleaner($cleaner_id),
+            'average_rating' => $review_stats['overall_average'] ?? 0,
+            'total_reviews' => $review_stats['total_reviews'] ?? 0
+        ];
+        
+        // Get public reviews for this cleaner (limit to 10 most recent)
+        $reviews = $this->M_reviews->get_public_reviews_for_user($cleaner_id, 10, 0);
+        
+        // Get rating distribution
+        $rating_distribution = $this->M_reviews->get_rating_distribution($cleaner_id);
+        
+        $data = [
+            'title' => $profile->username . ' - Cleaner Profile',
+            'page_icon' => 'fas fa-user-circle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'host'],
+                ['title' => 'Cleaner Profile', 'url' => '', 'active' => true]
+            ],
+            'profile' => $profile,
+            'job_stats' => $job_stats,
+            'reviews' => $reviews,
+            'review_stats' => $review_stats,
+            'rating_distribution' => $rating_distribution
+        ];
+        
+        // Check if this is being viewed by host or admin
+        $viewer_auth_level = $this->session->userdata('auth_level');
+        if ($viewer_auth_level == 6) {
+            // Host viewing
+            $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        } elseif ($viewer_auth_level == 9) {
+            // Admin viewing
+            $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
+        } else {
+            // Fallback
+            $data['sidebar'] = $this->load->view('admin/template/host_sidebar', array(), TRUE);
+        }
+        
+        // Load the public profile view
+        $data['body'] = $this->load->view('cleaner/public_profile', $data, TRUE);
+        
+        // Load the layout with the content
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Profile Setup Required
+     * Show message when cleaner needs to complete profile before accessing jobs
+     */
+    public function profile_setup_required()
+    {
+        $user_id = $this->auth_user_id;
+        
+        // Get profile completion details
+        $this->load->model('M_user_profiles');
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        $data = [
+            'title' => 'Profile Setup Required',
+            'page_icon' => 'fas fa-user-cog',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'cleaner'],
+                ['title' => 'Profile Setup Required', 'url' => '', 'active' => true]
+            ],
+            'completion' => $completion,
+            'user_info' => $this->M_users->get_user_by_id($user_id)
+        ];
+        
+        // Load the cleaner sidebar content as a string
+        $data['sidebar'] = $this->load->view('admin/template/cleaner_sidebar', array(), TRUE);
+        
+        // Load the profile setup required content as a string
+        $data['body'] = $this->load->view('cleaner/profile_setup_required', $data, TRUE);
+        
+        // Load the layout with the content
         $this->load->view('admin/template/layout_with_sidebar', $data);
     }
 }

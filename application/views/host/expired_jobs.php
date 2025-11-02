@@ -8,7 +8,7 @@
                         <i class="fas fa-clock text-warning me-2"></i>
                         Expired Jobs
                     </h2>
-                    <p class="page-subtitle">Jobs that expired without offers being accepted</p>
+                    <p class="page-subtitle">Jobs that expired without being completed - missed opportunities to get your cleaning done</p>
                     <div class="header-stats">
                         <div class="stat-item">
                             <span class="stat-number"><?php echo count($expired_jobs); ?></span>
@@ -16,7 +16,7 @@
                         </div>
                         <div class="stat-item">
                             <span class="stat-number">$<?php echo number_format(array_sum(array_column($expired_jobs, 'suggested_price')), 2); ?></span>
-                            <span class="stat-label">Lost Revenue</span>
+                            <span class="stat-label">Lost Opportunities</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-number"><?php echo count(array_filter($expired_jobs, function($job) { 

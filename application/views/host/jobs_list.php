@@ -231,7 +231,11 @@
                                                             <span class="price-badge">
                                                                 $<?php echo number_format($job->suggested_price, 2); ?>
                                                             </span>
-                                                            <?php if ($job->final_price && $job->final_price != $job->suggested_price): ?>
+                                                            <?php if ($job->accepted_price && $job->accepted_price != $job->suggested_price): ?>
+                                                                <small class="text-success d-block">
+                                                                    Accepted: $<?php echo number_format($job->accepted_price, 2); ?>
+                                                                </small>
+                                                            <?php elseif ($job->final_price && $job->final_price != $job->suggested_price): ?>
                                                                 <small class="text-success d-block">
                                                                     Final: $<?php echo number_format($job->final_price, 2); ?>
                                                                 </small>
@@ -315,12 +319,23 @@
                                                                title="View Details">
                                                                 <i class="fas fa-eye"></i>
                                                             </a>
-                                                    <?php if (in_array($job->status, ['open', 'assigned'])): ?>
-                                                            <a href="<?php echo base_url('host/edit_job/' . $job->id); ?>" 
-                                                               class="btn btn-sm btn-outline-warning" 
-                                                               title="Edit Job">
-                                                                <i class="fas fa-edit"></i>
-                                                            </a>
+                                                    <?php if ($job->status === 'open'): ?>
+                                                            <?php if ($job->offer_count > 0): ?>
+                                                                <button type="button" 
+                                                                        class="btn btn-sm btn-outline-warning edit-job-with-offers-btn" 
+                                                                        data-job-id="<?php echo $job->id; ?>"
+                                                                        data-job-title="<?php echo htmlspecialchars($job->title); ?>"
+                                                                        data-offer-count="<?php echo $job->offer_count; ?>"
+                                                                        title="Edit Job">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </button>
+                                                            <?php else: ?>
+                                                                <a href="<?php echo base_url('host/edit_job/' . $job->id); ?>" 
+                                                                   class="btn btn-sm btn-outline-warning" 
+                                                                   title="Edit Job">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </a>
+                                                            <?php endif; ?>
                                                     <?php endif; ?>
                                                     <?php if ($job->status === 'open'): ?>
                                                             <button type="button" 
@@ -836,6 +851,19 @@ $(document).ready(function() {
                     $('.delete-job-btn[data-job-id="' + jobId + '"]').prop('disabled', false).html('<i class="fas fa-trash"></i>');
                 }
             });
+        }
+    });
+    
+    // Edit job with offers confirmation
+    $('.edit-job-with-offers-btn').on('click', function() {
+        const jobId = $(this).data('job-id');
+        const jobTitle = $(this).data('job-title');
+        const offerCount = $(this).data('offer-count');
+        
+        const confirmMessage = `This job has ${offerCount} offer(s). Editing the job may clear existing offers if you change the date/time. Do you want to continue?`;
+        
+        if (confirm(confirmMessage)) {
+            window.location.href = '<?php echo base_url('host/edit_job/'); ?>' + jobId;
         }
     });
 });

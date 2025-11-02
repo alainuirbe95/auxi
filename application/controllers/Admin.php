@@ -38,8 +38,8 @@ class Admin extends MY_Controller {
         $pending_users = $this->M_users->get_pending_users();
         $recent_activity = $this->M_users->get_recent_activity(5);
         
-        // Get job statistics
-        $job_stats = $this->M_jobs->get_job_statistics();
+        // Get enhanced job statistics (includes all status counts)
+        $job_stats = $this->M_jobs->get_admin_stats();
         
         // Get offer statistics
         $offer_stats = $this->M_offers->get_offer_statistics();
@@ -48,10 +48,14 @@ class Admin extends MY_Controller {
         $payment_stats = $this->M_payments->get_payment_statistics();
         
         // Get recent jobs
-        $recent_jobs = $this->M_jobs->get_recent_jobs(5);
+        $recent_jobs = $this->M_jobs->get_recent_jobs(10);
         
-        // Get recent offers
-        $recent_offers = $this->M_offers->get_recent_offers(5);
+        // Get recent recalled jobs for alerts
+        $recent_recalled_jobs = $this->M_jobs->get_all_recalled_jobs(['status' => 'recalled'], 5, 0);
+        
+        // Get growth metrics and KPIs
+        $growth_metrics = $this->get_growth_metrics();
+        $kpi_data = $this->get_kpi_data();
         
         // Get system alerts
         $system_alerts = $this->get_system_alerts();
@@ -61,7 +65,7 @@ class Admin extends MY_Controller {
         $view["breadcrumbs"] = array(
             array('title' => 'Dashboard', 'url' => '', 'active' => true)
         );
-        $view["sidebar"] = $this->load->view("admin/template/sidebar", array('pending_users_count' => count($pending_users)), TRUE);
+        $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", array('pending_users_count' => count($pending_users)), TRUE);
         $view["body"] = $this->load->view("admin/dashboard", array(
             'total_users' => $stats->total_users,
             'active_users' => $stats->active_users,
@@ -75,8 +79,10 @@ class Admin extends MY_Controller {
             'offer_stats' => $offer_stats,
             'payment_stats' => $payment_stats,
             'recent_jobs' => $recent_jobs,
-            'recent_offers' => $recent_offers,
-            'system_alerts' => $system_alerts
+            'recent_recalled_jobs' => $recent_recalled_jobs,
+            'system_alerts' => $system_alerts,
+            'growth_metrics' => $growth_metrics,
+            'kpi_data' => $kpi_data
         ), TRUE);
 
         $this->load->view("admin/template/layout_with_sidebar", $view);
@@ -101,35 +107,178 @@ class Admin extends MY_Controller {
             );
         }
         
-        // Check for recent disputes
+        // Check for recalled jobs (pending admin review)
         $this->load->model('M_jobs');
-        $dispute_count = $this->M_jobs->get_dispute_count();
-        if ($dispute_count > 0) {
+        $recalled_count = $this->M_jobs->count_all_recalled_jobs(['status' => 'recalled']);
+        if ($recalled_count > 0) {
             $alerts[] = array(
                 'type' => 'danger',
                 'icon' => 'fas fa-exclamation-triangle',
-                'title' => 'Active Disputes',
-                'message' => "There are {$dispute_count} active disputes requiring attention.",
-                'action_url' => base_url('admin/disputes'),
-                'action_text' => 'View Disputes'
+                'title' => 'Recalled Jobs Pending Review',
+                'message' => "There are {$recalled_count} recalled jobs requiring admin attention.",
+                'action_url' => base_url('admin/recalled-jobs'),
+                'action_text' => 'Review Recalls'
             );
         }
         
-        // Check for failed payments
-        $this->load->model('M_payments');
-        $failed_payments = $this->M_payments->get_failed_payments_count();
-        if ($failed_payments > 0) {
+        // Check for job flags
+        $flagged_jobs = $this->M_job_flags->count_active_flags();
+        if ($flagged_jobs > 0) {
+            $alerts[] = array(
+                'type' => 'warning',
+                'icon' => 'fas fa-flag',
+                'title' => 'Flagged Jobs',
+                'message' => "{$flagged_jobs} jobs have been flagged and need review.",
+                'action_url' => base_url('admin/flags'),
+                'action_text' => 'View Flags'
+            );
+        }
+        
+        // Check for banned users (informational)
+        $this->db->where('banned', '1');
+        $banned_count = $this->db->count_all_results('users');
+        if ($banned_count > 0) {
             $alerts[] = array(
                 'type' => 'info',
-                'icon' => 'fas fa-credit-card',
-                'title' => 'Failed Payments',
-                'message' => "{$failed_payments} payments failed and need review.",
-                'action_url' => base_url('admin/payments'),
-                'action_text' => 'View Payments'
+                'icon' => 'fas fa-user-slash',
+                'title' => 'Banned Users',
+                'message' => "There are {$banned_count} banned users in the system.",
+                'action_url' => base_url('admin/banned_users'),
+                'action_text' => 'View Banned'
             );
         }
         
         return $alerts;
+    }
+    
+    /**
+     * Get growth metrics for dashboard
+     */
+    private function get_growth_metrics() {
+        $metrics = array();
+        
+        // User growth - last 30 days vs previous 30 days
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+        $users_last_30 = $this->db->count_all_results('users');
+        
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-60 days')));
+        $this->db->where('created_at <', date('Y-m-d', strtotime('-30 days')));
+        $users_prev_30 = $this->db->count_all_results('users');
+        
+        $metrics['user_growth'] = array(
+            'current' => $users_last_30,
+            'previous' => $users_prev_30,
+            'change' => $users_prev_30 > 0 ? round((($users_last_30 - $users_prev_30) / $users_prev_30) * 100, 1) : 100,
+            'trend' => $users_last_30 >= $users_prev_30 ? 'up' : 'down'
+        );
+        
+        // Job growth - last 30 days vs previous 30 days
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+        $jobs_last_30 = $this->db->count_all_results('jobs');
+        
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-60 days')));
+        $this->db->where('created_at <', date('Y-m-d', strtotime('-30 days')));
+        $jobs_prev_30 = $this->db->count_all_results('jobs');
+        
+        $metrics['job_growth'] = array(
+            'current' => $jobs_last_30,
+            'previous' => $jobs_prev_30,
+            'change' => $jobs_prev_30 > 0 ? round((($jobs_last_30 - $jobs_prev_30) / $jobs_prev_30) * 100, 1) : 100,
+            'trend' => $jobs_last_30 >= $jobs_prev_30 ? 'up' : 'down'
+        );
+        
+        // Revenue growth - last 30 days vs previous 30 days
+        $this->db->select('SUM(amount) as total');
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+        $this->db->where('status', 'completed');
+        $revenue_last_30 = $this->db->get('payments')->row()->total ?? 0;
+        
+        $this->db->select('SUM(amount) as total');
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-60 days')));
+        $this->db->where('created_at <', date('Y-m-d', strtotime('-30 days')));
+        $this->db->where('status', 'completed');
+        $revenue_prev_30 = $this->db->get('payments')->row()->total ?? 0;
+        
+        $metrics['revenue_growth'] = array(
+            'current' => $revenue_last_30,
+            'previous' => $revenue_prev_30,
+            'change' => $revenue_prev_30 > 0 ? round((($revenue_last_30 - $revenue_prev_30) / $revenue_prev_30) * 100, 1) : 100,
+            'trend' => $revenue_last_30 >= $revenue_prev_30 ? 'up' : 'down'
+        );
+        
+        // Completion rate - last 30 days
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+        $total_jobs_30 = $this->db->count_all_results('jobs');
+        
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+        $this->db->where_in('status', ['completed', 'closed']);
+        $completed_jobs_30 = $this->db->count_all_results('jobs');
+        
+        $metrics['completion_rate'] = $total_jobs_30 > 0 ? round(($completed_jobs_30 / $total_jobs_30) * 100, 1) : 0;
+        
+        return $metrics;
+    }
+    
+    /**
+     * Get KPI data for dashboard
+     */
+    private function get_kpi_data() {
+        $kpis = array();
+        
+        // Average job value
+        $this->db->select('AVG(COALESCE(final_price, accepted_price, suggested_price)) as avg_value');
+        $this->db->where('status IN ("completed", "closed")', NULL, FALSE);
+        $kpis['avg_job_value'] = $this->db->get('jobs')->row()->avg_value ?? 0;
+        
+        // Job completion time (average days from created to completed)
+        $this->db->select('AVG(DATEDIFF(updated_at, created_at)) as avg_days');
+        $this->db->where('status', 'completed');
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+        $kpis['avg_completion_days'] = round($this->db->get('jobs')->row()->avg_days ?? 0, 1);
+        
+        // Active user rate (users who created/accepted jobs in last 30 days)
+        $this->db->select('COUNT(DISTINCT host_id) as active_hosts');
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+        $active_hosts = $this->db->get('jobs')->row()->active_hosts ?? 0;
+        
+        $this->db->select('COUNT(DISTINCT assigned_cleaner_id) as active_cleaners');
+        $this->db->where('created_at >=', date('Y-m-d', strtotime('-30 days')));
+        $this->db->where('assigned_cleaner_id IS NOT NULL', NULL, FALSE);
+        $active_cleaners = $this->db->get('jobs')->row()->active_cleaners ?? 0;
+        
+        $kpis['active_users_30d'] = $active_hosts + $active_cleaners;
+        
+        // Recall rate (percentage of jobs recalled)
+        $this->db->where('status IN ("recalled", "recall_settled")', NULL, FALSE);
+        $recalled_jobs = $this->db->count_all_results('jobs');
+        
+        $total_jobs = $this->db->count_all('jobs');
+        $kpis['recall_rate'] = $total_jobs > 0 ? round(($recalled_jobs / $total_jobs) * 100, 2) : 0;
+        
+        // Success rate (completed jobs / total jobs excluding open)
+        $this->db->where_in('status', ['completed', 'closed']);
+        $successful_jobs = $this->db->count_all_results('jobs');
+        
+        $this->db->where('status !=', 'open');
+        $total_engaged_jobs = $this->db->count_all_results('jobs');
+        
+        $kpis['success_rate'] = $total_engaged_jobs > 0 ? round(($successful_jobs / $total_engaged_jobs) * 100, 1) : 0;
+        
+        // User distribution
+        $this->db->where('auth_level', 6); // Hosts
+        $kpis['total_hosts'] = $this->db->count_all_results('users');
+        
+        $this->db->where('auth_level', 3); // Cleaners
+        $kpis['total_cleaners'] = $this->db->count_all_results('users');
+        
+        // Today's activity
+        $this->db->where('DATE(created_at)', date('Y-m-d'));
+        $kpis['jobs_today'] = $this->db->count_all_results('jobs');
+        
+        $this->db->where('DATE(created_at)', date('Y-m-d'));
+        $kpis['users_today'] = $this->db->count_all_results('users');
+        
+        return $kpis;
     }
 
     public function users() {
@@ -205,7 +354,7 @@ class Admin extends MY_Controller {
         $view["breadcrumbs"] = array(
             array('title' => 'Users Management', 'url' => '', 'active' => true)
         );
-        $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+        $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
         
         // Load the view with user data
         $view["body"] = $this->load->view("admin/users/users_management", $data, TRUE);
@@ -248,7 +397,7 @@ class Admin extends MY_Controller {
                 array('title' => 'User Profile', 'url' => 'admin/view_user/' . $user_id),
                 array('title' => 'Password Reset Success', 'url' => '', 'active' => true)
             );
-            $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+            $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
             
             // Load the success view
             $view["body"] = $this->load->view("admin/users/password_reset_success", $data, TRUE);
@@ -309,6 +458,19 @@ class Admin extends MY_Controller {
             show_error('User not found', 404);
         }
         
+        // Load user profile data if it exists
+        $this->load->model('M_user_profiles');
+        $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        
+        // Merge profile data with user data
+        if ($profile) {
+            foreach ($profile as $key => $value) {
+                if (!isset($user->$key) || $user->$key === null) {
+                    $user->$key = $value;
+                }
+            }
+        }
+        
         // Prepare data for the view
         $data['user'] = $user;
         
@@ -318,7 +480,7 @@ class Admin extends MY_Controller {
             array('title' => 'Users Management', 'url' => base_url('admin/users')),
             array('title' => 'View User', 'url' => '', 'active' => true)
         );
-        $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+        $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
         
         // Load the view with user data
         $view["body"] = $this->load->view("admin/users/user_view", $data, TRUE);
@@ -354,7 +516,7 @@ class Admin extends MY_Controller {
                 array('title' => 'Users Management', 'url' => base_url('admin/users')),
                 array('title' => 'Create User', 'url' => '', 'active' => true)
             );
-            $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+            $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
             $view["body"] = $this->load->view("admin/users/user_create", NULL, TRUE);
             
             $this->load->view("admin/template/layout_with_sidebar", $view);
@@ -383,6 +545,10 @@ class Admin extends MY_Controller {
             $user_id = $this->M_users->create_user($user_data);
             
             if ($user_id) {
+                // Create default profile for new user
+                $this->load->model('M_user_profiles');
+                $this->M_user_profiles->create_default_profile($user_id);
+                
                 // User created successfully
                 $this->session->set_flashdata('success', 'User created successfully!');
                 
@@ -604,7 +770,7 @@ class Admin extends MY_Controller {
             array('title' => 'View User', 'url' => base_url('admin/view_user/' . $user_id)),
             array('title' => 'Edit User', 'url' => '', 'active' => true)
         );
-        $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+        $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
         
         // Load the view with user data
         $view["body"] = $this->load->view("admin/users/user_edit", $data, TRUE);
@@ -653,10 +819,10 @@ class Admin extends MY_Controller {
             $view["title"] = 'Edit User - ' . ($user->username ?? 'Unknown');
             $view["breadcrumbs"] = array(
                 array('title' => 'Users Management', 'url' => base_url('admin/users')),
-                array('title' => 'View User', 'url' => base_url('admin/view_user/' . $user_id)),
+                array('title' => 'View User', 'url' => base_url('admin/profile/' . $user_id)),
                 array('title' => 'Edit User', 'url' => '', 'active' => true)
             );
-            $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+            $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
             $view["body"] = $this->load->view("admin/users/user_edit", $data, TRUE);
             
             $this->load->view("admin/template/layout_with_sidebar", $view);
@@ -691,7 +857,7 @@ class Admin extends MY_Controller {
             if ($updated) {
                 // User updated successfully
                 $this->session->set_flashdata('success', 'User "' . $user->username . '" has been updated successfully.');
-                redirect('admin/view_user/' . $user_id);
+                redirect('admin/profile/' . $user_id);
             } else {
                 // User update failed
                 $this->session->set_flashdata('error', 'Failed to update user. Please try again.');
@@ -741,7 +907,7 @@ class Admin extends MY_Controller {
             array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
             array('title' => 'Pending User Reviews', 'url' => '', 'active' => true)
         );
-            $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+            $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
             $view["body"] = $this->load->view("admin/users/pending_users", array('pending_users' => $pending_users), TRUE);
             
             $this->load->view("admin/template/layout_with_sidebar", $view);
@@ -855,14 +1021,55 @@ class Admin extends MY_Controller {
         
         $rejected_users = $this->M_users->get_rejected_users();
         
+        // Calculate statistics
+        $stats = [
+            'total_rejected' => count($rejected_users),
+            'rejected_today' => 0,
+            'rejected_this_week' => 0,
+            'rejected_this_month' => 0,
+            'by_role' => [
+                'cleaner' => 0,
+                'host' => 0,
+                'admin' => 0
+            ]
+        ];
+        
+        foreach ($rejected_users as $user) {
+            // Count by time period
+            $rejected_at = strtotime($user->rejected_at ?? $user->created_at);
+            $now = time();
+            
+            if ($rejected_at >= strtotime('today')) {
+                $stats['rejected_today']++;
+            }
+            if ($rejected_at >= strtotime('-7 days')) {
+                $stats['rejected_this_week']++;
+            }
+            if ($rejected_at >= strtotime('-30 days')) {
+                $stats['rejected_this_month']++;
+            }
+            
+            // Count by role
+            if ($user->auth_level == 3) {
+                $stats['by_role']['cleaner']++;
+            } elseif ($user->auth_level == 6) {
+                $stats['by_role']['host']++;
+            } elseif ($user->auth_level == 9) {
+                $stats['by_role']['admin']++;
+            }
+        }
+        
         $view["title"] = 'Rejected Users';
         $view["page_icon"] = 'user-times';
         $view["breadcrumbs"] = array(
             array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
             array('title' => 'Rejected Users', 'url' => '', 'active' => true)
         );
-        $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
-        $view["body"] = $this->load->view("admin/users/rejected_users", array('rejected_users' => $rejected_users), TRUE);
+        $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
+        $view["body"] = $this->load->view("admin/users/rejected_users", array(
+            'rejected_users' => $rejected_users,
+            'stats' => $stats
+        ), TRUE);
         
         $this->load->view("admin/template/layout_with_sidebar", $view);
     }
@@ -1039,7 +1246,7 @@ class Admin extends MY_Controller {
             array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
             array('title' => 'Change Password', 'url' => '', 'active' => true)
         );
-        $view["sidebar"] = $this->load->view("admin/template/sidebar", NULL, TRUE);
+        $view["sidebar"] = $this->load->view("admin/template/admin_sidebar", NULL, TRUE);
         $view["body"] = $this->load->view("admin/change_password", array('user_info' => $user_info), TRUE);
         
         $this->load->view("admin/template/layout_with_sidebar", $view);
@@ -1125,7 +1332,14 @@ class Admin extends MY_Controller {
         
         // Get pagination parameters
         $page = $this->input->get('page') ?: 1;
-        $per_page = 20;
+        $per_page = $this->input->get('per_page') ?: 20;
+        
+        // Validate per_page value
+        $allowed_per_page = [10, 20, 50, 100];
+        if (!in_array($per_page, $allowed_per_page)) {
+            $per_page = 20;
+        }
+        
         $offset = ($page - 1) * $per_page;
         
         // Prepare filters for model
@@ -1174,18 +1388,20 @@ class Admin extends MY_Controller {
                 'search' => $search,
                 'status' => $status,
                 'host' => $host,
-                'sort' => $sort
+                'sort' => $sort,
+                'per_page' => $per_page
             ],
             'view_filters' => [
                 'search' => $search,
                 'status' => $status,
                 'host' => $host,
-                'sort' => $sort
+                'sort' => $sort,
+                'per_page' => $per_page
             ]
         ];
         
         // Load the sidebar content as a string
-        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
         
         // Load the jobs management content as a string
         $data['body'] = $this->load->view('admin/jobs/jobs_management', $data, TRUE);
@@ -1213,7 +1429,7 @@ class Admin extends MY_Controller {
         ];
         
         // Load the sidebar content as a string
-        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
         
         // Load the job creation content as a string
         $data['body'] = $this->load->view('admin/jobs/job_create', $data, TRUE);
@@ -1374,7 +1590,7 @@ class Admin extends MY_Controller {
         ];
         
         // Load the sidebar content as a string
-        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
         
         // Load the my jobs content as a string
         $data['body'] = $this->load->view('admin/jobs/my_jobs', $data, TRUE);
@@ -1412,7 +1628,7 @@ class Admin extends MY_Controller {
         ];
         
         // Load the sidebar content as a string
-        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
         
         // Load the job details content as a string
         $data['body'] = $this->load->view('admin/jobs/job_details', $data, TRUE);
@@ -1447,7 +1663,7 @@ class Admin extends MY_Controller {
         ];
         
         // Load the sidebar content as a string
-        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
         
         // Load the job edit content as a string
         $data['body'] = $this->load->view('admin/jobs/job_edit', $data, TRUE);
@@ -1668,7 +1884,7 @@ class Admin extends MY_Controller {
         ];
 
         // Load the sidebar content as a string
-        $data['sidebar'] = $this->load->view('admin/template/sidebar', array(), TRUE);
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
 
         // Load the flags management content as a string
         $data['body'] = $this->load->view('admin/flags/flags_management', $data, TRUE);
@@ -1778,6 +1994,914 @@ class Admin extends MY_Controller {
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to flag job or you have already flagged this job']);
         }
+    }
+
+    // ==========================================
+    // USER PROFILE MANAGEMENT METHODS
+    // ==========================================
+    
+    /**
+     * View current admin's own profile
+     */
+    public function my_profile()
+    {
+        $user_id = $this->auth_user_id;
+        
+        if (!$user_id) {
+            show_error('User not authenticated', 401);
+            return;
+        }
+        
+        // Redirect to view_profile with current user's ID
+        redirect('admin/profile/' . $user_id);
+    }
+    
+    /**
+     * Display all user profiles
+     */
+    public function profiles()
+    {
+        $this->load->model('M_user_profiles');
+        
+        // Get filter parameters
+        $filters = array(
+            'search' => $this->input->get('search'),
+            'role' => $this->input->get('role'),
+            'verification_status' => $this->input->get('verification_status'),
+            'is_public' => $this->input->get('is_public'),
+            'sort_by' => $this->input->get('sort_by') ?? 'created_at',
+            'sort_order' => $this->input->get('sort_order') ?? 'DESC'
+        );
+        
+        // Remove empty filters
+        $filters = array_filter($filters, function($value) {
+            return $value !== null && $value !== '';
+        });
+        
+        // Pagination
+        $per_page = 20;
+        $page = $this->input->get('page') ? (int)$this->input->get('page') : 1;
+        $offset = ($page - 1) * $per_page;
+        
+        // Get profiles
+        $result = $this->M_user_profiles->get_all_profiles($filters, $per_page, $offset);
+        $profiles = $result['profiles'];
+        $total = $result['total'];
+        
+        // Calculate profile completion for each
+        foreach ($profiles as &$profile) {
+            $completion = $this->M_user_profiles->calculate_profile_completion($profile->user_id);
+            $profile->completion_percentage = $completion['percentage'];
+        }
+        
+        // Pagination data
+        $total_pages = ceil($total / $per_page);
+        
+        $data = array(
+            'title' => 'User Profiles',
+            'page_icon' => 'id-card',
+            'breadcrumbs' => array(
+                array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
+                array('title' => 'User Profiles', 'url' => '', 'active' => true)
+            ),
+            'profiles' => $profiles,
+            'filters' => $filters,
+            'pagination' => array(
+                'current_page' => $page,
+                'total_pages' => $total_pages,
+                'total_records' => $total,
+                'per_page' => $per_page
+            ),
+            'pending_verification_count' => $this->M_user_profiles->get_verification_pending_count()
+        );
+        
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
+        $data['body'] = $this->load->view('admin/profiles/profiles_list', $data, TRUE);
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+    
+    /**
+     * View single user profile
+     */
+    public function view_profile($user_id)
+    {
+        $this->load->model('M_user_profiles');
+        $this->load->model('M_jobs');
+        $this->load->model('M_offers');
+        
+        // Get profile with user data
+        $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        
+        if (!$profile) {
+            show_error('Profile not found', 404);
+            return;
+        }
+        
+        // Get profile completion
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        // Get user statistics based on role
+        if ($profile->auth_level == 3) {
+            // Cleaner stats
+            $job_stats = array(
+                'total_jobs' => $this->M_jobs->get_total_jobs_for_cleaner($user_id),
+                'active_jobs' => $this->M_jobs->get_active_jobs_for_cleaner($user_id),
+                'completed_jobs' => $this->M_jobs->get_completed_jobs_count_for_cleaner($user_id),
+                'total_offers' => $this->M_offers->get_total_offers_for_cleaner($user_id),
+                'accepted_offers' => $this->M_offers->get_accepted_offers_count_for_cleaner($user_id)
+            );
+        } else if ($profile->auth_level == 6) {
+            // Host stats
+            $job_stats = $this->M_jobs->get_host_stats($user_id);
+        } else {
+            $job_stats = array();
+        }
+        
+        $data = array(
+            'title' => 'View Profile - ' . $profile->first_name . ' ' . $profile->last_name,
+            'page_icon' => 'user',
+            'breadcrumbs' => array(
+                array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
+                array('title' => 'User Profiles', 'url' => 'admin/profiles'),
+                array('title' => 'View Profile', 'url' => '', 'active' => true)
+            ),
+            'profile' => $profile,
+            'completion' => $completion,
+            'job_stats' => $job_stats
+        );
+        
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
+        $data['body'] = $this->load->view('admin/profiles/profile_view', $data, TRUE);
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+    
+    /**
+     * Edit user profile (form)
+     */
+    public function edit_profile($user_id)
+    {
+        $this->load->model('M_user_profiles');
+        
+        // Get profile with user data
+        $profile = $this->M_user_profiles->get_profile_with_user_data($user_id);
+        
+        if (!$profile) {
+            show_error('Profile not found', 404);
+            return;
+        }
+        
+        // Get profile completion
+        $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+        
+        // Define available service areas (Mexican states)
+        $service_areas = array(
+            'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche', 'Chiapas',
+            'Chihuahua', 'Coahuila', 'Colima', 'Durango', 'Estado de México',
+            'Guanajuato', 'Guerrero', 'Hidalgo', 'Jalisco', 'Michoacán',
+            'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca', 'Puebla',
+            'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa', 'Sonora',
+            'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán', 'Zacatecas',
+            'Ciudad de México'
+        );
+        
+        // Define available specialties
+        $specialties_list = array(
+            'residential_cleaning' => 'Residential Cleaning',
+            'deep_cleaning' => 'Deep Cleaning',
+            'move_in_out' => 'Move In/Out Cleaning',
+            'office_cleaning' => 'Office Cleaning',
+            'window_cleaning' => 'Window Cleaning',
+            'carpet_cleaning' => 'Carpet Cleaning',
+            'eco_friendly' => 'Eco-Friendly Products',
+            'post_construction' => 'Post-Construction Cleaning',
+            'disinfection' => 'Disinfection Services',
+            'organizing' => 'Home Organizing'
+        );
+        
+        $data = array(
+            'title' => 'Edit Profile - ' . $profile->first_name . ' ' . $profile->last_name,
+            'page_icon' => 'edit',
+            'breadcrumbs' => array(
+                array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
+                array('title' => 'User Profiles', 'url' => 'admin/profiles'),
+                array('title' => 'Edit Profile', 'url' => '', 'active' => true)
+            ),
+            'profile' => $profile,
+            'completion' => $completion,
+            'service_areas' => $service_areas,
+            'specialties_list' => $specialties_list
+        );
+        
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
+        $data['body'] = $this->load->view('admin/profiles/profile_edit', $data, TRUE);
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+    
+    /**
+     * Update user profile (AJAX)
+     */
+    public function update_profile()
+    {
+        $this->load->model('M_user_profiles');
+        
+        $user_id = $this->input->post('user_id');
+        
+        if (!$user_id) {
+            echo json_encode(array('success' => false, 'message' => 'User ID is required'));
+            return;
+        }
+        
+        // Collect profile data
+        $profile_data = array(
+            'bio' => $this->input->post('bio'),
+            'phone' => $this->input->post('phone'),
+            'is_public' => $this->input->post('is_public') ? 1 : 0
+        );
+        
+        // Handle service areas (for cleaners)
+        $service_areas = $this->input->post('service_areas');
+        if ($service_areas) {
+            $profile_data['service_areas'] = $service_areas;
+        }
+        
+        // Handle specialties (for cleaners)
+        $specialties = $this->input->post('specialties');
+        if ($specialties) {
+            $profile_data['specialties'] = $specialties;
+        }
+        
+        // Save profile
+        $result = $this->M_user_profiles->save_profile($user_id, $profile_data);
+        
+        if ($result) {
+            // Get updated completion percentage
+            $completion = $this->M_user_profiles->calculate_profile_completion($user_id);
+            
+            echo json_encode(array(
+                'success' => true,
+                'message' => 'Profile updated successfully',
+                'completion_percentage' => $completion['percentage']
+            ));
+        } else {
+            echo json_encode(array('success' => false, 'message' => 'Failed to update profile'));
+        }
+    }
+    
+    /**
+     * Update verification status (AJAX)
+     */
+    public function update_verification_status()
+    {
+        $this->load->model('M_user_profiles');
+        $this->load->model('M_notifications');
+        
+        $user_id = $this->input->post('user_id');
+        $status = $this->input->post('status'); // verified, rejected, pending, unverified
+        
+        if (!$user_id || !$status) {
+            echo json_encode(array('success' => false, 'message' => 'User ID and status are required'));
+            return;
+        }
+        
+        $result = $this->M_user_profiles->update_verification_status($user_id, $status);
+        
+        if ($result) {
+            // Send notification to user
+            if ($status == 'verified') {
+                // Notify user they are verified
+                // TODO: Add notification once notification system is ready
+            } else if ($status == 'rejected') {
+                // Notify user of rejection
+                // TODO: Add notification once notification system is ready
+            }
+            
+            echo json_encode(array(
+                'success' => true,
+                'message' => 'Verification status updated successfully',
+                'status' => $status
+            ));
+        } else {
+            echo json_encode(array('success' => false, 'message' => 'Failed to update verification status'));
+        }
+    }
+    
+    /**
+     * Profile statistics dashboard
+     */
+    public function profile_statistics()
+    {
+        $this->load->model('M_user_profiles');
+        $this->load->model('M_reviews');
+        
+        // Get statistics
+        $total_profiles = $this->db->count_all('user_profiles');
+        
+        // Profiles by verification status
+        $verification_stats = array(
+            'verified' => $this->db->where('verification_status', 'verified')->count_all_results('user_profiles', false),
+            'pending' => $this->db->reset_query()->where('verification_status', 'pending')->count_all_results('user_profiles', false),
+            'unverified' => $this->db->reset_query()->where('verification_status', 'unverified')->count_all_results('user_profiles', false),
+            'rejected' => $this->db->reset_query()->where('verification_status', 'rejected')->count_all_results('user_profiles', false)
+        );
+        $this->db->reset_query();
+        
+        // Public vs private profiles
+        $visibility_stats = array(
+            'public' => $this->db->where('is_public', 1)->count_all_results('user_profiles', false),
+            'private' => $this->db->reset_query()->where('is_public', 0)->count_all_results('user_profiles', false)
+        );
+        $this->db->reset_query();
+        
+        // Top rated profiles
+        $top_profiles = $this->M_user_profiles->get_top_rated_profiles(10);
+        
+        // Review statistics
+        $review_stats = $this->M_reviews->get_review_statistics();
+        
+        // Additional review breakdown statistics
+        if ($this->db->table_exists('reviews')) {
+            // Reviews by rating
+            $this->db->select('overall_rating, COUNT(*) as count');
+            $this->db->where('is_hidden', 0);
+            $this->db->group_by('overall_rating');
+            $this->db->order_by('overall_rating', 'DESC');
+            $rating_breakdown = $this->db->get('reviews')->result();
+            
+            $reviews_by_rating = array(5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0);
+            foreach ($rating_breakdown as $row) {
+                $reviews_by_rating[$row->overall_rating] = $row->count;
+            }
+            
+            // Reviews by type
+            $host_to_cleaner = $this->db->where('review_type', 'host_to_cleaner')->where('is_hidden', 0)->count_all_results('reviews');
+            $cleaner_to_host = $this->db->reset_query()->where('review_type', 'cleaner_to_host')->where('is_hidden', 0)->count_all_results('reviews');
+            
+            $review_stats['by_rating'] = $reviews_by_rating;
+            $review_stats['host_to_cleaner'] = $host_to_cleaner;
+            $review_stats['cleaner_to_host'] = $cleaner_to_host;
+            
+            $this->db->reset_query();
+        }
+        
+        $data = array(
+            'title' => 'Profile Statistics',
+            'page_icon' => 'chart-bar',
+            'breadcrumbs' => array(
+                array('title' => 'Dashboard', 'url' => 'admin/dashboard'),
+                array('title' => 'User Profiles', 'url' => 'admin/profiles'),
+                array('title' => 'Statistics', 'url' => '', 'active' => true)
+            ),
+            'total_profiles' => $total_profiles,
+            'verification_stats' => $verification_stats,
+            'visibility_stats' => $visibility_stats,
+            'top_profiles' => $top_profiles,
+            'review_stats' => $review_stats
+        );
+        
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
+        $data['body'] = $this->load->view('admin/profiles/profile_statistics', $data, TRUE);
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Recalled Jobs - Admin View
+     * Show all recalled jobs for admin review
+     */
+    public function recalled_jobs()
+    {
+        $this->load->model('M_jobs');
+        
+        // Get filter parameters
+        $filters = [
+            'reason' => $this->input->get('reason'),
+            'severity' => $this->input->get('severity'),
+            'recall_status' => $this->input->get('recall_status'),
+            'search' => $this->input->get('search'),
+            'sort' => $this->input->get('sort')
+        ];
+        
+        // Get all recalled jobs (all hosts)
+        $recalled_jobs = $this->M_jobs->get_all_recalled_jobs($filters);
+        
+        // Calculate summary statistics
+        $pending_review = 0;
+        $under_investigation = 0;
+        $resolved = 0;
+        
+        foreach ($recalled_jobs as $job) {
+            $recall_status = $job->recall_status ?? 'pending';
+            switch ($recall_status) {
+                case 'pending':
+                    $pending_review++;
+                    break;
+                case 'under_investigation':
+                    $under_investigation++;
+                    break;
+                case 'resolved':
+                    $resolved++;
+                    break;
+            }
+        }
+        
+        $data = [
+            'title' => 'Recalled Jobs',
+            'page_icon' => 'fas fa-exclamation-triangle',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin/dashboard'],
+                ['title' => 'Recalled Jobs', 'url' => '', 'active' => true]
+            ],
+            'filters' => $filters,
+            'recalled_jobs' => $recalled_jobs,
+            'recall_stats' => [
+                'pending' => $pending_review,
+                'under_investigation' => $under_investigation,
+                'resolved' => $resolved,
+                'total' => count($recalled_jobs)
+            ]
+        ];
+        
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
+        $data['body'] = $this->load->view('admin/recalled_jobs', $data, TRUE);
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+
+    /**
+     * Update Recall Status
+     * Admin action to change recall status
+     */
+    public function update_recall_status()
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+        
+        $this->load->model('M_jobs');
+        
+        $job_id = $this->input->post('job_id');
+        $new_status = $this->input->post('recall_status');
+        $admin_notes = $this->input->post('admin_notes');
+        
+        if (!$job_id || !$new_status) {
+            echo json_encode(['success' => false, 'message' => 'Job ID and status are required']);
+            return;
+        }
+        
+        // Get job details
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job || $job->status !== 'recalled') {
+            echo json_encode(['success' => false, 'message' => 'Job not found or not in recalled status']);
+            return;
+        }
+        
+        // Update recall status
+        $update_data = [
+            'recall_status' => $new_status
+        ];
+        
+        if (!empty($admin_notes)) {
+            $update_data['admin_notes'] = $admin_notes;
+        }
+        
+        if ($this->M_jobs->update_job($job_id, $update_data)) {
+            // Send notification to host
+            $this->load->model('M_notifications');
+            $this->M_notifications->create_notification(
+                $job->host_id,
+                'Recall Status Updated',
+                'Your recall for job "' . $job->title . '" has been updated to: ' . ucfirst(str_replace('_', ' ', $new_status)),
+                'recall_status_updated',
+                $job_id
+            );
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Recall status updated successfully!'
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update recall status']);
+        }
+    }
+
+    /**
+     * Settle Recall
+     * Admin marks a recall as settled
+     */
+    public function settle_recall()
+    {
+        if ($this->input->method() !== 'post') {
+            show_404();
+        }
+        
+        $this->load->model('M_jobs');
+        
+        $job_id = $this->input->post('job_id');
+        $admin_decision = $this->input->post('admin_decision');
+        $resolution_type = $this->input->post('resolution_type');
+        $admin_notes = $this->input->post('admin_notes');
+        
+        if (!$job_id) {
+            echo json_encode(['success' => false, 'message' => 'Job ID is required']);
+            return;
+        }
+        
+        if (!$admin_decision) {
+            echo json_encode(['success' => false, 'message' => 'Admin decision is required']);
+            return;
+        }
+        
+        if (!$admin_notes) {
+            echo json_encode(['success' => false, 'message' => 'Admin notes are required']);
+            return;
+        }
+        
+        // Get job details
+        $job = $this->M_jobs->get_job_by_id($job_id);
+        
+        if (!$job || $job->status !== 'recalled') {
+            echo json_encode(['success' => false, 'message' => 'Job not found or not in recalled status']);
+            return;
+        }
+        
+        // Check which columns exist in the jobs table
+        $columns = $this->db->list_fields('jobs');
+        
+        // Update job to recall_settled status
+        $update_data = [
+            'status' => 'recall_settled',
+            'recall_status' => 'resolved',
+        ];
+        
+        // Add optional columns if they exist
+        if (in_array('recall_settled_at', $columns)) {
+            $update_data['recall_settled_at'] = date('Y-m-d H:i:s');
+        }
+        
+        if (in_array('recall_settled_by', $columns)) {
+            $update_data['recall_settled_by'] = $this->auth_user_id;
+        }
+        
+        if (in_array('admin_decision', $columns)) {
+            $update_data['admin_decision'] = $admin_decision;
+        }
+        
+        if (in_array('resolution_type', $columns) && !empty($resolution_type)) {
+            $update_data['resolution_type'] = $resolution_type;
+        }
+        
+        if (in_array('admin_notes', $columns) && !empty($admin_notes)) {
+            $update_data['admin_notes'] = $admin_notes;
+        }
+        
+        if ($this->M_jobs->update_job($job_id, $update_data)) {
+            // Send notification to host
+            $this->load->model('M_notifications');
+            $decision_text = ucfirst(str_replace('_', ' ', $admin_decision));
+            $this->M_notifications->create_notification(
+                $job->host_id,
+                'Recall Settled',
+                'Your recall for job "' . $job->title . '" has been reviewed and settled by admin. Decision: ' . $decision_text,
+                'recall_settled',
+                $job_id
+            );
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Recall settled successfully!'
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to settle recall']);
+        }
+    }
+
+    /**
+     * Reviews Management
+     * Display all reviews with moderation tools
+     */
+    public function reviews()
+    {
+        $this->load->model('M_reviews');
+        
+        // Get filters from query params
+        $filters = [
+            'rating' => $this->input->get('rating'),
+            'review_type' => $this->input->get('review_type'),
+            'is_hidden' => $this->input->get('is_hidden'),
+            'search' => $this->input->get('search'),
+            'sort_by' => $this->input->get('sort_by') ?? 'created_at',
+            'sort_order' => $this->input->get('sort_order') ?? 'DESC'
+        ];
+        
+        // Pagination
+        $per_page = $this->input->get('per_page') ?? 20;
+        $page = $this->input->get('page') ?? 1;
+        $offset = ($page - 1) * $per_page;
+        
+        // Get reviews
+        $reviews = $this->M_reviews->get_all_reviews_admin($filters, $per_page, $offset);
+        $total_reviews = $this->M_reviews->count_all_reviews_admin($filters);
+        $total_pages = ceil($total_reviews / $per_page);
+        
+        // Get review statistics
+        $stats = $this->M_reviews->get_review_statistics();
+        
+        // Additional review statistics
+        if ($this->db->table_exists('reviews')) {
+            // Reviews by rating
+            $this->db->select('overall_rating, COUNT(*) as count');
+            $this->db->where('is_hidden', 0);
+            $this->db->group_by('overall_rating');
+            $this->db->order_by('overall_rating', 'DESC');
+            $rating_breakdown = $this->db->get('reviews')->result();
+            
+            $reviews_by_rating = array(5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0);
+            foreach ($rating_breakdown as $row) {
+                $reviews_by_rating[$row->overall_rating] = $row->count;
+            }
+            
+            // Reviews by type
+            $host_to_cleaner = $this->db->where('review_type', 'host_to_cleaner')->where('is_hidden', 0)->count_all_results('reviews');
+            $cleaner_to_host = $this->db->reset_query()->where('review_type', 'cleaner_to_host')->where('is_hidden', 0)->count_all_results('reviews');
+            
+            // Reviews this week
+            $reviews_this_week = $this->db->reset_query()
+                ->where('created_at >=', date('Y-m-d', strtotime('-7 days')))
+                ->where('is_hidden', 0)
+                ->count_all_results('reviews');
+            
+            // Reviews this month
+            $reviews_this_month = $this->db->reset_query()
+                ->where('created_at >=', date('Y-m-d', strtotime('-30 days')))
+                ->where('is_hidden', 0)
+                ->count_all_results('reviews');
+            
+            // Average category ratings
+            $this->db->reset_query();
+            $this->db->select('
+                AVG(professionalism_rating) as avg_professionalism,
+                AVG(quality_rating) as avg_quality,
+                AVG(communication_rating) as avg_communication,
+                AVG(punctuality_rating) as avg_punctuality
+            ');
+            $this->db->where('is_hidden', 0);
+            $category_avgs = $this->db->get('reviews')->row();
+            
+            $stats['by_rating'] = $reviews_by_rating;
+            $stats['host_to_cleaner'] = $host_to_cleaner;
+            $stats['cleaner_to_host'] = $cleaner_to_host;
+            $stats['reviews_this_week'] = $reviews_this_week;
+            $stats['reviews_this_month'] = $reviews_this_month;
+            $stats['category_averages'] = $category_avgs;
+            
+            $this->db->reset_query();
+        }
+        
+        $data = [
+            'title' => 'Review Management',
+            'page_icon' => 'fas fa-star',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin'],
+                ['title' => 'Reviews', 'url' => '', 'active' => true]
+            ],
+            'reviews' => $reviews,
+            'stats' => $stats,
+            'filters' => $filters,
+            'pagination' => [
+                'total' => $total_reviews,
+                'per_page' => $per_page,
+                'current_page' => $page,
+                'total_pages' => $total_pages
+            ],
+            'user_info' => $this->M_users->get_user_by_id($this->auth_user_id)
+        ];
+        
+        // Load sidebar
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', NULL, TRUE);
+        
+        // Load the reviews view
+        $data['body'] = $this->load->view('admin/reviews/reviews_management', $data, TRUE);
+        
+        // Load layout
+        $this->load->view('admin/template/layout_with_sidebar', $data);
+    }
+    
+    /**
+     * Hide Review (AJAX)
+     * Hide inappropriate review from public view
+     */
+    public function hide_review()
+    {
+        if ($this->input->method() !== 'post') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            return;
+        }
+        
+        $review_id = $this->input->post('review_id');
+        $reason = $this->input->post('reason');
+        
+        if (!$review_id || !$reason) {
+            echo json_encode(['success' => false, 'message' => 'Review ID and reason are required']);
+            return;
+        }
+        
+        $this->load->model('M_reviews');
+        $result = $this->M_reviews->hide_review($review_id, $this->auth_user_id, $reason);
+        
+        if ($result) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Review hidden successfully'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to hide review'
+            ]);
+        }
+    }
+    
+    /**
+     * Unhide Review (AJAX)
+     * Restore hidden review to public view
+     */
+    public function unhide_review()
+    {
+        if ($this->input->method() !== 'post') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            return;
+        }
+        
+        $review_id = $this->input->post('review_id');
+        
+        if (!$review_id) {
+            echo json_encode(['success' => false, 'message' => 'Review ID is required']);
+            return;
+        }
+        
+        $this->load->model('M_reviews');
+        $result = $this->M_reviews->unhide_review($review_id);
+        
+        if ($result) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Review restored successfully'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to restore review'
+            ]);
+        }
+    }
+    
+    /**
+     * Delete Review (AJAX)
+     * Permanently delete a review
+     */
+    public function delete_review()
+    {
+        if ($this->input->method() !== 'post') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            return;
+        }
+        
+        $review_id = $this->input->post('review_id');
+        
+        if (!$review_id) {
+            echo json_encode(['success' => false, 'message' => 'Review ID is required']);
+            return;
+        }
+        
+        $this->load->model('M_reviews');
+        $result = $this->M_reviews->delete_review($review_id);
+        
+        if ($result) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Review deleted permanently'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to delete review'
+            ]);
+        }
+    }
+    
+    /**
+     * Get Review Details (AJAX)
+     * Fetch full review details for modal display
+     */
+    public function get_review_details()
+    {
+        $review_id = $this->input->get('review_id');
+        
+        if (!$review_id) {
+            echo json_encode(['success' => false, 'message' => 'Review ID is required']);
+            return;
+        }
+        
+        $this->load->model('M_reviews');
+        $review = $this->M_reviews->get_review_by_id($review_id);
+        
+        if ($review) {
+            echo json_encode([
+                'success' => true,
+                'review' => $review
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Review not found'
+            ]);
+        }
+    }
+    
+    /**
+     * Pricing Settings - Manage pricing parameters
+     */
+    public function pricing_settings()
+    {
+        // Handle form submission
+        if ($this->input->method() === 'post') {
+            $base_charge = $this->input->post('base_charge');
+            $tax_percent = $this->input->post('tax_percent');
+            $app_percent = $this->input->post('app_percent');
+            
+            // Validate inputs
+            if (!is_numeric($base_charge) || !is_numeric($tax_percent) || !is_numeric($app_percent)) {
+                $this->session->set_flashdata('text', 'All values must be numeric.');
+                $this->session->set_flashdata('type', 'error');
+                redirect('admin/pricing_settings');
+                return;
+            }
+            
+            // Update or insert pricing settings
+            if ($this->db->table_exists('pricing_settings')) {
+                $existing = $this->db->get('pricing_settings')->row();
+                
+                if ($existing) {
+                    // Update existing
+                    $this->db->where('id', $existing->id);
+                    $this->db->update('pricing_settings', [
+                        'base_charge' => $base_charge,
+                        'tax_percent' => $tax_percent,
+                        'app_percent' => $app_percent,
+                        'updated_by' => $this->auth_user_id
+                    ]);
+                } else {
+                    // Insert new
+                    $this->db->insert('pricing_settings', [
+                        'base_charge' => $base_charge,
+                        'tax_percent' => $tax_percent,
+                        'app_percent' => $app_percent,
+                        'updated_by' => $this->auth_user_id
+                    ]);
+                }
+                
+                $this->session->set_flashdata('text', 'Pricing settings updated successfully!');
+                $this->session->set_flashdata('type', 'success');
+            } else {
+                $this->session->set_flashdata('text', 'Pricing settings table does not exist. Please run the SQL migration first.');
+                $this->session->set_flashdata('type', 'error');
+            }
+            
+            redirect('admin/pricing_settings');
+            return;
+        }
+        
+        // Get current settings
+        $current_settings = [
+            'base_charge' => 25.00,
+            'tax_percent' => 10,
+            'app_percent' => 15
+        ];
+        
+        if ($this->db->table_exists('pricing_settings')) {
+            $settings = $this->db->get('pricing_settings')->row();
+            if ($settings) {
+                $current_settings = [
+                    'base_charge' => floatval($settings->base_charge),
+                    'tax_percent' => floatval($settings->tax_percent),
+                    'app_percent' => floatval($settings->app_percent)
+                ];
+            }
+        }
+        
+        $data = [
+            'title' => 'Pricing Settings',
+            'page_icon' => 'fas fa-dollar-sign',
+            'breadcrumbs' => [
+                ['title' => 'Dashboard', 'url' => 'admin/dashboard'],
+                ['title' => 'Pricing Settings', 'url' => '', 'active' => true]
+            ],
+            'settings' => $current_settings,
+            'table_exists' => $this->db->table_exists('pricing_settings')
+        ];
+        
+        $data['sidebar'] = $this->load->view('admin/template/admin_sidebar', array(), TRUE);
+        $data['body'] = $this->load->view('admin/pricing_settings', $data, TRUE);
+        $this->load->view('admin/template/layout_with_sidebar', $data);
     }
 
 }

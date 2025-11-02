@@ -175,6 +175,16 @@
     color: #155724;
 }
 
+.status-recalled {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-recall_settled {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
 .status-disputed {
     background: #fff3cd;
     color: #856404;
@@ -373,6 +383,7 @@
                             <th>Host</th>
                             <th>Price</th>
                             <th>Status</th>
+                            <th>My Review</th>
                             <th>Completed</th>
                             <th>Actions</th>
                         </tr>
@@ -392,9 +403,20 @@
                                 </td>
                                 <td>
                                     <div class="price-info">
-                                        <span class="fw-bold text-success">
-                                            $<?php echo number_format($job->suggested_price, 2); ?>
-                                        </span>
+                                        <?php if ($job->accepted_offer && $job->accepted_offer->offer_type === 'counter'): ?>
+                                            <!-- Counter Offer: Show cleaner's actual payout -->
+                                            <span class="fw-bold text-success" style="font-size: 1.1rem;">
+                                                $<?php echo number_format($job->cleaner_payout, 2); ?>
+                                            </span>
+                                            <br><small class="text-muted">
+                                                <i class="fas fa-info-circle"></i> Counter Offer Accepted
+                                            </small>
+                                        <?php else: ?>
+                                            <!-- Regular Offer: Show calculated payout -->
+                                            <span class="fw-bold text-success" style="font-size: 1.1rem;">
+                                                $<?php echo number_format($job->cleaner_payout, 2); ?>
+                                            </span>
+                                        <?php endif; ?>
                                         <?php if ($job->dispute_info && $job->dispute_info['payment_amount']): ?>
                                             <br><small class="text-info">
                                                 Final: $<?php echo number_format($job->dispute_info['payment_amount'], 2); ?>
@@ -414,8 +436,28 @@
                                 </td>
                                 <td>
                                     <span class="status-badge status-<?php echo $job->status; ?>">
-                                        <?php echo ucfirst(str_replace('_', ' ', $job->status)); ?>
+                                        <?php 
+                                        if ($job->status === 'recalled') {
+                                            echo 'Pending Recall';
+                                        } else {
+                                            echo ucfirst(str_replace('_', ' ', $job->status)); 
+                                        }
+                                        ?>
                                     </span>
+                                </td>
+                                <td>
+                                    <?php if (isset($job->my_review) && $job->my_review): ?>
+                                        <div class="my-review-badge">
+                                            <div class="rating-display-mini">
+                                                <?php for($i = 1; $i <= 5; $i++): ?>
+                                                    <i class="fas fa-star <?php echo $i <= $job->my_review->overall_rating ? 'text-warning' : 'text-muted'; ?>" style="font-size: 0.85rem;"></i>
+                                                <?php endfor; ?>
+                                            </div>
+                                            <small class="text-muted d-block"><?php echo number_format($job->my_review->overall_rating, 1); ?>/5</small>
+                                        </div>
+                                    <?php else: ?>
+                                        <small class="text-muted">No review</small>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php if ($job->completed_at): ?>
@@ -454,12 +496,25 @@
                                                         <td><?php echo htmlspecialchars($job->description); ?></td>
                                                     </tr>
                                                     <tr>
-                                                        <td><strong>Original Price:</strong></td>
-                                                        <td class="text-success fw-bold">$<?php echo number_format($job->suggested_price, 2); ?></td>
+                                                        <td><strong>Your Payout:</strong></td>
+                                                        <td class="text-success fw-bold" style="font-size: 1.1rem;">
+                                                            $<?php echo number_format($job->cleaner_payout, 2); ?>
+                                                            <?php if ($job->accepted_offer && $job->accepted_offer->offer_type === 'counter'): ?>
+                                                                <br><small class="text-info">Based on counter offer</small>
+                                                            <?php endif; ?>
+                                                        </td>
                                                     </tr>
                                                     <tr>
                                                         <td><strong>Status:</strong></td>
-                                                        <td><span class="status-badge status-<?php echo $job->status; ?>"><?php echo ucfirst(str_replace('_', ' ', $job->status)); ?></span></td>
+                                                        <td><span class="status-badge status-<?php echo $job->status; ?>">
+                                                            <?php 
+                                                            if ($job->status === 'recalled') {
+                                                                echo 'Pending Recall';
+                                                            } else {
+                                                                echo ucfirst(str_replace('_', ' ', $job->status)); 
+                                                            }
+                                                            ?>
+                                                        </span></td>
                                                     </tr>
                                                     <tr>
                                                         <td><strong>Completed:</strong></td>
@@ -482,6 +537,71 @@
                                                         <td><?php echo htmlspecialchars($job->host_email); ?></td>
                                                     </tr>
                                                 </table>
+                                                
+                                                <?php if ($job->status === 'recalled' || $job->status === 'recall_settled'): ?>
+                                                    <h6 class="mb-3 mt-4">
+                                                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                                        <?php echo $job->status === 'recalled' ? 'Recall - Pending Review' : 'Recall Information'; ?>
+                                                    </h6>
+                                                    <div class="alert alert-<?php echo $job->status === 'recalled' ? 'warning' : 'info'; ?>">
+                                                        <table class="table table-sm table-borderless mb-0">
+                                                            <?php if (!empty($job->recall_reason)): ?>
+                                                                <tr>
+                                                                    <td><strong>Reason:</strong></td>
+                                                                    <td><?php echo ucfirst(str_replace('_', ' ', $job->recall_reason)); ?></td>
+                                                                </tr>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($job->recall_severity)): ?>
+                                                                <tr>
+                                                                    <td><strong>Severity:</strong></td>
+                                                                    <td><span class="badge bg-<?php echo $job->recall_severity === 'high' ? 'danger' : ($job->recall_severity === 'medium' ? 'warning' : 'info'); ?>"><?php echo ucfirst($job->recall_severity); ?></span></td>
+                                                                </tr>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($job->recalled_at)): ?>
+                                                                <tr>
+                                                                    <td><strong>Recalled At:</strong></td>
+                                                                    <td><?php echo date('M j, Y g:i A', strtotime($job->recalled_at)); ?></td>
+                                                                </tr>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($job->recall_details)): ?>
+                                                                <tr>
+                                                                    <td colspan="2"><strong>Details:</strong><br><?php echo nl2br(htmlspecialchars($job->recall_details)); ?></td>
+                                                                </tr>
+                                                            <?php endif; ?>
+                                                            <?php if ($job->status === 'recall_settled'): ?>
+                                                                <tr>
+                                                                    <td colspan="2"><hr></td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td colspan="2"><strong class="text-success"><i class="fas fa-check-circle me-1"></i>Resolution:</strong></td>
+                                                                </tr>
+                                                                <?php if (!empty($job->admin_decision)): ?>
+                                                                    <tr>
+                                                                        <td><strong>Decision:</strong></td>
+                                                                        <td><?php echo ucfirst(str_replace('_', ' ', $job->admin_decision)); ?></td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                                <?php if (!empty($job->resolution_type)): ?>
+                                                                    <tr>
+                                                                        <td><strong>Type:</strong></td>
+                                                                        <td><?php echo ucfirst(str_replace('_', ' ', $job->resolution_type)); ?></td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                                <?php if (!empty($job->admin_notes)): ?>
+                                                                    <tr>
+                                                                        <td colspan="2"><strong>Admin Notes:</strong><br><?php echo nl2br(htmlspecialchars($job->admin_notes)); ?></td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                                <?php if (!empty($job->recall_settled_at)): ?>
+                                                                    <tr>
+                                                                        <td><strong>Settled At:</strong></td>
+                                                                        <td><?php echo date('M j, Y g:i A', strtotime($job->recall_settled_at)); ?></td>
+                                                                    </tr>
+                                                                <?php endif; ?>
+                                                            <?php endif; ?>
+                                                        </table>
+                                                    </div>
+                                                <?php endif; ?>
                                                 
                                                 <?php if ($job->dispute_info): ?>
                                                     <h6 class="mb-3 mt-4">

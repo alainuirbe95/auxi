@@ -56,6 +56,84 @@ if (!function_exists('time_ago')) {
     padding: 2rem 0;
 }
 
+/* STR Notification Styles */
+.str-notification {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.str-notification.success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border: 2px solid #28a745;
+}
+
+.str-notification.warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+    border: 2px solid #ffc107;
+}
+
+.str-notification-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 1.5rem;
+}
+
+.str-notification-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.str-notification.success .str-notification-icon {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.str-notification.warning .str-notification-icon {
+    background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+    color: white;
+}
+
+.str-notification-text {
+    flex: 1;
+}
+
+.str-notification-text h5 {
+    margin: 0 0 0.75rem 0;
+    font-weight: 700;
+    color: #495057;
+    font-size: 1.1rem;
+}
+
+.str-notification-text p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.5;
+}
+
+.str-notification .btn-light {
+    background: white;
+    color: #495057;
+    border: 2px solid #dee2e6;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.str-notification .btn-light:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
 .filter-section {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 20px;
@@ -232,11 +310,34 @@ if (!function_exists('time_ago')) {
     position: relative;
 }
 
+.title-badges-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
 .job-title {
     font-size: 1.25rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    margin: 0;
     line-height: 1.3;
+}
+
+.str-job-badge {
+    background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .job-price {
@@ -307,10 +408,44 @@ if (!function_exists('time_ago')) {
     font-size: 1.1rem;
 }
 
+.host-info {
+    flex: 1;
+}
+
 .host-info h6 {
-    margin: 0;
+    margin: 0 0 0.25rem 0;
     font-weight: 600;
     color: #333;
+}
+
+.host-rating-display {
+    margin: 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.host-rating-display i {
+    font-size: 0.85rem;
+}
+
+.host-rating-display i.filled {
+    color: #ffc107;
+}
+
+.host-rating-display i.empty {
+    color: #dee2e6;
+}
+
+.host-rating-display .rating-value {
+    font-weight: 700;
+    color: #f57c00;
+    margin-left: 0.25rem;
+}
+
+.host-rating-display .rating-count {
+    color: #6c757d;
+    font-size: 0.85rem;
 }
 
 .host-info small {
@@ -525,6 +660,63 @@ if (!function_exists('time_ago')) {
 
 <div class="container-fluid">
     <div class="jobs-browse-container">
+    <!-- Service Areas Notification -->
+    <?php if (!empty($service_areas)): ?>
+    <div class="alert alert-info mb-4" role="alert">
+        <h5><i class="fas fa-map-marker-alt me-2"></i> Your Service Areas</h5>
+        <p class="mb-2">You're currently viewing jobs in these locations:</p>
+        <div class="service-areas-list">
+            <?php foreach ($service_areas as $area): ?>
+                <span class="badge badge-primary me-2 mb-1"><?php echo htmlspecialchars($area); ?></span>
+            <?php endforeach; ?>
+        </div>
+        <small class="text-muted mt-2 d-block">
+            <i class="fas fa-info-circle me-1"></i>
+            Only jobs in your service areas are shown. <a href="<?php echo base_url('cleaner/edit-profile'); ?>" class="alert-link">Update your service areas</a> to see jobs in other locations.
+        </small>
+    </div>
+    <?php else: ?>
+    <div class="alert alert-warning mb-4" role="alert">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i> No Service Areas Set</h5>
+        <p class="mb-0">
+            You haven't set your service areas yet. <a href="<?php echo base_url('cleaner/edit-profile'); ?>" class="alert-link">Add your service areas</a> 
+            to see relevant jobs in your location.
+        </p>
+    </div>
+    <?php endif; ?>
+    
+    <!-- STR Services Notification -->
+    <?php if (isset($cleaner_offers_str)): ?>
+        <?php if ($cleaner_offers_str): ?>
+        <div class="str-notification success mb-4">
+            <div class="str-notification-content">
+                <div class="str-notification-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <div class="str-notification-text">
+                    <h5><i class="fas fa-check-circle me-2"></i>STR Services Enabled</h5>
+                    <p>You can browse and apply to both <strong>Residential</strong> and <strong>Short Term Rental (STR)</strong> jobs.</p>
+                </div>
+            </div>
+        </div>
+        <?php else: ?>
+        <div class="str-notification warning mb-4">
+            <div class="str-notification-content">
+                <div class="str-notification-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div class="str-notification-text">
+                    <h5><i class="fas fa-filter me-2"></i>Residential Jobs Only</h5>
+                    <p>You're viewing <strong>Residential jobs only</strong>. STR jobs are hidden because you haven't enabled STR services in your profile.</p>
+                    <a href="<?php echo base_url('cleaner/edit-profile'); ?>" class="btn btn-sm btn-light mt-2">
+                        <i class="fas fa-plus-circle me-1"></i>Enable STR Services
+                    </a>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+    <?php endif; ?>
+
     <!-- Filter Section -->
     <div class="filter-section">
         <h2 class="filter-title">
@@ -633,7 +825,14 @@ if (!function_exists('time_ago')) {
                                 <span>Applied</span>
                             </div>
                         <?php endif; ?>
-                        <h3 class="job-title"><?php echo htmlspecialchars($job->title); ?></h3>
+                        <div class="title-badges-row">
+                            <h3 class="job-title"><?php echo htmlspecialchars($job->title); ?></h3>
+                            <?php if (!empty($job->property_type) && $job->property_type === 'str'): ?>
+                                <span class="str-job-badge">
+                                    <i class="fas fa-home"></i> STR
+                                </span>
+                            <?php endif; ?>
+                        </div>
                         <div class="job-price">$<?php echo number_format($job->suggested_price, 2); ?></div>
                         <div class="job-date">
                             <i class="fas fa-clock me-1"></i>
@@ -702,6 +901,15 @@ if (!function_exists('time_ago')) {
                             </div>
                             <div class="host-info">
                                 <h6><?php echo htmlspecialchars($job->host_first_name . ' ' . $job->host_last_name); ?></h6>
+                                <?php if (isset($job->host_rating) && $job->host_rating > 0): ?>
+                                <div class="host-rating-display">
+                                    <?php for($i = 1; $i <= 5; $i++): ?>
+                                        <i class="fas fa-star <?php echo $i <= round($job->host_rating) ? 'filled' : 'empty'; ?>"></i>
+                                    <?php endfor; ?>
+                                    <span class="rating-value"><?php echo number_format($job->host_rating, 1); ?></span>
+                                    <span class="rating-count">(<?php echo $job->host_review_count; ?>)</span>
+                                </div>
+                                <?php endif; ?>
                                 <small>
                                     <i class="fas fa-clock me-1"></i>
                                     Posted <?php echo time_ago($job->created_at); ?>

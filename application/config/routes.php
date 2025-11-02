@@ -90,6 +90,18 @@ $route['host/delete-expired-job'] = 'host/delete_expired_job';
 $route['host/accept_offer/(:num)'] = 'host/accept_offer/$1';
 $route['host/reject_offer/(:num)'] = 'host/reject_offer/$1';
 
+// Host Profile routes (Phase 2)
+$route['host/my-profile'] = 'host/my_profile';
+$route['host/edit-profile'] = 'host/edit_my_profile';
+$route['host/update-profile'] = 'host/update_my_profile';
+$route['host/test-redirect'] = 'host/test_redirect';
+$route['host/payment-history'] = 'host/payment_history';
+$route['host/cleaner/(:num)/offer/(:num)'] = 'host/view_cleaner_profile/$1/$2';
+
+// Public Profile routes
+$route['cleaner/public-profile/(:num)'] = 'cleaner/public_profile/$1';
+$route['host/public-profile/(:num)'] = 'host/public_profile/$1';
+
 // Cleaner routes
 $route['cleaner'] = 'cleaner/index';
 $route['cleaner/jobs'] = 'cleaner/jobs';
@@ -100,6 +112,12 @@ $route['cleaner/rejected_offers'] = 'cleaner/rejected_offers';
 $route['cleaner/assigned_jobs'] = 'cleaner/assigned_jobs';
 $route['cleaner/start_job'] = 'cleaner/start_job';
 $route['cleaner/start_job_page/(:num)'] = 'cleaner/start_job_page/$1';
+
+// Cleaner Profile routes
+$route['cleaner/my-profile'] = 'cleaner/my_profile';
+$route['cleaner/edit-profile'] = 'cleaner/edit_my_profile';
+$route['cleaner/update-profile'] = 'cleaner/update_my_profile';
+$route['cleaner/profile-setup-required'] = 'cleaner/profile_setup_required';
 
 // Jobs in Progress routes (Job Completion workflow)
 $route['cleaner/jobs-in-progress'] = 'JobCompletion/index';
@@ -123,13 +141,45 @@ $route['admin/counter-offers'] = 'counteroffers/moderator_index';
 $route['cleaner/price-adjustment-disputes'] = 'counteroffers/cleaner_disputes';
 
 // Disputes routes
-$route['host/completed-jobs'] = 'disputes/index';
+$route['host/upcoming-jobs'] = 'host/upcoming_jobs';
+$route['host/completed-jobs'] = 'host/completed_jobs';
+$route['host/confirm-completion/(:num)'] = 'host/confirm_completion/$1';
+$route['host/process_confirm_completion'] = 'host/process_confirm_completion';
+$route['host/complete_job'] = 'host/complete_job';
+$route['host/recall_job/(:num)'] = 'host/recall_job/$1';
+$route['host/process_recall_job'] = 'host/process_recall_job';
+$route['host/past-jobs'] = 'host/past_jobs';
+$route['host/recalled-jobs'] = 'host/recalled_jobs';
+$route['host/payment-history'] = 'host/past_jobs'; // Redirect old route to new one
 $route['host/disputes'] = 'disputes/index'; // Keep old route for backward compatibility
 $route['host/my-disputed-jobs'] = 'disputes/host_disputes';
 $route['disputes/dispute-job'] = 'disputes/dispute_job';
 $route['disputes/resolve'] = 'disputes/resolve_dispute';
 $route['disputes/resolve-dispute'] = 'disputes/resolve_dispute';
 $route['disputes/close-job'] = 'disputes/close_job';
+
+// Job Expiration routes
+$route['job-expiration/expire-jobs'] = 'jobexpiration/expire_jobs';
+$route['job-expiration/stats'] = 'jobexpiration/stats';
+$route['job-expiration/dry-run'] = 'jobexpiration/dry_run';
+$route['job-expiration/expire-job/(:num)'] = 'jobexpiration/expire_job/$1';
+
+// Admin Recalled Jobs routes
+$route['admin/recalled-jobs'] = 'admin/recalled_jobs';
+$route['admin/update_recall_status'] = 'admin/update_recall_status';
+$route['admin/settle_recall'] = 'admin/settle_recall';
+$route['admin/ban_user'] = 'admin/ban_user';
+
+// Admin Review Management routes
+$route['admin/reviews'] = 'admin/reviews';
+$route['admin/hide_review'] = 'admin/hide_review';
+$route['admin/unhide_review'] = 'admin/unhide_review';
+$route['admin/delete_review'] = 'admin/delete_review';
+$route['admin/get_review_details'] = 'admin/get_review_details';
+
+// Debug routes (temporary)
+$route['debug-recalls/check-host/(:any)'] = 'debug_recalls/check_host/$1';
+$route['debug-recalls/fix-job/(:num)'] = 'debug_recalls/fix_job/$1';
 $route['disputes/auto-close'] = 'disputes/auto_close_jobs';
 $route['disputes/details/(:num)'] = 'disputes/get_details/$1';
 $route['disputes/get-dispute-details/(:num)'] = 'disputes/get_dispute_details/$1';
@@ -145,6 +195,7 @@ $route['notifications/unread_count'] = 'notifications/get_unread_count';
 $route['cleaner/accept_counter_offer/(:num)'] = 'cleaner/accept_counter_offer/$1';
 $route['cleaner/reject_counter_offer/(:num)'] = 'cleaner/reject_counter_offer/$1';
 $route['cleaner/make_counter_offer/(:num)'] = 'cleaner/make_counter_offer/$1';
+$route['cleaner/applications'] = 'cleaner/applications';
 $route['cleaner/earnings'] = 'cleaner/earnings';
 $route['cleaner/ignore_job'] = 'cleaner/ignore_job';
 $route['cleaner/ignored_jobs'] = 'cleaner/ignored_jobs';
@@ -191,10 +242,20 @@ $route['host/update_password'] = 'host/update_password';
 $route['cleaner/change_password'] = 'cleaner/change_password';
 $route['cleaner/update_password'] = 'cleaner/update_password';
 $route['cleaner/completed'] = 'cleaner/completed';
+$route['cleaner/recalled-jobs'] = 'cleaner/recalled_jobs';
 
 // User Profile routes (accessible to all user levels 3+)
 $route['user-profile/change_password'] = 'userprofile/change_password';
 $route['user-profile/update_password'] = 'userprofile/update_password';
+
+// Admin Profile Management routes
+$route['admin/profiles'] = 'admin/profiles';
+$route['admin/profile-statistics'] = 'admin/profile_statistics';
+$route['admin/profile/edit/(:num)'] = 'admin/edit_profile/$1';
+$route['admin/profile/(:num)'] = 'admin/view_profile/$1';
+$route['admin/profile'] = 'admin/my_profile';  // Must come after specific routes
+$route['admin/update_profile'] = 'admin/update_profile';
+$route['admin/update_verification_status'] = 'admin/update_verification_status';
 
 // Redirect root URL based on authentication
 $route['^$'] = 'app/redirect_user';

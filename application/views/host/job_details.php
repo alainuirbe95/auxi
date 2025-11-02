@@ -5,10 +5,27 @@
                 <div class="col-12">
                     <div class="modern-card">
                         <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">
                                 <i class="fas fa-clipboard-list text-primary me-2"></i>
                                 Job Details
                             </h5>
+                                <div class="quick-actions">
+                                    <?php if (in_array($job->status, ['open', 'offers_received'])): ?>
+                                        <a href="<?php echo base_url('host/edit_job/' . $job->id); ?>" class="btn btn-light btn-sm ms-2" title="Edit Job">
+                                            <i class="fas fa-edit me-1"></i> Edit
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if (!empty($job->assigned_cleaner_id)): ?>
+                                        <a href="<?php echo base_url('cleaner/public-profile/' . $job->assigned_cleaner_id); ?>" class="btn btn-info btn-sm ms-2" title="View Cleaner Profile">
+                                            <i class="fas fa-user-circle me-1"></i> View Cleaner Profile
+                                        </a>
+                                    <?php endif; ?>
+                                    <a href="<?php echo base_url('host/jobs'); ?>" class="btn btn-secondary btn-sm ms-2" title="Back to Jobs">
+                                        <i class="fas fa-arrow-left me-1"></i> Back
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -16,69 +33,294 @@
                                     <h4><?php echo htmlspecialchars($job->title); ?></h4>
                                     <p class="text-muted"><?php echo htmlspecialchars($job->description); ?></p>
                                     
-                                    <div class="job-info">
-                                        <div class="row">
-                                            <div class="col-sm-6">
-                                                <strong>Address:</strong><br>
-                                                <?php echo htmlspecialchars($job->address); ?>
+                                    <!-- Quick Summary Box -->
+                                    <div class="summary-box mb-4">
+                                        <?php 
+                                        // Determine actual prices based on accepted offer
+                                        if (!empty($accepted_offer)) {
+                                            $actual_host_price = $accepted_offer->amount;
+                                            // Calculate cleaner payout from accepted offer
+                                            if (!empty($accepted_offer->cleaner_payout)) {
+                                                $actual_cleaner_payout = $accepted_offer->cleaner_payout;
+                                            } else {
+                                                // Fallback calculation
+                                                $tax_amount = ($actual_host_price * $pricing_params['tax_percent']) / 100;
+                                                $app_amount = ($actual_host_price * $pricing_params['app_percent']) / 100;
+                                                $actual_cleaner_payout = $actual_host_price - $pricing_params['base_charge'] - $tax_amount - $app_amount;
+                                            }
+                                            $is_counter_offer = ($accepted_offer->offer_type === 'counter');
+                                        } else {
+                                            $actual_host_price = $job->suggested_price;
+                                            $tax_amount = ($actual_host_price * $pricing_params['tax_percent']) / 100;
+                                            $app_amount = ($actual_host_price * $pricing_params['app_percent']) / 100;
+                                            $actual_cleaner_payout = $actual_host_price - $pricing_params['base_charge'] - $tax_amount - $app_amount;
+                                            $is_counter_offer = false;
+                                        }
+                                        ?>
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <div class="summary-item">
+                                                    <i class="fas fa-dollar-sign text-success"></i>
+                                                    <div>
+                                                        <small class="text-muted"><?php echo $is_counter_offer ? 'Final Price (Counter Offer)' : 'Your Price'; ?></small>
+                                                        <strong class="d-block">$<?php echo number_format($actual_host_price, 2); ?></strong>
+                                                        <?php if ($is_counter_offer): ?>
+                                                            <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                                                Original: $<?php echo number_format($job->suggested_price, 2); ?>
+                                                            </small>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="col-sm-6">
-                                                <strong>Date & Time:</strong><br>
-                                                <?php 
-                                                // Use scheduled_date and scheduled_time from database
-                                                $job_date = isset($job->scheduled_date) ? $job->scheduled_date : '';
-                                                $job_time = isset($job->scheduled_time) ? $job->scheduled_time : '';
-                                                
-                                                if ($job_date && $job_time) {
-                                                    $datetime = $job_date . ' ' . $job_time;
-                                                    echo date('M j, Y g:i A', strtotime($datetime));
-                                                } else {
-                                                    echo 'Not scheduled';
-                                                }
-                                                ?>
+                                            <div class="col-md-4">
+                                                <div class="summary-item">
+                                                    <i class="fas fa-money-bill-wave text-info"></i>
+                                                    <div>
+                                                        <small class="text-muted">Cleaner Payout</small>
+                                                        <strong class="d-block">$<?php echo number_format($actual_cleaner_payout, 2); ?></strong>
+                                                        <?php if ($is_counter_offer): ?>
+                                                            <small class="badge bg-warning text-dark" style="font-size: 0.7rem;">Counter Offer</small>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="summary-item">
+                                                    <i class="fas fa-clock text-warning"></i>
+                                                    <div>
+                                                        <small class="text-muted">Duration</small>
+                                                        <strong class="d-block"><?php echo isset($job->estimated_duration) ? ($job->estimated_duration / 60) . ' hours' : 'Not specified'; ?></strong>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                        
-                                        <div class="row mt-3">
-                                            <div class="col-sm-6">
-                                                <strong>Rooms:</strong> 
-                                                <?php 
-                                                // Decode JSON rooms array
-                                                $rooms = json_decode($job->rooms, true);
-                                                if (is_array($rooms) && !empty($rooms)) {
-                                                    echo implode(', ', $rooms);
-                                                } else {
-                                                    echo 'Not specified';
-                                                }
-                                                ?><br>
-                                                <strong>Price:</strong> $<?php echo number_format($job->suggested_price, 2); ?>
-                                            </div>
-                                            <div class="col-sm-6">
-                                                <strong>Status:</strong> 
-                                                <span class="badge bg-<?php echo $job->status == 'active' ? 'success' : ($job->status == 'completed' ? 'primary' : 'warning'); ?>">
-                                                    <?php echo ucfirst($job->status); ?>
+                                    </div>
+                                    
+                                    <?php
+                                    // Define job date and time variables
+                                    $job_date = isset($job->scheduled_date) ? $job->scheduled_date : '';
+                                    $job_time = isset($job->scheduled_time) ? $job->scheduled_time : '';
+                                    ?>
+                                    
+                                    <div class="job-info">
+                                        <!-- Property Type Badge -->
+                                        <?php if (!empty($job->property_type)): ?>
+                                        <div class="row mb-3">
+                                            <div class="col-12">
+                                                <span class="badge badge-lg <?php echo $job->property_type === 'str' ? 'bg-warning' : 'bg-info'; ?>" style="font-size: 1rem; padding: 0.75rem 1.5rem;">
+                                                    <i class="fas fa-<?php echo $job->property_type === 'str' ? 'home' : 'building'; ?> me-2"></i>
+                                                    <?php echo $job->property_type === 'str' ? 'Short Term Rental' : 'Residential'; ?>
                                                 </span>
                                             </div>
                                         </div>
+                                        <?php endif; ?>
                                         
-                                        <!-- Additional Job Details -->
+                                        <!-- Pricing Breakdown -->
+                                        <?php 
+                                        // Use actual prices (from accepted offer or suggested)
+                                        $breakdown_host_price = $actual_host_price;
+                                        $breakdown_tax_amount = ($breakdown_host_price * $pricing_params['tax_percent']) / 100;
+                                        $breakdown_app_amount = ($breakdown_host_price * $pricing_params['app_percent']) / 100;
+                                        $breakdown_cleaner_payout = $actual_cleaner_payout;
+                                        ?>
+                                        
+                                        <div class="pricing-breakdown-box mt-3">
+                                            <h6 class="section-subtitle">
+                                                <i class="fas fa-calculator me-2"></i>Pricing Breakdown
+                                                <?php if ($is_counter_offer): ?>
+                                                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.75rem;">Counter Offer Accepted</span>
+                                                <?php endif; ?>
+                                            </h6>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="pricing-row">
+                                                        <span class="pricing-label"><?php echo $is_counter_offer ? 'Final Price (You Pay):' : 'Your Price:'; ?></span>
+                                                        <span class="pricing-value">$<?php echo number_format($breakdown_host_price, 2); ?></span>
+                                                    </div>
+                                                    <?php if ($is_counter_offer && $breakdown_host_price != $job->suggested_price): ?>
+                                                        <div class="pricing-row" style="background: rgba(255, 193, 7, 0.1); padding: 0.5rem; margin: 0.5rem 0; border-radius: 8px;">
+                                                            <span class="pricing-label">Original Suggested:</span>
+                                                            <span class="pricing-value text-muted">$<?php echo number_format($job->suggested_price, 2); ?></span>
+                                                        </div>
+                                                        <div class="pricing-row" style="font-weight: 700; color: <?php echo ($breakdown_host_price < $job->suggested_price) ? '#28a745' : '#f57c00'; ?>;">
+                                                            <span class="pricing-label">Price Difference:</span>
+                                                            <span class="pricing-value">
+                                                                <?php 
+                                                                $price_diff = $breakdown_host_price - $job->suggested_price;
+                                                                echo ($price_diff > 0 ? '+' : '') . '$' . number_format($price_diff, 2);
+                                                                ?>
+                                                            </span>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <div class="pricing-row pricing-deduction">
+                                                        <span class="pricing-label">- Base Charge:</span>
+                                                        <span class="pricing-value">-$<?php echo number_format($pricing_params['base_charge'], 2); ?></span>
+                                                    </div>
+                                                    <div class="pricing-row pricing-deduction">
+                                                        <span class="pricing-label">- Tax (<?php echo $pricing_params['tax_percent']; ?>%):</span>
+                                                        <span class="pricing-value">-$<?php echo number_format($breakdown_tax_amount, 2); ?></span>
+                                                    </div>
+                                                    <div class="pricing-row pricing-deduction">
+                                                        <span class="pricing-label">- App Fee (<?php echo $pricing_params['app_percent']; ?>%):</span>
+                                                        <span class="pricing-value">-$<?php echo number_format($breakdown_app_amount, 2); ?></span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="cleaner-payout-box">
+                                                        <div class="payout-label">Cleaner Payout</div>
+                                                        <div class="payout-amount">$<?php echo number_format($breakdown_cleaner_payout, 2); ?></div>
+                                                        <small class="text-muted">This is what the cleaner will receive</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Location & Timing Section -->
                                         <div class="row mt-3">
                                             <div class="col-sm-6">
-                                                <strong>City:</strong> <?php echo htmlspecialchars($job->city ?? 'Not specified'); ?><br>
-                                                <strong>State:</strong> <?php echo htmlspecialchars($job->state ?? 'Not specified'); ?><br>
-                                                <strong>Duration:</strong> <?php echo isset($job->estimated_duration) ? $job->estimated_duration . ' minutes' : 'Not specified'; ?>
+                                                <h6 class="section-subtitle"><i class="fas fa-map-marker-alt me-2"></i>Location</h6>
+                                                <p class="mb-1"><strong>Address:</strong> <?php echo htmlspecialchars($job->address); ?></p>
+                                                <p class="mb-1"><strong>City:</strong> <?php echo htmlspecialchars($job->city ?? 'Not specified'); ?></p>
+                                                <p class="mb-1"><strong>State:</strong> <?php echo htmlspecialchars($job->state ?? 'Not specified'); ?></p>
+                                                <?php if (!empty($job->zip_code)): ?>
+                                                    <p class="mb-0"><strong>ZIP Code:</strong> <?php echo htmlspecialchars($job->zip_code); ?></p>
+                                                <?php endif; ?>
                                             </div>
                                             <div class="col-sm-6">
-                                                <strong>Additional Services:</strong><br>
+                                                <h6 class="section-subtitle"><i class="fas fa-calendar-alt me-2"></i>Schedule</h6>
+                                                <p class="mb-1"><strong>Date:</strong> <?php echo $job_date ? date('M j, Y', strtotime($job_date)) : 'Not scheduled'; ?></p>
+                                                <p class="mb-1"><strong>Time:</strong> <?php echo $job_time ? date('g:i A', strtotime($job_time)) : 'Not scheduled'; ?></p>
+                                                <p class="mb-0"><strong>Duration:</strong> <?php echo isset($job->estimated_duration) ? ($job->estimated_duration / 60) . ' hours' : 'Not specified'; ?></p>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Property Details Section -->
+                                        <div class="row mt-3">
+                                            <div class="col-sm-6">
+                                                <h6 class="section-subtitle"><i class="fas fa-door-open me-2"></i>Property Details</h6>
+                                                <p class="mb-1"><strong>Rooms:</strong> 
+                                                    <?php 
+                                                    $rooms = json_decode($job->rooms, true);
+                                                    if (is_array($rooms) && !empty($rooms)) {
+                                                        echo implode(', ', $rooms);
+                                                    } else {
+                                                        echo 'Not specified';
+                                                    }
+                                                    ?>
+                                                </p>
+                                                <?php if (isset($job->pets) && $job->pets): ?>
+                                                    <p class="mb-0"><span class="badge bg-info"><i class="fas fa-paw me-1"></i> Pets Present</span></p>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <h6 class="section-subtitle"><i class="fas fa-list-check me-2"></i>Additional Services</h6>
                                                 <?php 
                                                 // Decode JSON extras array
                                                 $extras = json_decode($job->extras ?? '[]', true);
                                                 if (is_array($extras) && !empty($extras)) {
-                                                    echo '<ul class="list-unstyled mb-0">';
+                                                    // Icon mapping for extras
+                                                    $extras_icons = [
+                                                        'deep_cleaning' => 'broom',
+                                                        'windows' => 'window-maximize',
+                                                        'appliances' => 'microchip',
+                                                        'carpet' => 'layer-group',
+                                                        'oven' => 'fire',
+                                                        'cabinet_interior' => 'toolbox',
+                                                        'light_fixtures' => 'lightbulb',
+                                                        'baseboards' => 'minus',
+                                                        'inside_fridge' => 'snowflake',
+                                                        'bathroom_grout' => 'shower',
+                                                        'doors_frames' => 'door-open',
+                                                        'walls' => 'paint-brush',
+                                                        'ceiling_fans' => 'fan',
+                                                        'vents' => 'wind',
+                                                        'mirrors' => 'glass-mirror',
+                                                        'furniture_polish' => 'chair',
+                                                        'blinds' => 'window-restore',
+                                                        'trash_removal' => 'trash-alt',
+                                                        'organization' => 'boxes',
+                                                        'pet_hair' => 'paw',
+                                                        'inside_cabinets' => 'archive',
+                                                        'garage' => 'warehouse',
+                                                        'patio_balcony' => 'home',
+                                                        'exterior_windows' => 'window-frame',
+                                                        'wash_linens' => 'tshirt',
+                                                        'check_dishes' => 'utensils',
+                                                        'clean_refrigerator' => 'snowflake',
+                                                        'ensure_supplies' => 'shopping-bag',
+                                                        'reset_beds' => 'bed',
+                                                        'reset_kitchen' => 'utensils',
+                                                        'check_amenities' => 'clipboard-check',
+                                                        'leave_goodies' => 'candy-cane',
+                                                        'reset_makeup' => 'eye',
+                                                        'reset_shower' => 'shower',
+                                                        'reset_coffee' => 'coffee',
+                                                        'check_tv' => 'tv',
+                                                        'check_wifi' => 'wifi',
+                                                        'check_keys' => 'key',
+                                                        'reset_pillows' => 'couch',
+                                                        'reset_table' => 'utensils',
+                                                        'photo_documentation' => 'camera',
+                                                        'check_hvac' => 'thermometer-half',
+                                                        'ensure_quiet' => 'volume-mute',
+                                                        'check_smoke_detector' => 'smoke'
+                                                    ];
+                                                    
+                                                    // Clean label mapping
+                                                    $extras_labels = [
+                                                        'deep_cleaning' => 'Deep Cleaning',
+                                                        'windows' => 'Window Cleaning',
+                                                        'appliances' => 'Appliance Cleaning',
+                                                        'carpet' => 'Carpet Cleaning',
+                                                        'oven' => 'Oven Cleaning',
+                                                        'cabinet_interior' => 'Cabinet Interior',
+                                                        'light_fixtures' => 'Light Fixtures',
+                                                        'baseboards' => 'Baseboards',
+                                                        'inside_fridge' => 'Inside Refrigerator',
+                                                        'bathroom_grout' => 'Bathroom Grout Scrubbing',
+                                                        'doors_frames' => 'Doors & Frames',
+                                                        'walls' => 'Wall Washing',
+                                                        'ceiling_fans' => 'Ceiling Fans',
+                                                        'vents' => 'Vent Cleaning',
+                                                        'mirrors' => 'Mirror Polish',
+                                                        'furniture_polish' => 'Furniture Polish',
+                                                        'blinds' => 'Blinds Cleaning',
+                                                        'trash_removal' => 'Trash Removal',
+                                                        'organization' => 'Light Organization',
+                                                        'pet_hair' => 'Pet Hair Removal',
+                                                        'inside_cabinets' => 'Inside Cabinets',
+                                                        'garage' => 'Garage Sweep',
+                                                        'patio_balcony' => 'Patio/Balcony',
+                                                        'exterior_windows' => 'Exterior Windows',
+                                                        'wash_linens' => 'Wash All Linens & Towels',
+                                                        'check_dishes' => 'Check & Wash Dishes',
+                                                        'clean_refrigerator' => 'Clean Refrigerator',
+                                                        'ensure_supplies' => 'Ensure Consumables Stocked',
+                                                        'reset_beds' => 'Make All Beds',
+                                                        'reset_kitchen' => 'Reset Kitchen to Empty',
+                                                        'check_amenities' => 'Check All Amenities',
+                                                        'leave_goodies' => 'Leave Welcome Goodies',
+                                                        'reset_makeup' => 'Reset Makeup Area',
+                                                        'reset_shower' => 'Reset Shower Supplies',
+                                                        'reset_coffee' => 'Reset Coffee Station',
+                                                        'check_tv' => 'Test TV & Electronics',
+                                                        'check_wifi' => 'Verify WiFi Password',
+                                                        'check_keys' => 'Check All Keys Available',
+                                                        'reset_pillows' => 'Arrange Pillows',
+                                                        'reset_table' => 'Set Dining Table',
+                                                        'photo_documentation' => 'Photo Documentation',
+                                                        'check_hvac' => 'Check HVAC',
+                                                        'ensure_quiet' => 'Ensure Quiet Hours Notice',
+                                                        'check_smoke_detector' => 'Test Smoke Detector'
+                                                    ];
+                                                    
+                                                    echo '<div class="extras-display mt-2">';
                                                     foreach ($extras as $extra) {
-                                                        echo '<li><i class="fas fa-check text-success me-2"></i>' . htmlspecialchars($extra) . '</li>';
+                                                        $icon = isset($extras_icons[$extra]) ? $extras_icons[$extra] : 'check';
+                                                        $label = isset($extras_labels[$extra]) ? $extras_labels[$extra] : str_replace('_', ' ', ucwords($extra, '_'));
+                                                        echo '<span class="badge bg-light text-dark me-2 mb-2" style="font-size: 0.85rem; padding: 0.5rem 0.75rem;"><i class="fas fa-' . $icon . ' me-1"></i>' . htmlspecialchars($label) . '</span>';
                                                     }
-                                                    echo '</ul>';
+                                                    echo '</div>';
                                                 } else {
                                                     echo '<span class="text-muted">None selected</span>';
                                                 }
@@ -146,14 +388,14 @@
                                         </div>
                                         <?php endif; ?>
                                         
-                                        <!-- Cleaner Information for Assigned/In Progress Jobs -->
-                                        <?php if (in_array($job->status, ['assigned', 'in_progress']) && !empty($job->assigned_cleaner_id)): ?>
+                                        <!-- Cleaner Information (Shown for all statuses after assignment) -->
+                                        <?php if (!empty($job->assigned_cleaner_id)): ?>
                                         <div class="row mt-3">
                                             <div class="col-12">
                                                 <div class="cleaner-info-card" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border: 1px solid #c3e6cb; border-radius: 15px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1);">
                                                     <h6 class="cleaner-card-title" style="color: #155724; margin-bottom: 1rem; font-weight: 600;">
                                                         <i class="fas fa-user-check me-2"></i>
-                                                        Assigned Cleaner Information
+                                                        <?php echo in_array($job->status, ['closed', 'completed', 'recall_settled', 'recalled']) ? 'Cleaner Information' : 'Assigned Cleaner Information'; ?>
                                                     </h6>
                                                     <div class="row">
                                                         <div class="col-md-6">
@@ -173,6 +415,10 @@
                                                                     </p>
                                                                 <?php endif; ?>
                                                                 <div class="contact-buttons mt-2">
+                                                                    <a href="<?php echo base_url('cleaner/public-profile/' . $job->assigned_cleaner_id); ?>" class="btn btn-outline-info btn-sm me-2">
+                                                                        <i class="fas fa-user-circle me-1"></i>
+                                                                        View Profile
+                                                                    </a>
                                                                     <a href="mailto:<?php echo htmlspecialchars($job->cleaner_email); ?>" class="btn btn-outline-primary btn-sm me-2">
                                                                         <i class="fas fa-envelope me-1"></i>
                                                                         Email
@@ -198,6 +444,7 @@
                                     </div>
                                 </div>
                                 
+                                <?php if (in_array($job->status, ['open', 'offers_received'])): ?>
                                 <div class="col-md-4">
                                     <div class="text-center">
                                         <h5>Offers Received</h5>
@@ -207,6 +454,7 @@
                                         </a>
                                     </div>
                                 </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -450,8 +698,158 @@
     padding: 1.5rem;
 }
 
+.modern-card .card-header .quick-actions .btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.modern-card .card-header .quick-actions .btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.modern-card .card-header .quick-actions .btn.btn-light {
+    background: white;
+    color: #667eea;
+    border-color: white;
+}
+
+.modern-card .card-header .quick-actions .btn.btn-light:hover {
+    background: #f8f9fa;
+    color: #667eea;
+}
+
+.modern-card .card-header .quick-actions .btn.btn-info {
+    background: rgba(23, 162, 184, 0.3);
+    border-color: rgba(23, 162, 184, 0.5);
+}
+
+.modern-card .card-header .quick-actions .btn.btn-info:hover {
+    background: rgba(23, 162, 184, 0.5);
+    border-color: rgba(23, 162, 184, 0.7);
+}
+
+.modern-card .card-header .quick-actions .btn.btn-secondary {
+    background: rgba(108, 117, 125, 0.3);
+    border-color: rgba(108, 117, 125, 0.5);
+}
+
+.modern-card .card-header .quick-actions .btn.btn-secondary:hover {
+    background: rgba(108, 117, 125, 0.5);
+    border-color: rgba(108, 117, 125, 0.7);
+}
+
 .modern-card .card-body {
     padding: 2rem;
+}
+
+/* Summary Box Styles */
+.summary-box {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    border: 2px solid rgba(102, 126, 234, 0.2);
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.summary-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.summary-item i {
+    font-size: 2rem;
+    opacity: 0.8;
+}
+
+.summary-item small {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-item strong {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.section-subtitle {
+    color: #667eea;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+/* Pricing Breakdown Styles */
+.pricing-breakdown-box {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.pricing-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.pricing-row:last-child {
+    border-bottom: none;
+}
+
+.pricing-deduction {
+    color: #6c757d;
+}
+
+.pricing-label {
+    font-weight: 500;
+}
+
+.pricing-value {
+    font-weight: 600;
+}
+
+.cleaner-payout-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.payout-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+}
+
+.payout-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.cleaner-payout-box small {
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .job-info {

@@ -67,6 +67,16 @@
           </a>
         </li>
 
+        <!-- Upcoming Jobs (Assigned) -->
+        <li class="nav-item">
+          <a href="<?php echo base_url('host/upcoming-jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'upcoming-jobs') !== false) ? 'active' : ''; ?>">
+            <div class="nav-icon-container">
+              <i class="nav-icon fas fa-calendar-check"></i>
+            </div>
+            <span class="nav-text">Upcoming Jobs</span>
+          </a>
+        </li>
+
         <!-- Review Offers -->
         <li class="nav-item">
           <a href="<?php echo base_url('host/offers'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'host/offers') ? 'active' : ''; ?>">
@@ -90,35 +100,26 @@
         <!-- Divider -->
         <li class="nav-header modern-nav-header">FINANCIAL</li>
 
-        <!-- Payments -->
+        <!-- Past Jobs -->
         <li class="nav-item">
-          <a href="<?php echo base_url('host/payments'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'host/payments') !== false) ? 'active' : ''; ?>">
-            <div class="nav-icon-container">
-              <i class="nav-icon fas fa-credit-card"></i>
-            </div>
-            <span class="nav-text">Payment History</span>
-          </a>
+            <a href="<?php echo base_url('host/past-jobs'); ?>" class="nav-link modern-nav-link <?php echo (uri_string() == 'host/past-jobs' || uri_string() == 'host/payment-history') ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                    <i class="nav-icon fas fa-history"></i>
+                </div>
+                <span class="nav-text">Past Jobs</span>
+            </a>
         </li>
 
-        <!-- Earnings -->
+        <!-- Recalled Jobs -->
         <li class="nav-item">
-          <a href="<?php echo base_url('host/earnings'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'host/earnings') !== false) ? 'active' : ''; ?>">
-            <div class="nav-icon-container">
-              <i class="nav-icon fas fa-chart-line"></i>
-            </div>
-            <span class="nav-text">Earnings Report</span>
-          </a>
+            <a href="<?php echo base_url('host/recalled-jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'recalled-jobs') !== false) ? 'active' : ''; ?>">
+                <div class="nav-icon-container">
+                    <i class="nav-icon fas fa-exclamation-triangle"></i>
+                </div>
+                <span class="nav-text">Recalled Jobs</span>
+            </a>
         </li>
 
-        <!-- Price Adjustments -->
-        <li class="nav-item">
-          <a href="<?php echo base_url('host/counter-offers'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'counter-offers') !== false) ? 'active' : ''; ?>">
-            <div class="nav-icon-container">
-              <i class="nav-icon fas fa-dollar-sign"></i>
-            </div>
-            <span class="nav-text">Price Adjustments</span>
-          </a>
-        </li>
 
         <!-- Completed Jobs -->
         <li class="nav-item">
@@ -127,16 +128,6 @@
               <i class="nav-icon fas fa-check-circle"></i>
             </div>
             <span class="nav-text">Completed Jobs</span>
-          </a>
-        </li>
-
-        <!-- My Disputed Jobs -->
-        <li class="nav-item">
-          <a href="<?php echo base_url('host/my-disputed-jobs'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'my-disputed-jobs') !== false) ? 'active' : ''; ?>">
-            <div class="nav-icon-container">
-              <i class="nav-icon fas fa-exclamation-triangle"></i>
-            </div>
-            <span class="nav-text">My Disputed Jobs</span>
           </a>
         </li>
 
@@ -155,9 +146,9 @@
         </li>
         <?php endif; ?>
 
-        <!-- Profile -->
+        <!-- My Profile (Phase 2) -->
         <li class="nav-item">
-          <a href="<?php echo base_url('host/profile'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'host/profile') !== false) ? 'active' : ''; ?>">
+          <a href="<?php echo base_url('host/my-profile'); ?>" class="nav-link modern-nav-link <?php echo (strpos(uri_string(), 'host/my-profile') !== false || strpos(uri_string(), 'host/edit-profile') !== false) ? 'active' : ''; ?>">
             <div class="nav-icon-container">
               <i class="nav-icon fas fa-user-circle"></i>
             </div>
@@ -461,45 +452,6 @@ $(document).ready(function() {
         }
     });
     
-    // Enhanced mobile sidebar toggle with debug logging
-    $('.mobile-sidebar-toggle').on('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        console.log('Mobile toggle clicked');
-        
-        var $sidebar = $('.app-sidebar');
-        var $overlay = $('.sidebar-overlay');
-        
-        console.log('Before toggle - Sidebar classes:', $sidebar.attr('class'));
-        console.log('Before toggle - Overlay classes:', $overlay.attr('class'));
-        console.log('Before toggle - Sidebar has show class:', $sidebar.hasClass('show'));
-        console.log('Before toggle - Overlay has show class:', $overlay.hasClass('show'));
-        
-        $sidebar.toggleClass('show');
-        $overlay.toggleClass('show');
-        
-        console.log('After toggle - Sidebar classes:', $sidebar.attr('class'));
-        console.log('After toggle - Overlay classes:', $overlay.attr('class'));
-        console.log('After toggle - Sidebar has show class:', $sidebar.hasClass('show'));
-        console.log('After toggle - Overlay has show class:', $overlay.hasClass('show'));
-    });
-    
-    // Close sidebar when clicking overlay
-    $('.sidebar-overlay').on('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        $('.app-sidebar').removeClass('show');
-        $('.sidebar-overlay').removeClass('show');
-    });
-    
-    // Handle window resize
-    $(window).on('resize', function() {
-        if ($(window).width() >= 992) {
-            $('.app-sidebar').removeClass('show');
-            $('.sidebar-overlay').removeClass('show');
-        }
-    });
+    // Mobile sidebar toggle, overlay click, and window resize are handled in layout_with_sidebar.php to avoid conflicts
 });
 </script>

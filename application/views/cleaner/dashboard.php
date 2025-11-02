@@ -113,17 +113,99 @@ if (!function_exists('dispute_time_remaining')) {
         </div>
         
         <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-            <div class="stat-card earnings">
+            <div class="stat-card earnings" data-bs-toggle="tooltip" data-bs-placement="top" title="Total agreed price from assigned and in-progress jobs">
                 <div class="stat-icon">
-                    <i class="fas fa-dollar-sign"></i>
+                    <i class="fas fa-coins"></i>
                 </div>
                 <div class="stat-content">
                     <h3>$<?php echo number_format($stats['potential_earnings'], 2); ?></h3>
                     <p>Potential Earnings</p>
+                    <?php if (count($assigned_jobs) > 0): ?>
+                        <small class="text-muted">
+                            <i class="fas fa-briefcase"></i> <?php echo count($assigned_jobs); ?> active <?php echo count($assigned_jobs) == 1 ? 'job' : 'jobs'; ?>
+                        </small>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Review Summary -->
+    <?php if (isset($review_stats) && $review_stats['total_reviews'] > 0): ?>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="dashboard-card review-summary-card">
+                <div class="card-header bg-warning">
+                    <div class="header-content">
+                        <h4 class="card-title">
+                            <i class="fas fa-star me-2"></i>
+                            My Reviews Summary
+                        </h4>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center">
+                            <div class="overall-rating-display">
+                                <div class="rating-number-huge"><?php echo number_format($review_stats['overall_average'], 1); ?></div>
+                                <div class="rating-stars-huge">
+                                    <?php for($i = 1; $i <= 5; $i++): ?>
+                                        <i class="fas fa-star <?php echo $i <= round($review_stats['overall_average']) ? 'filled' : 'empty'; ?>"></i>
+                                    <?php endfor; ?>
+                                </div>
+                                <div class="rating-total-text"><?php echo $review_stats['total_reviews']; ?> reviews</div>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <h6 class="mb-3">Category Ratings</h6>
+                            <?php if (isset($review_stats['category_averages'])): ?>
+                            <div class="category-ratings-compact">
+                                <div class="category-item-compact">
+                                    <span>Professionalism</span>
+                                    <strong><?php echo number_format($review_stats['category_averages']['professionalism'], 1); ?></strong>
+                                </div>
+                                <div class="category-item-compact">
+                                    <span>Quality</span>
+                                    <strong><?php echo number_format($review_stats['category_averages']['quality'], 1); ?></strong>
+                                </div>
+                                <div class="category-item-compact">
+                                    <span>Communication</span>
+                                    <strong><?php echo number_format($review_stats['category_averages']['communication'], 1); ?></strong>
+                                </div>
+                                <div class="category-item-compact">
+                                    <span>Punctuality</span>
+                                    <strong><?php echo number_format($review_stats['category_averages']['punctuality'], 1); ?></strong>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="mb-3">Recent Reviews</h6>
+                            <?php if (!empty($recent_reviews)): ?>
+                                <?php foreach ($recent_reviews as $review): ?>
+                                <div class="mini-review-card">
+                                    <div class="mini-review-header">
+                                        <strong><?php echo htmlspecialchars($review->reviewer_name ?? 'Anonymous'); ?></strong>
+                                        <span class="mini-rating">
+                                            <?php for($i = 1; $i <= 5; $i++): ?>
+                                                <i class="fas fa-star <?php echo $i <= $review->overall_rating ? 'filled' : 'empty'; ?>"></i>
+                                            <?php endfor; ?>
+                                        </span>
+                                    </div>
+                                    <p class="mini-review-text"><?php echo htmlspecialchars(substr($review->public_comment, 0, 60)); ?><?php echo strlen($review->public_comment) > 60 ? '...' : ''; ?></p>
+                                </div>
+                                <?php endforeach; ?>
+                                <div class="text-center mt-2">
+                                    <a href="<?php echo base_url('cleaner/my-profile#reviews'); ?>" class="btn btn-sm btn-outline-primary">View All Reviews</a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Main Content Grid -->
     <div class="row">
@@ -149,7 +231,17 @@ if (!function_exists('dispute_time_remaining')) {
                                 <div class="job-info">
                                     <h6 class="job-title"><?php echo htmlspecialchars($job->title); ?></h6>
                                     <div class="job-details">
-                                        <span class="job-price">$<?php echo number_format($job->suggested_price, 2); ?></span>
+                                        <?php 
+                                        // Show agreed price (final_price, accepted_price, or suggested_price)
+                                        $agreed_price = $job->final_price ?? $job->accepted_price ?? $job->suggested_price;
+                                        $is_negotiated = !empty($job->final_price) || !empty($job->accepted_price);
+                                        ?>
+                                        <span class="job-price" style="font-weight: 600; color: #28a745;">
+                                            <i class="fas fa-dollar-sign"></i> $<?php echo number_format($agreed_price, 2); ?>
+                                            <?php if ($is_negotiated): ?>
+                                                <i class="fas fa-handshake" style="color: #ffc107; font-size: 0.85rem;" title="Negotiated price"></i>
+                                            <?php endif; ?>
+                                        </span>
                                         <span class="job-date">
                                             <i class="fas fa-calendar me-1"></i>
                                             <?php 
@@ -668,5 +760,104 @@ if (!function_exists('dispute_time_remaining')) {
     .stat-content p {
         font-size: 0.8rem;
     }
+}
+
+/* Review Summary Card */
+.review-summary-card .card-body {
+    padding: 2rem;
+}
+
+.overall-rating-display {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    border-radius: 15px;
+    padding: 1.5rem;
+}
+
+.rating-number-huge {
+    font-size: 4rem;
+    font-weight: 700;
+    color: #f57c00;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.rating-stars-huge {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.rating-stars-huge i.filled {
+    color: #ffc107;
+}
+
+.rating-stars-huge i.empty {
+    color: #dee2e6;
+}
+
+.rating-total-text {
+    font-size: 1rem;
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.category-ratings-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.category-item-compact {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.category-item-compact span {
+    color: #495057;
+}
+
+.category-item-compact strong {
+    color: #f57c00;
+}
+
+.mini-review-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    border-left: 3px solid #667eea;
+}
+
+.mini-review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.mini-review-header strong {
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.mini-rating i {
+    font-size: 0.75rem;
+}
+
+.mini-rating i.filled {
+    color: #ffc107;
+}
+
+.mini-rating i.empty {
+    color: #dee2e6;
+}
+
+.mini-review-text {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin: 0;
+    line-height: 1.4;
 }
 </style>

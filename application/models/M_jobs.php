@@ -257,6 +257,15 @@ class M_jobs extends CI_Model
         $this->db->or_where('j.scheduled_date IS NULL');
         $this->db->group_end();
         
+        // STR Filter: If cleaner doesn't offer STR services, exclude STR jobs
+        if (isset($filters['cleaner_offers_str']) && !$filters['cleaner_offers_str']) {
+            $this->db->group_start();
+            $this->db->where('j.property_type !=', 'str');
+            $this->db->or_where('j.property_type IS NULL');
+            $this->db->or_where('j.property_type', 'residential');
+            $this->db->group_end();
+        }
+        
         // Apply filters
         if (!empty($filters['search'])) {
             $this->db->group_start();
@@ -374,6 +383,33 @@ class M_jobs extends CI_Model
     }
 
     /**
+     * Get total jobs count for host
+     */
+    public function get_total_jobs_for_host($host_id)
+    {
+        if (!$this->db->table_exists('jobs')) {
+            return 0;
+        }
+        
+        $this->db->where('host_id', $host_id);
+        return $this->db->count_all_results('jobs');
+    }
+
+    /**
+     * Get completed jobs count for host
+     */
+    public function get_completed_jobs_count_for_host($host_id)
+    {
+        if (!$this->db->table_exists('jobs')) {
+            return 0;
+        }
+        
+        $this->db->where('host_id', $host_id);
+        $this->db->where('status', 'completed');
+        return $this->db->count_all_results('jobs');
+    }
+
+    /**
      * Get pending offers for host dashboard
      */
     public function get_host_pending_offers($host_id, $limit = 10)
@@ -418,7 +454,7 @@ class M_jobs extends CI_Model
     public function get_host_jobs_filtered($host_id, $filters = [])
     {
         $this->db->select('j.*, 
-                           COUNT(DISTINCT o.id) as offer_count,
+                           COUNT(DISTINCT CASE WHEN o.status != "cancelled" THEN o.id END) as offer_count,
                            u.username as assigned_cleaner_name');
         $this->db->from('jobs j');
         $this->db->join('offers o', 'o.job_id = j.id', 'left');
@@ -568,6 +604,22 @@ class M_jobs extends CI_Model
     }
 
     /**
+     * Get completed jobs for host that need review/completion
+     * Only shows 'completed' status - recalled jobs are shown separately
+     */
+    public function get_host_completed_jobs($host_id)
+    {
+        $this->db->select('j.*, u.first_name as cleaner_first_name, u.last_name as cleaner_last_name, u.username as cleaner_username');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.assigned_cleaner_id = u.user_id', 'left');
+        $this->db->where('j.host_id', $host_id);
+        $this->db->where('j.status', 'completed'); // Only completed, not recalled
+        $this->db->order_by('j.completed_at', 'DESC');
+        
+        return $this->db->get()->result();
+    }
+
+    /**
      * Auto-expire jobs that have passed their scheduled date without offers being accepted
      */
     public function auto_expire_jobs()
@@ -594,9 +646,16 @@ class M_jobs extends CI_Model
         if (!$this->db->table_exists('jobs')) {
             return [
                 'total_jobs' => 0,
-                'active_jobs' => 0,
+                'open_jobs' => 0,
+                'assigned_jobs' => 0,
+                'in_progress_jobs' => 0,
                 'completed_jobs' => 0,
-                'cancelled_jobs' => 0
+                'recalled_jobs' => 0,
+                'recall_settled_jobs' => 0,
+                'closed_jobs' => 0,
+                'cancelled_jobs' => 0,
+                'expired_jobs' => 0,
+                'active_jobs' => 0
             ];
         }
         
@@ -605,20 +664,53 @@ class M_jobs extends CI_Model
         // Total jobs
         $stats['total_jobs'] = $this->db->count_all('jobs');
         
-        // Active jobs (open + assigned) - reset query builder
+        // Open jobs
         $this->db->reset_query();
-        $this->db->where_in('status', ['open', 'assigned']);
-        $stats['active_jobs'] = $this->db->count_all_results('jobs');
+        $this->db->where('status', 'open');
+        $stats['open_jobs'] = $this->db->count_all_results('jobs');
         
-        // Completed jobs - reset query builder
+        // Assigned jobs
+        $this->db->reset_query();
+        $this->db->where('status', 'assigned');
+        $stats['assigned_jobs'] = $this->db->count_all_results('jobs');
+        
+        // In Progress jobs
+        $this->db->reset_query();
+        $this->db->where('status', 'in_progress');
+        $stats['in_progress_jobs'] = $this->db->count_all_results('jobs');
+        
+        // Completed jobs
         $this->db->reset_query();
         $this->db->where('status', 'completed');
         $stats['completed_jobs'] = $this->db->count_all_results('jobs');
         
-        // Cancelled jobs - reset query builder
+        // Recalled jobs
+        $this->db->reset_query();
+        $this->db->where('status', 'recalled');
+        $stats['recalled_jobs'] = $this->db->count_all_results('jobs');
+        
+        // Recall Settled jobs
+        $this->db->reset_query();
+        $this->db->where('status', 'recall_settled');
+        $stats['recall_settled_jobs'] = $this->db->count_all_results('jobs');
+        
+        // Closed jobs
+        $this->db->reset_query();
+        $this->db->where('status', 'closed');
+        $stats['closed_jobs'] = $this->db->count_all_results('jobs');
+        
+        // Cancelled jobs
         $this->db->reset_query();
         $this->db->where('status', 'cancelled');
         $stats['cancelled_jobs'] = $this->db->count_all_results('jobs');
+        
+        // Expired jobs
+        $this->db->reset_query();
+        $this->db->where('status', 'expired');
+        $stats['expired_jobs'] = $this->db->count_all_results('jobs');
+        
+        // Active jobs (open + assigned + in_progress)
+        $stats['active_jobs'] = $stats['open_jobs'] + $stats['assigned_jobs'] + $stats['in_progress_jobs'];
         
         return $stats;
     }
@@ -814,9 +906,10 @@ class M_jobs extends CI_Model
     /**
      * Count active jobs with filters
      * @param array $filters - Search and filter parameters
+     * @param int $cleaner_id - Optional cleaner ID to filter by service areas
      * @return int
      */
-    public function count_active_jobs($filters = [])
+    public function count_active_jobs($filters = [], $cleaner_id = null)
     {
         // Check if jobs table exists
         if (!$this->db->table_exists('jobs')) {
@@ -827,12 +920,29 @@ class M_jobs extends CI_Model
         $this->db->join('users u', 'j.host_id = u.user_id');
         $this->db->where('j.status', 'open');
 
+        // Filter out past jobs - only show future jobs and current day jobs
+        $today = date('Y-m-d');
+        $this->db->group_start();
+        $this->db->where('j.scheduled_date >', $today);
+        $this->db->or_where('j.scheduled_date', $today);
+        $this->db->or_where('j.scheduled_date IS NULL');
+        $this->db->group_end();
+        
+        // STR Filter: If cleaner doesn't offer STR services, exclude STR jobs
+        if (isset($filters['cleaner_offers_str']) && !$filters['cleaner_offers_str']) {
+            $this->db->group_start();
+            $this->db->where('j.property_type !=', 'str');
+            $this->db->or_where('j.property_type IS NULL');
+            $this->db->or_where('j.property_type', 'residential');
+            $this->db->group_end();
+        }
+
         // Apply filters
         if (!empty($filters['search'])) {
             $this->db->group_start();
             $this->db->like('j.title', $filters['search']);
             $this->db->or_like('j.description', $filters['search']);
-            $this->db->or_like('j.address', $filters['search']);
+            $this->db->or_like('j.city', $filters['search']);
             $this->db->group_end();
         }
 
@@ -845,11 +955,36 @@ class M_jobs extends CI_Model
         }
 
         if (!empty($filters['date_from'])) {
-            $this->db->where('j.date_time >=', $filters['date_from']);
+            $this->db->where('j.scheduled_date >=', $filters['date_from']);
         }
 
         if (!empty($filters['date_to'])) {
-            $this->db->where('j.date_time <=', $filters['date_to']);
+            $this->db->where('j.scheduled_date <=', $filters['date_to']);
+        }
+
+        // Filter by cleaner's service areas
+        if ($cleaner_id && $this->db->table_exists('user_profiles')) {
+            $this->load->model('M_user_profiles');
+            $service_locations = $this->M_user_profiles->get_cleaner_service_locations($cleaner_id);
+            
+            if (!empty($service_locations) && !in_array('Other', $service_locations)) {
+                // Build location conditions for the cleaner's service areas
+                $location_conditions = [];
+                foreach ($service_locations as $location) {
+                    $location_parts = explode(', ', trim($location));
+                    if (count($location_parts) == 2) {
+                        $city = trim($location_parts[0]);
+                        $state = trim($location_parts[1]);
+                        $location_conditions[] = "(j.city = " . $this->db->escape($city) . " AND j.state = " . $this->db->escape($state) . ")";
+                    }
+                }
+                
+                if (!empty($location_conditions)) {
+                    $this->db->group_start();
+                    $this->db->where('(' . implode(' OR ', $location_conditions) . ')', null, false);
+                    $this->db->group_end();
+                }
+            }
         }
 
         return $this->db->count_all_results();
@@ -1028,7 +1163,9 @@ class M_jobs extends CI_Model
         $this->db->from('jobs j');
         $this->db->join('users u', 'j.host_id = u.user_id', 'left');
         $this->db->where('j.assigned_cleaner_id', $cleaner_id);
-        $this->db->where('j.status', 'completed'); // Only completed jobs
+        // Only show completed and recalled (pending recall) jobs
+        // recall_settled jobs move to earnings only
+        $this->db->where_in('j.status', ['completed', 'recalled']);
         $this->db->order_by('j.completed_at', 'DESC'); // Order by completion date
         
         $query = $this->db->get();
@@ -1092,58 +1229,42 @@ class M_jobs extends CI_Model
     /**
      * Get earnings summary for cleaner (all time)
      */
-    public function get_cleaner_earnings_summary($cleaner_id)
+    public function get_cleaner_earnings_summary($cleaner_id, $start_date = null, $end_date = null)
     {
         // Check if jobs table exists
         if (!$this->db->table_exists('jobs')) {
             return [
                 'total_earnings' => 0,
                 'total_jobs' => 0,
-                'this_month_earnings' => 0,
-                'this_month_jobs' => 0,
-                'last_month_earnings' => 0,
-                'last_month_jobs' => 0
+                'avg_earnings' => 0
             ];
         }
 
-        // All time totals
-        $this->db->select('COUNT(*) as total_jobs, SUM(COALESCE(payment_amount, final_price, accepted_price)) as total_earnings');
+        // If date range is provided, calculate for that range
+        // Otherwise, calculate all time totals
+        $this->db->select('COUNT(*) as total_jobs, SUM(COALESCE(payment_amount, final_price, accepted_price, suggested_price)) as total_earnings');
         $this->db->from('jobs');
         $this->db->where('assigned_cleaner_id', $cleaner_id);
-        $this->db->where_in('status', ['completed', 'disputed', 'closed']);
-        $this->db->where('payment_released_at IS NOT NULL');
-        $all_time = $this->db->get()->row();
-
-        // This month
-        $this->db->select('COUNT(*) as total_jobs, SUM(COALESCE(payment_amount, final_price, accepted_price)) as total_earnings');
-        $this->db->from('jobs');
-        $this->db->where('assigned_cleaner_id', $cleaner_id);
-        $this->db->where_in('status', ['completed', 'disputed', 'closed']);
-        $this->db->where('payment_released_at IS NOT NULL');
-        $this->db->where('YEAR(payment_released_at)', date('Y'));
-        $this->db->where('MONTH(payment_released_at)', date('m'));
-        $this_month = $this->db->get()->row();
-
-        // Last month
-        $last_month = date('m', strtotime('first day of last month'));
-        $last_year = date('Y', strtotime('first day of last month'));
+        $this->db->where_in('status', ['closed', 'recalled', 'recall_settled']); // Include recalled jobs
         
-        $this->db->select('COUNT(*) as total_jobs, SUM(COALESCE(payment_amount, final_price, accepted_price)) as total_earnings');
-        $this->db->from('jobs');
-        $this->db->where('assigned_cleaner_id', $cleaner_id);
-        $this->db->where_in('status', ['completed', 'disputed', 'closed']);
-        $this->db->where('payment_released_at IS NOT NULL');
-        $this->db->where('YEAR(payment_released_at)', $last_year);
-        $this->db->where('MONTH(payment_released_at)', $last_month);
-        $last_month_data = $this->db->get()->row();
+        // Date range filtering - use COALESCE for recalled jobs without payment_released_at
+        if ($start_date) {
+            $this->db->where('DATE(COALESCE(payment_released_at, updated_at)) >=', $start_date);
+        }
+        if ($end_date) {
+            $this->db->where('DATE(COALESCE(payment_released_at, updated_at)) <=', $end_date);
+        }
+        
+        $result = $this->db->get()->row();
+        
+        $total_earnings = (float)($result->total_earnings ?: 0);
+        $total_jobs = (int)($result->total_jobs ?: 0);
+        $avg_earnings = $total_jobs > 0 ? ($total_earnings / $total_jobs) : 0;
 
         return [
-            'total_earnings' => (float)($all_time->total_earnings ?: 0),
-            'total_jobs' => (int)($all_time->total_jobs ?: 0),
-            'this_month_earnings' => (float)($this_month->total_earnings ?: 0),
-            'this_month_jobs' => (int)($this_month->total_jobs ?: 0),
-            'last_month_earnings' => (float)($last_month_data->total_earnings ?: 0),
-            'last_month_jobs' => (int)($last_month_data->total_jobs ?: 0)
+            'total_earnings' => $total_earnings,
+            'total_jobs' => $total_jobs,
+            'avg_earnings' => $avg_earnings
         ];
     }
 
@@ -1888,13 +2009,23 @@ class M_jobs extends CI_Model
      */
     public function get_potential_earnings_for_cleaner($cleaner_id)
     {
-        $this->db->select('SUM(suggested_price) as potential_earnings');
-        $this->db->from('jobs');
-        $this->db->where('assigned_cleaner_id', $cleaner_id);
-        $this->db->where('status', 'completed');
+        // Calculate potential earnings from assigned and in-progress jobs
+        // Use accepted_price (counter offer) or final_price if exists, otherwise suggested_price
+        $this->db->select('
+            SUM(
+                COALESCE(
+                    j.final_price,
+                    j.accepted_price,
+                    j.suggested_price
+                )
+            ) as potential_earnings
+        ', false);
+        $this->db->from('jobs j');
+        $this->db->where('j.assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('j.status', ['assigned', 'in_progress']);
         
         $result = $this->db->get()->row();
-        return $result ? $result->potential_earnings : 0;
+        return $result ? (float)$result->potential_earnings : 0;
     }
     
     /**
@@ -1902,21 +2033,22 @@ class M_jobs extends CI_Model
      */
     public function get_closed_jobs_for_cleaner($cleaner_id, $start_date = null, $end_date = null)
     {
-        $this->db->select('j.*, h.username as host_name, h.email as host_email');
+        $this->db->select('j.*, h.username as host_name, h.email as host_email', false);
         $this->db->from('jobs j');
         $this->db->join('users h', 'h.user_id = j.host_id', 'left');
         $this->db->where('j.assigned_cleaner_id', $cleaner_id);
-        $this->db->where('j.status', 'closed');
+        $this->db->where_in('j.status', ['closed', 'recalled', 'recall_settled']); // Include recalled jobs
         
-        // Date range filtering
+        // Date range filtering - use COALESCE for recalled jobs without payment_released_at
         if ($start_date) {
-            $this->db->where('DATE(j.payment_released_at) >=', $start_date);
+            $this->db->where('DATE(COALESCE(j.payment_released_at, j.updated_at)) >=', $start_date);
         }
         if ($end_date) {
-            $this->db->where('DATE(j.payment_released_at) <=', $end_date);
+            $this->db->where('DATE(COALESCE(j.payment_released_at, j.updated_at)) <=', $end_date);
         }
         
-        $this->db->order_by('j.payment_released_at', 'DESC');
+        // Fix ORDER BY - can't use DESC inside COALESCE
+        $this->db->order_by('IF(j.payment_released_at IS NOT NULL, j.payment_released_at, j.updated_at)', 'DESC', false);
         
         return $this->db->get()->result();
     }
@@ -2184,5 +2316,414 @@ class M_jobs extends CI_Model
 
         $query = $this->db->get();
         return $query->result();
+    }
+
+    /**
+     * Get host's closed jobs with payment information
+     */
+    public function get_host_past_jobs($host_id, $filters = [])
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return [];
+        }
+
+        // Select all job fields including recall and settlement fields
+        $this->db->select('j.*, u.username as cleaner_username, u.first_name as cleaner_first_name, u.last_name as cleaner_last_name');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.assigned_cleaner_id = u.user_id', 'left');
+        $this->db->where('j.host_id', $host_id);
+        $this->db->where_in('j.status', ['closed', 'recalled', 'recall_settled']);
+        
+        // Check which columns exist
+        $columns = $this->db->list_fields('jobs');
+        
+        // Apply date filters
+        // For closed jobs: use payment_released_at
+        // For recalled jobs: use updated_at (since they might not have payment_released_at)
+        if (!empty($filters['date_from'])) {
+            if (in_array('payment_released_at', $columns)) {
+                $this->db->where("(DATE(COALESCE(j.payment_released_at, j.updated_at)) >= '{$filters['date_from']}')", NULL, FALSE);
+            } else {
+                $this->db->where('DATE(j.updated_at) >=', $filters['date_from']);
+            }
+        }
+        if (!empty($filters['date_to'])) {
+            if (in_array('payment_released_at', $columns)) {
+                $this->db->where("(DATE(COALESCE(j.payment_released_at, j.updated_at)) <= '{$filters['date_to']}')", NULL, FALSE);
+            } else {
+                $this->db->where('DATE(j.updated_at) <=', $filters['date_to']);
+            }
+        }
+        
+        // Apply search filter
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $this->db->group_start();
+            $this->db->like('j.title', $search);
+            $this->db->or_like('j.description', $search);
+            $this->db->or_like('j.address', $search);
+            $this->db->or_like('u.first_name', $search);
+            $this->db->or_like('u.last_name', $search);
+            $this->db->group_end();
+        }
+        
+        // Apply status filter
+        if (!empty($filters['status'])) {
+            $this->db->where('j.status', $filters['status']);
+        }
+        
+        // Order by payment_released_at if available, otherwise updated_at
+        if (in_array('payment_released_at', $columns)) {
+            $this->db->order_by('j.payment_released_at', 'DESC');
+        } else {
+            $this->db->order_by('j.updated_at', 'DESC');
+        }
+        
+        $query = $this->db->get();
+        return $query->result();
+    }
+
+    /**
+     * Get host's recalled jobs with filtering
+     */
+    public function get_host_recalled_jobs($host_id, $filters = [])
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return [];
+        }
+
+        $this->db->select('j.*, u.username as cleaner_username, u.first_name as cleaner_first_name, u.last_name as cleaner_last_name');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.assigned_cleaner_id = u.user_id', 'left');
+        $this->db->where('j.host_id', $host_id);
+        $this->db->where_in('j.status', ['recalled', 'recall_settled']);
+        
+        // Check which columns exist
+        $columns = $this->db->list_fields('jobs');
+        
+        // Apply filters - only if columns exist
+        if (!empty($filters['reason']) && in_array('recall_reason', $columns)) {
+            $this->db->where('j.recall_reason', $filters['reason']);
+        }
+        
+        if (!empty($filters['severity']) && in_array('recall_severity', $columns)) {
+            $this->db->where('j.recall_severity', $filters['severity']);
+        }
+        
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            // Check which columns exist
+            $columns = $this->db->list_fields('jobs');
+            
+            $this->db->group_start();
+            $this->db->like('j.title', $search);
+            $this->db->or_like('j.description', $search);
+            
+            // Only search in recall_details if column exists
+            if (in_array('recall_details', $columns)) {
+                $this->db->or_like('j.recall_details', $search);
+            }
+            
+            $this->db->or_like('u.first_name', $search);
+            $this->db->or_like('u.last_name', $search);
+            $this->db->group_end();
+        }
+        
+        // Apply sorting
+        $sort_by = $filters['sort'] ?? 'recalled_at';
+        $sort_order = 'DESC';
+        
+        // Check which columns exist in the jobs table
+        $columns = $this->db->list_fields('jobs');
+        
+        switch ($sort_by) {
+            case 'title':
+                $this->db->order_by('j.title', 'ASC');
+                break;
+            case 'severity':
+                // Only sort by severity if column exists
+                if (in_array('recall_severity', $columns)) {
+                    $this->db->order_by('j.recall_severity', 'DESC');
+                } else {
+                    $this->db->order_by('j.updated_at', 'DESC');
+                }
+                break;
+            default:
+                // Only sort by recalled_at if column exists, otherwise use updated_at
+                if (in_array('recalled_at', $columns)) {
+                    $this->db->order_by('j.recalled_at', 'DESC');
+                } else {
+                    $this->db->order_by('j.updated_at', 'DESC');
+                }
+                break;
+        }
+        
+        $query = $this->db->get();
+        $results = $query->result();
+        
+        // Add cleaner name, host name and recall status to each result
+        foreach ($results as $job) {
+            $cleaner_name = trim(($job->cleaner_first_name ?? '') . ' ' . ($job->cleaner_last_name ?? ''));
+            if (empty($cleaner_name)) {
+                $cleaner_name = $job->cleaner_username ?? 'Unknown Cleaner';
+            }
+            $job->cleaner_name = $cleaner_name;
+            
+            $host_name = trim(($job->host_first_name ?? '') . ' ' . ($job->host_last_name ?? ''));
+            if (empty($host_name)) {
+                $host_name = $job->host_username ?? 'Unknown Host';
+            }
+            $job->host_name = $host_name;
+            
+            // Set default recall status if not set
+            $job->recall_status = $job->recall_status ?? 'pending';
+        }
+        
+        return $results;
+    }
+
+    /**
+     * Get recalled jobs for a specific cleaner
+     */
+    public function get_cleaner_recalled_jobs($cleaner_id, $filters = [])
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return [];
+        }
+
+        // Select all job fields and host info
+        $this->db->select('j.*, 
+                          h.username as host_username,
+                          h.first_name as host_first_name,
+                          h.last_name as host_last_name,
+                          h.phone as host_phone,
+                          h.email as host_email', false);
+        $this->db->from('jobs j');
+        $this->db->join('users h', 'j.host_id = h.user_id', 'left');
+        $this->db->where('j.assigned_cleaner_id', $cleaner_id);
+        $this->db->where_in('j.status', ['recalled', 'recall_settled']);
+        
+        // Check which columns exist
+        $columns = $this->db->list_fields('jobs');
+        
+        // Apply filters - only if columns exist
+        if (!empty($filters['reason']) && in_array('recall_reason', $columns)) {
+            $this->db->where('j.recall_reason', $filters['reason']);
+        }
+        
+        if (!empty($filters['severity']) && in_array('recall_severity', $columns)) {
+            $this->db->where('j.recall_severity', $filters['severity']);
+        }
+        
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            
+            $this->db->group_start();
+            $this->db->like('j.title', $search);
+            $this->db->or_like('j.description', $search);
+            
+            // Only search in recall_details if column exists
+            if (in_array('recall_details', $columns)) {
+                $this->db->or_like('j.recall_details', $search);
+            }
+            
+            $this->db->or_like('h.first_name', $search);
+            $this->db->or_like('h.last_name', $search);
+            $this->db->group_end();
+        }
+        
+        // Apply date range filtering using recalled_at or updated_at
+        if (!empty($filters['date_from'])) {
+            if (in_array('recalled_at', $columns)) {
+                $this->db->where('DATE(COALESCE(j.recalled_at, j.updated_at)) >=', $filters['date_from']);
+            } else {
+                $this->db->where('DATE(j.updated_at) >=', $filters['date_from']);
+            }
+        }
+        
+        if (!empty($filters['date_to'])) {
+            if (in_array('recalled_at', $columns)) {
+                $this->db->where('DATE(COALESCE(j.recalled_at, j.updated_at)) <=', $filters['date_to']);
+            } else {
+                $this->db->where('DATE(j.updated_at) <=', $filters['date_to']);
+            }
+        }
+        
+        // Apply sorting
+        $sort_by = $filters['sort'] ?? 'recalled_at';
+        
+        switch ($sort_by) {
+            case 'title':
+                $this->db->order_by('j.title', 'ASC');
+                break;
+            case 'severity':
+                if (in_array('recall_severity', $columns)) {
+                    $this->db->order_by('j.recall_severity', 'DESC');
+                } else {
+                    $this->db->order_by('j.updated_at', 'DESC');
+                }
+                break;
+            default:
+                if (in_array('recalled_at', $columns)) {
+                    $this->db->order_by('j.recalled_at', 'DESC');
+                } else {
+                    $this->db->order_by('j.updated_at', 'DESC');
+                }
+                break;
+        }
+        
+        $query = $this->db->get();
+        $results = $query->result();
+        
+        // Add host name to each result
+        foreach ($results as $job) {
+            $host_name = trim(($job->host_first_name ?? '') . ' ' . ($job->host_last_name ?? ''));
+            if (empty($host_name)) {
+                $host_name = $job->host_username ?? 'Unknown Host';
+            }
+            $job->host_name = $host_name;
+            
+            // Set default recall status if not set
+            $job->recall_status = $job->recall_status ?? 'pending';
+        }
+        
+        return $results;
+    }
+
+    /**
+     * Get all recalled jobs for admin (all hosts)
+     */
+    public function count_all_recalled_jobs($filters = [])
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return 0;
+        }
+        
+        $this->db->from('jobs j');
+        $this->db->where_in('j.status', ['recalled', 'recall_settled']);
+        
+        // Apply status filter if provided
+        if (!empty($filters['status'])) {
+            $this->db->where('j.status', $filters['status']);
+        }
+        
+        return $this->db->count_all_results();
+    }
+    
+    public function get_all_recalled_jobs($filters = [], $limit = null, $offset = null)
+    {
+        // Check if jobs table exists
+        if (!$this->db->table_exists('jobs')) {
+            return [];
+        }
+
+        $this->db->select('j.*, 
+                          u.username as cleaner_username, 
+                          u.first_name as cleaner_first_name, 
+                          u.last_name as cleaner_last_name,
+                          u.phone as cleaner_phone,
+                          u.email as cleaner_email,
+                          h.username as host_username,
+                          h.first_name as host_first_name,
+                          h.last_name as host_last_name,
+                          h.phone as host_phone,
+                          h.email as host_email');
+        $this->db->from('jobs j');
+        $this->db->join('users u', 'j.assigned_cleaner_id = u.user_id', 'left');
+        $this->db->join('users h', 'j.host_id = h.user_id', 'left');
+        $this->db->where('j.status', 'recalled');
+        
+        // Check which columns exist
+        $columns = $this->db->list_fields('jobs');
+        
+        // Apply filters - only if columns exist
+        if (!empty($filters['reason']) && in_array('recall_reason', $columns)) {
+            $this->db->where('j.recall_reason', $filters['reason']);
+        }
+        
+        if (!empty($filters['severity']) && in_array('recall_severity', $columns)) {
+            $this->db->where('j.recall_severity', $filters['severity']);
+        }
+        
+        if (!empty($filters['recall_status']) && in_array('recall_status', $columns)) {
+            $this->db->where('j.recall_status', $filters['recall_status']);
+        }
+        
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            
+            $this->db->group_start();
+            $this->db->like('j.title', $search);
+            $this->db->or_like('j.description', $search);
+            
+            // Only search in recall_details if column exists
+            if (in_array('recall_details', $columns)) {
+                $this->db->or_like('j.recall_details', $search);
+            }
+            
+            $this->db->or_like('u.first_name', $search);
+            $this->db->or_like('u.last_name', $search);
+            $this->db->or_like('h.first_name', $search);
+            $this->db->or_like('h.last_name', $search);
+            $this->db->group_end();
+        }
+        
+        // Apply sorting
+        $sort_by = $filters['sort'] ?? 'recalled_at';
+        
+        switch ($sort_by) {
+            case 'title':
+                $this->db->order_by('j.title', 'ASC');
+                break;
+            case 'severity':
+                if (in_array('recall_severity', $columns)) {
+                    $this->db->order_by('j.recall_severity', 'DESC');
+                } else {
+                    $this->db->order_by('j.updated_at', 'DESC');
+                }
+                break;
+            case 'host':
+                $this->db->order_by('h.last_name', 'ASC');
+                break;
+            default:
+                if (in_array('recalled_at', $columns)) {
+                    $this->db->order_by('j.recalled_at', 'DESC');
+                } else {
+                    $this->db->order_by('j.updated_at', 'DESC');
+                }
+                break;
+        }
+        
+        // Apply limit and offset if provided
+        if ($limit !== null) {
+            $this->db->limit($limit, $offset ?? 0);
+        }
+        
+        $query = $this->db->get();
+        $results = $query->result();
+        
+        // Add cleaner and host names to each result
+        foreach ($results as $job) {
+            $cleaner_name = trim(($job->cleaner_first_name ?? '') . ' ' . ($job->cleaner_last_name ?? ''));
+            if (empty($cleaner_name)) {
+                $cleaner_name = $job->cleaner_username ?? 'Unknown Cleaner';
+            }
+            $job->cleaner_name = $cleaner_name;
+            
+            $host_name = trim(($job->host_first_name ?? '') . ' ' . ($job->host_last_name ?? ''));
+            if (empty($host_name)) {
+                $host_name = $job->host_username ?? 'Unknown Host';
+            }
+            $job->host_name = $host_name;
+            
+            // Set default recall status if not set
+            $job->recall_status = $job->recall_status ?? 'pending';
+        }
+        
+        return $results;
     }
 }

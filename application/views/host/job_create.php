@@ -1,5 +1,19 @@
 <?php
 // time_ago() function is already declared in modern_header.php
+
+// Debug: Check if pricing_params is set
+if (!isset($pricing_params)) {
+    $pricing_params = [
+        'base_charge' => 25.00,
+        'tax_percent' => 10,
+        'app_percent' => 15
+    ];
+}
+
+// Debug output (remove after testing)
+if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+    echo '<!-- Pricing Params: ' . print_r($pricing_params, true) . ' -->';
+}
 ?>
 
 <div class="container-fluid">
@@ -17,13 +31,73 @@
                         <div class="card-body">
                             
                             <?php if (validation_errors() || $this->session->flashdata('text')): ?>
-                                <div class="alert alert-<?php echo $this->session->flashdata('type') ?: 'danger'; ?> alert-dismissible fade show" role="alert">
+                                <div class="alert alert-<?php echo $this->session->flashdata('type') ?: 'danger'; ?>" role="alert">
                                     <?php echo $this->session->flashdata('text') ?: validation_errors(); ?>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 </div>
                             <?php endif; ?>
                             
                             <form action="<?php echo base_url('host/process_create_job'); ?>" method="post" id="jobCreateForm">
+                                
+                                <!-- Property Type Selection (First) -->
+                                <div class="form-section">
+                                    <h6 class="section-title">
+                                        <i class="fas fa-home me-2"></i>
+                                        Property Type
+                                    </h6>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Select Property Type *</label>
+                                            <div class="property-type-selection">
+                                                <div class="form-check property-type-option">
+                                                    <input class="form-check-input" type="radio" name="property_type" id="property_type_residential" value="residential" checked required>
+                                                    <label class="form-check-label" for="property_type_residential">
+                                                        <div class="property-icon"><i class="fas fa-home"></i></div>
+                                                        <div class="property-info">
+                                                            <div class="property-title">Residential Property</div>
+                                                            <div class="property-desc">Standard home or apartment cleaning</div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                                
+                                                <div class="form-check property-type-option">
+                                                    <input class="form-check-input" type="radio" name="property_type" id="property_type_str" value="str" required>
+                                                    <label class="form-check-label" for="property_type_str">
+                                                        <div class="property-icon"><i class="fas fa-key"></i></div>
+                                                        <div class="property-info">
+                                                            <div class="property-title">Short Term Rental (STR)</div>
+                                                            <div class="property-desc">Airbnb, VRBO, or similar rental property</div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- STR Requirements Alert - Permanent when STR is selected -->
+                                    <div id="str-requirements-alert" class="str-alert-box" style="display: none;">
+                                        <div class="d-flex align-items-start">
+                                            <i class="fas fa-exclamation-triangle fa-2x me-3 mt-1 text-warning"></i>
+                                            <div class="flex-grow-1">
+                                                <h5 class="alert-heading mb-2">Short Term Rental Requirements</h5>
+                                                <p class="mb-2"><strong>Important:</strong> For STR properties, you are responsible for providing consumables needed for the next occupant.</p>
+                                                <ul class="mb-3">
+                                                    <li>Toilet paper and paper towels</li>
+                                                    <li>Soap, shampoo, and toiletries</li>
+                                                    <li>Dish soap and cleaning supplies</li>
+                                                    <li>Trash bags</li>
+                                                    <li>Linens and towels (fresh set)</li>
+                                                </ul>
+                                                <div class="form-check mt-3">
+                                                    <input class="form-check-input" type="checkbox" id="str_requirements_confirmed" name="str_requirements_confirmed" value="1">
+                                                    <label class="form-check-label" for="str_requirements_confirmed">
+                                                        <strong>I confirm that I have read and understand all STR requirements</strong>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 
                                 <!-- Basic Information -->
                                 <div class="form-section">
@@ -41,12 +115,49 @@
                                             <div class="form-text">Be specific and descriptive</div>
                                         </div>
                                         
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-4 mb-3" id="price-input-container">
                                             <label for="suggested_price" class="form-label">Suggested Price ($) *</label>
                                             <input type="number" class="form-control modern-input" id="suggested_price" name="suggested_price" 
                                                    value="<?php echo set_value('suggested_price'); ?>" 
                                                    min="1" step="0.01" placeholder="0.00" required>
-                                            <div class="form-text">Cleaners can counter-offer</div>
+                                            <div class="form-text">
+                                                Cleaners can counter-offer
+                                                <span class="hover-breakdown-hint" style="display: none;">
+                                                    <i class="fas fa-mouse-pointer ms-2"></i> Hover to see payout breakdown
+                                                </span>
+                                            </div>
+                                            
+                                            <!-- Pricing Breakdown Display - Shows on Hover -->
+                                            <div id="pricing-breakdown" class="pricing-breakdown-box hover-breakdown" style="display: none;">
+                                                <h6 class="breakdown-title">
+                                                    <i class="fas fa-calculator me-2"></i>
+                                                    Payment Breakdown
+                                                </h6>
+                                                <div class="breakdown-item">
+                                                    <span class="breakdown-label">Suggested Price:</span>
+                                                    <span class="breakdown-value" id="display-suggested-price">$0.00</span>
+                                                </div>
+                                                <div class="breakdown-item breakdown-charge">
+                                                    <span class="breakdown-label">- Base Charge:</span>
+                                                    <span class="breakdown-value" id="display-base-charge">$0.00</span>
+                                                </div>
+                                                <div class="breakdown-item breakdown-charge">
+                                                    <span class="breakdown-label">- Tax (<span id="display-tax-percent">0</span>%):</span>
+                                                    <span class="breakdown-value" id="display-tax-amount">$0.00</span>
+                                                </div>
+                                                <div class="breakdown-item breakdown-charge">
+                                                    <span class="breakdown-label">- App Fee (<span id="display-app-percent">0</span>%):</span>
+                                                    <span class="breakdown-value" id="display-app-amount">$0.00</span>
+                                                </div>
+                                                <div class="breakdown-item breakdown-total">
+                                                    <span class="breakdown-label"><strong>Cleaner Payout:</strong></span>
+                                                    <span class="breakdown-value" id="display-cleaner-payout"><strong>$0.00</strong></span>
+                                                </div>
+                                                <div class="breakdown-notice">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    This is the estimated payout the cleaner will receive
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -74,17 +185,49 @@
                                         </div>
                                         
                                         <div class="col-md-4 mb-3">
-                                            <label for="city" class="form-label">City *</label>
-                                            <input type="text" class="form-control modern-input" id="city" name="city" 
-                                                   value="<?php echo set_value('city'); ?>" 
-                                                   placeholder="New York" required>
+                                            <label for="state" class="form-label">State *</label>
+                                            <select class="form-control modern-select" id="state" name="state" required>
+                                                <option value="">Select state</option>
+                                                <option value="Aguascalientes">Aguascalientes</option>
+                                                <option value="Baja California">Baja California</option>
+                                                <option value="Baja California Sur">Baja California Sur</option>
+                                                <option value="Campeche">Campeche</option>
+                                                <option value="Chiapas">Chiapas</option>
+                                                <option value="Chihuahua">Chihuahua</option>
+                                                <option value="Ciudad de México">Ciudad de México</option>
+                                                <option value="Coahuila">Coahuila</option>
+                                                <option value="Colima">Colima</option>
+                                                <option value="Durango">Durango</option>
+                                                <option value="Estado de México">Estado de México</option>
+                                                <option value="Guanajuato">Guanajuato</option>
+                                                <option value="Guerrero">Guerrero</option>
+                                                <option value="Hidalgo">Hidalgo</option>
+                                                <option value="Jalisco">Jalisco</option>
+                                                <option value="Michoacán">Michoacán</option>
+                                                <option value="Morelos">Morelos</option>
+                                                <option value="Nayarit">Nayarit</option>
+                                                <option value="Nuevo León">Nuevo León</option>
+                                                <option value="Oaxaca">Oaxaca</option>
+                                                <option value="Puebla">Puebla</option>
+                                                <option value="Querétaro">Querétaro</option>
+                                                <option value="Quintana Roo">Quintana Roo</option>
+                                                <option value="San Luis Potosí">San Luis Potosí</option>
+                                                <option value="Sinaloa">Sinaloa</option>
+                                                <option value="Sonora">Sonora</option>
+                                                <option value="Tabasco">Tabasco</option>
+                                                <option value="Tamaulipas">Tamaulipas</option>
+                                                <option value="Tlaxcala">Tlaxcala</option>
+                                                <option value="Veracruz">Veracruz</option>
+                                                <option value="Yucatán">Yucatán</option>
+                                                <option value="Zacatecas">Zacatecas</option>
+                                            </select>
                                         </div>
                                         
                                         <div class="col-md-4 mb-3">
-                                            <label for="state" class="form-label">State *</label>
-                                            <input type="text" class="form-control modern-input" id="state" name="state" 
-                                                   value="<?php echo set_value('state'); ?>" 
-                                                   placeholder="NY" required>
+                                            <label for="city" class="form-label">City *</label>
+                                            <select class="form-control modern-select" id="city" name="city" required disabled>
+                                                <option value="">Select state first</option>
+                                            </select>
                                         </div>
                                         
                                         <div class="col-md-4 mb-3">
@@ -101,9 +244,29 @@
                                         </div>
                                         
                                         <div class="col-md-6 mb-3">
-                                            <label for="date_time" class="form-label">Date & Time *</label>
-                                            <input type="datetime-local" class="form-control modern-input" id="date_time" name="date_time" 
-                                                   value="<?php echo set_value('date_time'); ?>" required>
+                                            <label for="job_date" class="form-label">Date *</label>
+                                            <input type="date" class="form-control modern-input" id="job_date" name="job_date" 
+                                                   value="<?php echo set_value('job_date'); ?>" required>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="job_time" class="form-label">Time *</label>
+                                            <select class="form-control modern-select" id="job_time" name="job_time" required>
+                                                <option value="">Select time</option>
+                                                <?php
+                                                // Generate half-hour intervals
+                                                for ($hour = 6; $hour < 24; $hour++) {
+                                                    $time1 = str_pad($hour, 2, '0', STR_PAD_LEFT) . ':00';
+                                                    $display1 = date('g:i A', strtotime($time1));
+                                                    echo '<option value="' . $time1 . '" ' . set_select('job_time', $time1) . '>' . $display1 . '</option>';
+                                                    
+                                                    $time2 = str_pad($hour, 2, '0', STR_PAD_LEFT) . ':30';
+                                                    $display2 = date('g:i A', strtotime($time2));
+                                                    echo '<option value="' . $time2 . '" ' . set_select('job_time', $time2) . '>' . $display2 . '</option>';
+                                                }
+                                                ?>
+                                            </select>
+                                            <div class="form-text">Available in 30-minute intervals</div>
                                         </div>
                                     </div>
                                 </div>
@@ -129,46 +292,6 @@
                                         </div>
                                         
                                         <div class="col-md-4 mb-3">
-                                            <label class="form-label">Additional Services</label>
-                                            <div class="extras-selection-section">
-                                                <?php 
-                                                $extras_options = [
-                                                    'windows' => 'Window Cleaning',
-                                                    'appliances' => 'Appliance Cleaning',
-                                                    'carpet' => 'Carpet Cleaning',
-                                                    'deep_cleaning' => 'Deep Cleaning',
-                                                    'refrigerator' => 'Refrigerator Cleaning',
-                                                    'oven' => 'Oven Cleaning',
-                                                    'cabinet_interior' => 'Cabinet Interior',
-                                                    'light_fixtures' => 'Light Fixtures'
-                                                ];
-                                                
-                                                $selected_extras = $this->input->post('extras');
-                                                if (!is_array($selected_extras)) {
-                                                    $selected_extras = [];
-                                                }
-                                                
-                                                foreach ($extras_options as $value => $label): 
-                                                ?>
-                                                    <div class="form-check modern-checkbox-inline">
-                                                        <input class="form-check-input" type="checkbox" 
-                                                               id="extras_<?php echo $value; ?>" 
-                                                               name="extras[]" 
-                                                               value="<?php echo $value; ?>"
-                                                               <?php echo in_array($value, $selected_extras) ? 'checked' : ''; ?>>
-                                                        <label class="form-check-label" for="extras_<?php echo $value; ?>">
-                                                            <span class="checkbox-icon">
-                                                                <i class="fas fa-check"></i>
-                                                            </span>
-                                                            <span class="checkbox-text"><?php echo $label; ?></span>
-                                                        </label>
-                                                    </div>
-                                                <?php endforeach; ?>
-                                            </div>
-                                            <div class="form-text" id="extras-feedback">Select any additional services needed</div>
-                                        </div>
-                                        
-                                        <div class="col-md-4 mb-3">
                                             <label class="form-label">Pets Present</label>
                                             <div class="form-check mt-2">
                                                 <input class="form-check-input" type="checkbox" id="pets" name="pets" value="1" 
@@ -179,6 +302,137 @@
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                                
+                                <!-- Additional Services Section -->
+                                <div class="form-section" id="additional-services-section">
+                                    <h6 class="section-title">
+                                        <i class="fas fa-plus-circle me-2"></i>
+                                        Additional Services
+                                    </h6>
+                                    
+                                    <?php 
+                                                $selected_extras = $this->input->post('extras');
+                                                if (!is_array($selected_extras)) {
+                                                    $selected_extras = [];
+                                                }
+                                    ?>
+                                    
+                                    <!-- General Services -->
+                                    <div class="services-group">
+                                        <h6 class="services-group-title">
+                                            <i class="fas fa-star me-2"></i>
+                                            General Services
+                                        </h6>
+                                        <div class="extras-selection-section">
+                                            <?php 
+                                            $general_extras = [
+                                                'deep_cleaning' => ['label' => 'Deep Cleaning', 'icon' => 'broom'],
+                                                'windows' => ['label' => 'Window Cleaning', 'icon' => 'window-maximize'],
+                                                'appliances' => ['label' => 'Appliance Cleaning', 'icon' => 'microchip'],
+                                                'carpet' => ['label' => 'Carpet Cleaning', 'icon' => 'layer-group'],
+                                                'oven' => ['label' => 'Oven Cleaning', 'icon' => 'fire'],
+                                                'cabinet_interior' => ['label' => 'Cabinet Interior', 'icon' => 'toolbox'],
+                                                'light_fixtures' => ['label' => 'Light Fixtures', 'icon' => 'lightbulb'],
+                                                'baseboards' => ['label' => 'Baseboards', 'icon' => 'minus'],
+                                                'inside_fridge' => ['label' => 'Inside Refrigerator', 'icon' => 'snowflake'],
+                                                'bathroom_grout' => ['label' => 'Bathroom Grout Scrubbing', 'icon' => 'shower'],
+                                                'doors_frames' => ['label' => 'Doors & Frames', 'icon' => 'door-open'],
+                                                'walls' => ['label' => 'Wall Washing', 'icon' => 'paint-brush'],
+                                                'ceiling_fans' => ['label' => 'Ceiling Fans', 'icon' => 'fan'],
+                                                'vents' => ['label' => 'Vent Cleaning', 'icon' => 'wind'],
+                                                'mirrors' => ['label' => 'Mirror Polish', 'icon' => 'glass-mirror'],
+                                                'furniture_polish' => ['label' => 'Furniture Polish', 'icon' => 'chair'],
+                                                'blinds' => ['label' => 'Blinds Cleaning', 'icon' => 'window-restore'],
+                                                'trash_removal' => ['label' => 'Trash Removal', 'icon' => 'trash-alt'],
+                                                'organization' => ['label' => 'Light Organization', 'icon' => 'boxes'],
+                                                'pet_hair' => ['label' => 'Pet Hair Removal', 'icon' => 'paw'],
+                                                'inside_cabinets' => ['label' => 'Inside Cabinets', 'icon' => 'archive'],
+                                                'garage' => ['label' => 'Garage Sweep', 'icon' => 'warehouse'],
+                                                'patio_balcony' => ['label' => 'Patio/Balcony', 'icon' => 'home'],
+                                                'exterior_windows' => ['label' => 'Exterior Windows', 'icon' => 'window-frame']
+                                            ];
+                                            
+                                            foreach ($general_extras as $value => $data): 
+                                            ?>
+                                                <div class="form-check modern-checkbox-inline">
+                                                    <input class="form-check-input" type="checkbox" 
+                                                           id="extras_<?php echo $value; ?>" 
+                                                           name="extras[]" 
+                                                           value="<?php echo $value; ?>"
+                                                           <?php echo in_array($value, $selected_extras) ? 'checked' : ''; ?>>
+                                                    <label class="form-check-label" for="extras_<?php echo $value; ?>">
+                                                        <span class="checkbox-icon">
+                                                            <i class="fas fa-check"></i>
+                                                        </span>
+                                                        <span class="checkbox-text">
+                                                            <i class="fas fa-<?php echo $data['icon']; ?> me-1"></i>
+                                                            <?php echo $data['label']; ?>
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                        
+                                    <!-- STR-Specific Services -->
+                                    <div class="services-group str-services" id="str-services-group" style="display: none;">
+                                        <h6 class="services-group-title str-title">
+                                            <i class="fas fa-home me-2"></i>
+                                            Short Term Rental Requirements
+                                        </h6>
+                                        <div class="extras-selection-section">
+                                            <?php 
+                                            $str_extras = [
+                                                'wash_linens' => ['label' => 'Wash All Linens & Towels', 'icon' => 'tshirt', 'required' => true],
+                                                'check_dishes' => ['label' => 'Check & Wash Dishes', 'icon' => 'utensils', 'required' => true],
+                                                'clean_refrigerator' => ['label' => 'Clean Refrigerator', 'icon' => 'snowflake', 'required' => true],
+                                                'ensure_supplies' => ['label' => 'Ensure Consumables Stocked', 'icon' => 'shopping-bag', 'required' => true],
+                                                'reset_beds' => ['label' => 'Make All Beds', 'icon' => 'bed', 'required' => true],
+                                                'reset_kitchen' => ['label' => 'Reset Kitchen to Empty', 'icon' => 'utensils', 'required' => true],
+                                                'check_amenities' => ['label' => 'Check All Amenities', 'icon' => 'clipboard-check', 'required' => false],
+                                                'leave_goodies' => ['label' => 'Leave Welcome Goodies', 'icon' => 'candy-cane', 'required' => false],
+                                                'reset_makeup' => ['label' => 'Reset Makeup Area', 'icon' => 'eye', 'required' => false],
+                                                'reset_shower' => ['label' => 'Reset Shower Supplies', 'icon' => 'shower', 'required' => false],
+                                                'reset_coffee' => ['label' => 'Reset Coffee Station', 'icon' => 'coffee', 'required' => false],
+                                                'check_tv' => ['label' => 'Test TV & Electronics', 'icon' => 'tv', 'required' => false],
+                                                'check_wifi' => ['label' => 'Verify WiFi Password', 'icon' => 'wifi', 'required' => false],
+                                                'check_keys' => ['label' => 'Check All Keys Available', 'icon' => 'key', 'required' => false],
+                                                'reset_pillows' => ['label' => 'Arrange Pillows', 'icon' => 'couch', 'required' => false],
+                                                'reset_table' => ['label' => 'Set Dining Table', 'icon' => 'utensils', 'required' => false],
+                                                'photo_documentation' => ['label' => 'Photo Documentation', 'icon' => 'camera', 'required' => false],
+                                                'check_hvac' => ['label' => 'Check HVAC', 'icon' => 'thermometer-half', 'required' => false],
+                                                'ensure_quiet' => ['label' => 'Ensure Quiet Hours Notice', 'icon' => 'volume-mute', 'required' => false],
+                                                'check_smoke_detector' => ['label' => 'Test Smoke Detector', 'icon' => 'smoke', 'required' => false]
+                                            ];
+                                            
+                                            foreach ($str_extras as $value => $data): 
+                                            ?>
+                                                <div class="form-check modern-checkbox-inline str-service">
+                                                    <input class="form-check-input" type="checkbox" 
+                                                           id="extras_<?php echo $value; ?>" 
+                                                           name="extras[]" 
+                                                           value="<?php echo $value; ?>"
+                                                           <?php echo in_array($value, $selected_extras) ? 'checked' : ''; ?>>
+                                                    <label class="form-check-label" for="extras_<?php echo $value; ?>">
+                                                        <span class="checkbox-icon">
+                                                            <i class="fas fa-check"></i>
+                                                        </span>
+                                                        <span class="checkbox-text">
+                                                            <i class="fas fa-<?php echo $data['icon']; ?> me-1"></i>
+                                                            <?php echo $data['label']; ?>
+                                                            <?php if ($data['required']): ?>
+                                                                <span class="badge badge-sm badge-warning ms-1">Required</span>
+                                                            <?php endif; ?>
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Selection Feedback -->
+                                    <div class="form-text mt-3" id="extras-feedback">Select any additional services needed</div>
                                 </div>
                                 
                                 <!-- Additional Notes -->
@@ -601,6 +855,132 @@
     box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
 }
 
+/* Services Groups Styles */
+.services-group {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(102, 126, 234, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    transition: all 0.3s ease;
+}
+
+.services-group:hover {
+    border-color: rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.08);
+}
+
+.services-group-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.str-services {
+    background: rgba(255, 193, 7, 0.05);
+    border-color: rgba(255, 193, 7, 0.2);
+    animation: slideDown 0.3s ease-out;
+}
+
+.str-services:hover {
+    border-color: rgba(255, 193, 7, 0.4);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.15);
+}
+
+.str-services .str-title {
+    color: #ffc107;
+    border-bottom-color: rgba(255, 193, 7, 0.3);
+}
+
+.str-service {
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.str-service:hover {
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateX(5px);
+}
+
+/* Badge styles */
+.badge-sm {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #000;
+}
+
+/* Services Grid Layout */
+#additional-services-section .extras-selection-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* Override checked state for services in colored containers - HIGHER SPECIFICITY */
+#additional-services-section .services-group .modern-checkbox-inline .form-check-input:checked ~ .form-check-label {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-color: #667eea !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4) !important;
+}
+
+#additional-services-section .services-group .modern-checkbox-inline .form-check-input:checked ~ .form-check-label .checkbox-text {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+#additional-services-section .services-group .modern-checkbox-inline .form-check-input:checked ~ .form-check-label .checkbox-text i {
+    color: #ffffff !important;
+}
+
+#additional-services-section .services-group .modern-checkbox-inline .form-check-input:checked ~ .form-check-label .checkbox-icon {
+    background: rgba(255, 255, 255, 0.4) !important;
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* STR services checked state - darker background for better contrast */
+#additional-services-section .str-services .modern-checkbox-inline .form-check-input:checked ~ .form-check-label {
+    background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%) !important;
+    border-color: #f39c12 !important;
+}
+
+#additional-services-section .str-services .modern-checkbox-inline .form-check-input:checked ~ .form-check-label .checkbox-text {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+
+#additional-services-section .str-services .modern-checkbox-inline .form-check-input:checked ~ .form-check-label .checkbox-text i {
+    color: #ffffff !important;
+}
+
+#additional-services-section .str-services .modern-checkbox-inline .form-check-input:checked ~ .form-check-label .checkbox-icon {
+    background: rgba(255, 255, 255, 0.4) !important;
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Badge visibility in checked state */
+#additional-services-section .services-group .modern-checkbox-inline .form-check-input:checked ~ .form-check-label .badge {
+    background-color: rgba(255, 255, 255, 0.4) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
 /* Alert Styles */
 .alert {
     border: none;
@@ -685,6 +1065,298 @@
     font-size: 0.875rem;
     margin-top: 0.25rem;
 }
+
+/* Property Type Selection Styles */
+.property-type-selection {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.property-type-option {
+    flex: 1;
+    min-width: 280px;
+    margin: 0;
+}
+
+.property-type-option .form-check-input {
+    display: none;
+}
+
+.property-type-option .form-check-label {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+    border: 3px solid #e9ecef;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+    margin: 0;
+}
+
+.property-type-option .form-check-label:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.15);
+}
+
+.property-type-option .form-check-input:checked ~ .form-check-label {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.25);
+}
+
+.property-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    color: white;
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.property-type-option .form-check-input:checked ~ .form-check-label .property-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    transform: scale(1.1);
+}
+
+.property-info {
+    flex: 1;
+}
+
+.property-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #495057;
+    margin-bottom: 0.25rem;
+}
+
+.property-type-option .form-check-input:checked ~ .form-check-label .property-title {
+    color: #667eea;
+}
+
+.property-desc {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.property-type-option .form-check-input:checked ~ .form-check-label .property-desc {
+    color: #495057;
+}
+
+/* STR Requirements Alert - Permanent and Non-Dismissible */
+.str-alert-box {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%);
+    border: 2px solid #ffc107;
+    border-left: 5px solid #ffc107;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    box-shadow: 0 5px 15px rgba(255, 193, 7, 0.2);
+    position: relative;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.str-alert-box .alert-heading {
+    color: #856404;
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.str-alert-box ul {
+    margin-left: 1.5rem;
+    color: #856404;
+}
+
+.str-alert-box ul li {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.str-alert-box p {
+    color: #856404;
+}
+
+.str-alert-box .form-check-label {
+    color: #856404;
+    font-weight: 600;
+}
+
+/* No close button - permanent alert */
+.str-alert-box::before {
+    content: none;
+}
+
+/* Responsive adjustments for property type */
+@media (max-width: 768px) {
+    .property-type-selection {
+        flex-direction: column;
+    }
+    
+    .property-type-option {
+        min-width: 100%;
+    }
+    
+    .property-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.25rem;
+    }
+}
+
+/* Pricing Breakdown Styles - Hover Display */
+#price-input-container {
+    position: relative;
+}
+
+.hover-breakdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    margin-top: 0.5rem;
+    display: none;
+    pointer-events: none;
+    visibility: hidden;
+    opacity: 0;
+    animation: fadeInSlideDown 0.2s ease-out;
+}
+
+@keyframes fadeInSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Show breakdown on hover/focus */
+#price-input-container:hover .hover-breakdown,
+#price-input-container:focus-within .hover-breakdown {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto;
+}
+
+#price-input-container:hover .hover-breakdown-hint,
+#price-input-container:focus-within .hover-breakdown-hint {
+    display: inline !important;
+}
+
+.pricing-breakdown-box {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    border: 2px solid #667eea;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
+}
+
+.hover-breakdown-hint {
+    color: #667eea;
+    font-size: 0.85rem;
+    font-weight: 500;
+    animation: fadeInHint 0.3s ease-out;
+}
+
+@keyframes fadeInHint {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 500px;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+}
+
+.breakdown-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    font-size: 0.85rem;
+}
+
+.breakdown-item.breakdown-charge {
+    color: #dc3545;
+}
+
+.breakdown-item.breakdown-total {
+    border-top: 2px solid #667eea;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    font-size: 1rem;
+    color: #667eea;
+}
+
+.breakdown-label {
+    color: #495057;
+}
+
+.breakdown-value {
+    font-weight: 600;
+    color: inherit;
+}
+
+.breakdown-notice {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+/* Ensure breakdown is visible when shown */
+#pricing-breakdown[style*="display: block"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
 </style>
 
 <script>
@@ -693,12 +1365,137 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('jobCreateForm');
     const submitBtn = form.querySelector('button[type="submit"]');
     
+    // Mexican States and Cities Data
+    const mexicanStatesCities = {
+        'Aguascalientes': ['Aguascalientes', 'Jesus Maria', 'Rincon de Romos', 'Calvillo', 'San Francisco de los Romo', 'Pabellón de Arteaga', 'Asientos', 'El Llano', 'Tepezalá', 'Cosío'],
+        'Baja California': ['Tijuana', 'Mexicali', 'Ensenada', 'Rosarito', 'Tecate', 'San Felipe', 'La Paz', 'Playas de Rosarito', 'Villa del Mar', 'Los Algodones'],
+        'Baja California Sur': ['La Paz', 'Cabo San Lucas', 'San José del Cabo', 'Mulegé', 'Todos Santos', 'Loreto', 'La Ventana', 'Santiago', 'Villa Morelos', 'El Triunfo'],
+        'Campeche': ['Campeche', 'Ciudad del Carmen', 'Champotón', 'Escárcega', 'Calakmul', 'Palizada', 'Hopelchén', 'Calkiní', 'Tenabo', 'Hecelchakán'],
+        'Chiapas': ['Tuxtla Gutiérrez', 'San Cristóbal de las Casas', 'Tapachula', 'Palenque', 'Comitán', 'Villaflores', 'Pijijiapan', 'Puerto Madero', 'Suchiate', 'Arriaga'],
+        'Chihuahua': ['Chihuahua', 'Ciudad Juárez', 'Cuauhtémoc', 'Parral', 'Delicias', 'Camargo', 'Nuevo Casas Grandes', 'Ojinaga', 'Jiménez', 'Aldama'],
+        'Ciudad de México': ['Álvaro Obregón', 'Azcapotzalco', 'Benito Juárez', 'Coyoacán', 'Cuajimalpa', 'Cuauhtémoc', 'Gustavo A. Madero', 'Iztacalco', 'Iztapalapa', 'Magdalena Contreras', 'Miguel Hidalgo', 'Milpa Alta', 'Tláhuac', 'Tlalpan', 'Venustiano Carranza', 'Xochimilco'],
+        'Coahuila': ['Saltillo', 'Torreón', 'Monclova', 'Piedras Negras', 'Ciudad Acuña', 'Ramos Arizpe', 'Matamoros', 'San Pedro', 'Sabinas', 'Nava'],
+        'Colima': ['Colima', 'Manzanillo', 'Tecomán', 'Villa de Álvarez', 'Cómala', 'Coquimatlán', 'Armería', 'Cuauhtémoc', 'Ixtlahuacán', 'Minatitlán'],
+        'Durango': ['Durango', 'Gómez Palacio', 'Lerdo', 'Ciudad Guadalupe Victoria', 'Pueblo Nuevo', 'El Salto', 'Nombre de Dios', 'San Juan del Río', 'Vicente Guerrero', 'Peñón Blanco'],
+        'Estado de México': ['Toluca', 'Naucalpan', 'Ecatepec', 'Nezahualcóyotl', 'Atizapán', 'Tlalnepantla', 'Cuautitlán', 'Chimalhuacán', 'Cuautitlán Izcalli', 'Tultitlán', 'Huehuetoca', 'Nicolás Romero', 'Texcoco', 'Los Reyes'],
+        'Guanajuato': ['León', 'Irapuato', 'Celaya', 'Guanajuato', 'Salamanca', 'Silicayo', 'San Miguel de Allende', 'Dolores Hidalgo', 'Moroleón', 'Acámbaro', 'Uriangato', 'Pénjamo'],
+        'Guerrero': ['Acapulco', 'Chilpancingo', 'Iguala', 'Taxco', 'Zihuatanejo', 'Puerto Escondido', 'Coyuca de Benítez', 'Pie de la Cuesta', 'Barra Vieja', 'Copala'],
+        'Hidalgo': ['Pachuca', 'Tulancingo', 'Tula', 'Ixmiquilpan', 'Actopan', 'Mineral del Monte', 'Real del Monte', 'Huasca', 'Atotonilco', 'Tepeji del Río'],
+        'Jalisco': ['Guadalajara', 'Zapopan', 'Tlaquepaque', 'Tonalá', 'Puerto Vallarta', 'Chapala', 'Lagos de Moreno', 'Tepatitlán', 'Zacoalco', 'Tala', 'Ocotlán', 'Ciudad Guzmán'],
+        'Michoacán': ['Morelia', 'Uruapan', 'Zamora', 'Pátzcuaro', 'Lázaro Cárdenas', 'Sahuayo', 'Lázaro Cárdenas', 'Apatzingán', 'Jiquilpan', 'Tanhuato'],
+        'Morelos': ['Cuernavaca', 'Cuautla', 'Jiutepec', 'Tepoztlán', 'Temixco', 'Yautepec', 'Oaxtepec', 'Huitzilac', 'Tlaltizapán', 'Emiliano Zapata'],
+        'Nayarit': ['Tepic', 'Bahía de Banderas', 'Ixtlán del Río', 'Amatlán de Cañas', 'Xalisco', 'Compostela', 'Sayulita', 'San Blas', 'Ruíz', 'Jala'],
+        'Nuevo León': ['Monterrey', 'San Pedro Garza García', 'Guadalupe', 'San Nicolás de los Garza', 'Apodaca', 'Escobedo', 'Santa Catarina', 'San Nicolás', 'Ciudad Guadalupe', 'General Escobedo'],
+        'Oaxaca': ['Oaxaca', 'Salina Cruz', 'Juchitán', 'Huajuapan de León', 'Puerto Escondido', 'San Pablo Villa de Mitla', 'Huautla de Jiménez', 'Santo Domingo Tehuantepec', 'Tlacolula', 'Mitla'],
+        'Puebla': ['Puebla', 'Cholula', 'Tehuacán', 'Atlixco', 'San Martín Texmelucan', 'Zacatlán', 'Córdoba', 'Chignahuapan', 'Cuetzalan', 'San Andrés Cholula'],
+        'Querétaro': ['Querétaro', 'San Juan del Río', 'Corregidora', 'El Marqués', 'Colón', 'Amealco', 'Cadereyta', 'Pedro Escobedo', 'Jalpan', 'San Joaquín'],
+        'Quintana Roo': ['Cancún', 'Playa del Carmen', 'Chetumal', 'Cozumel', 'Tulum', 'Puerto Morelos', 'Bacalar', 'Akumal', 'Mahahual', 'Holbox', 'Isla Mujeres', 'Puerto Aventuras'],
+        'San Luis Potosí': ['San Luis Potosí', 'Soledad de Graciano Sánchez', 'Ciudad Valles', 'Matehuala', 'Rioverde', 'Tamazunchale', 'Ciudad Fernández', 'Vanegas', 'Catorce', 'Real de Catorce'],
+        'Sinaloa': ['Culiacán', 'Mazatlán', 'Los Mochis', 'Guamúchil', 'Sinaloa de Leyva', 'Navolato', 'El Fuerte', 'Angostura', 'Mocorito', 'La Cruz'],
+        'Sonora': ['Hermosillo', 'Ciudad Obregón', 'Nogales', 'Navojoa', 'Puerto Peñasco', 'San Luis Río Colorado', 'Guaymas', 'San Carlos', 'Empalme', 'Sonoyta', 'Cananea', 'Álamos', 'Caborca', 'Magdalena de Kino'],
+        'Tabasco': ['Villahermosa', 'Cárdenas', 'Comalcalco', 'Paraíso', 'Macuspana', 'Frontera', 'Teapa', 'Reforma', 'Nacajuca', 'Centro'],
+        'Tamaulipas': ['Reynosa', 'Matamoros', 'Tampico', 'Ciudad Victoria', 'Ciudad Madero', 'Altamira', 'Nuevo Laredo', 'El Mante', 'Soto la Marina', 'Río Bravo'],
+        'Tlaxcala': ['Tlaxcala', 'Apizaco', 'Huamantla', 'Chiautempan', 'Tlaxco', 'Calpulalpan', 'Nanacamilpa', 'Contla', 'San Pablo del Monte', 'Tepetitla'],
+        'Veracruz': ['Veracruz', 'Xalapa', 'Coatzacoalcos', 'Poza Rica', 'Córdoba', 'Orizaba', 'Catemaco', 'Alvarado', 'Boca del Río', 'Puerto Escondido'],
+        'Yucatán': ['Mérida', 'Valladolid', 'Progreso', 'Tizimín', 'Motul', 'Izamal', 'Dzibilchaltún', 'Celestún', 'Dzidzantún', 'Akumal'],
+        'Zacatecas': ['Zacatecas', 'Fresnillo', 'Guadalupe', 'Jerez', 'Calera', 'Río Grande', 'Sombrerete', 'Guadalupe', 'Valparaíso', 'Miguel Auza']
+    };
+    
+    // State-City Dynamic Population
+    const stateSelect = document.getElementById('state');
+    const citySelect = document.getElementById('city');
+    
+    if (stateSelect && citySelect) {
+        stateSelect.addEventListener('change', function() {
+            const selectedState = this.value;
+            
+            // Clear and disable city dropdown
+            citySelect.innerHTML = '<option value="">Select city</option>';
+            citySelect.disabled = true;
+            
+            if (selectedState && mexicanStatesCities[selectedState]) {
+                // Enable and populate city dropdown
+                citySelect.disabled = false;
+                const cities = mexicanStatesCities[selectedState];
+                
+                cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    citySelect.appendChild(option);
+                });
+                
+                console.log(`Loaded ${cities.length} cities for ${selectedState}`);
+            }
+        });
+    }
+    
+    // STR Requirements Handler
+    const propertyTypeRadios = document.querySelectorAll('input[name="property_type"]');
+    const strAlert = document.getElementById('str-requirements-alert');
+    const strConfirmationCheckbox = document.getElementById('str_requirements_confirmed');
+    const strServicesGroup = document.getElementById('str-services-group');
+    
+    // Initialize on page load - check which property type is selected
+    const initialPropertyType = document.querySelector('input[name="property_type"]:checked');
+    if (initialPropertyType && initialPropertyType.value !== 'str') {
+        // Make sure checkbox is not required for residential
+        strConfirmationCheckbox.required = false;
+    }
+    
+    propertyTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'str') {
+                // Show STR requirements alert
+                strAlert.style.display = 'block';
+                strConfirmationCheckbox.required = true;
+                
+                // Show STR-specific services
+                if (strServicesGroup) {
+                    strServicesGroup.style.display = 'block';
+                }
+                
+                // Scroll to alert smoothly
+                setTimeout(() => {
+                    strAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            } else {
+                // Hide STR requirements alert
+                strAlert.style.display = 'none';
+                strConfirmationCheckbox.required = false;
+                strConfirmationCheckbox.checked = false;
+                
+                // Hide STR-specific services
+                if (strServicesGroup) {
+                    strServicesGroup.style.display = 'none';
+                    
+                    // Uncheck all STR-specific checkboxes
+                    const strCheckboxes = strServicesGroup.querySelectorAll('input[type="checkbox"]');
+                    strCheckboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                }
+            }
+        });
+    });
+    
+    // Ensure STR confirmation is validated on form submit
+    form.addEventListener('submit', function(e) {
+        const isSTR = document.getElementById('property_type_str').checked;
+        if (isSTR && !strConfirmationCheckbox.checked) {
+            e.preventDefault();
+            alert('Please confirm that you have read and understand all STR requirements.');
+            strConfirmationCheckbox.focus();
+            return false;
+        }
+    });
+    
     // Checkbox enhancement for additional services
     const extrasCheckboxes = document.querySelectorAll('input[name="extras[]"]');
     const extrasFeedback = document.getElementById('extras-feedback');
     const extrasContainer = document.querySelector('.extras-selection-section');
     
-    if (extrasCheckboxes.length > 0) {
+    if (extrasCheckboxes.length > 0 && extrasFeedback) {
         function updateExtrasFeedback() {
             const checkedBoxes = Array.from(extrasCheckboxes).filter(cb => cb.checked);
             const selectedServices = checkedBoxes.map(cb => {
@@ -838,28 +1635,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return isValid;
     }
     
-    // Price input formatting
-    const priceInput = document.getElementById('suggested_price');
-    priceInput.addEventListener('input', function() {
-        let value = this.value;
-        if (value && !isNaN(value)) {
-            // Allow only 2 decimal places
-            if (value.includes('.')) {
-                const parts = value.split('.');
-                if (parts[1] && parts[1].length > 2) {
-                    this.value = parts[0] + '.' + parts[1].substring(0, 2);
-                }
-            }
-        }
-    });
-    
-    // Date/time input validation
-    const dateTimeInput = document.getElementById('date_time');
-    dateTimeInput.addEventListener('change', function() {
+    // Date validation
+    const dateInput = document.getElementById('job_date');
+    dateInput.addEventListener('change', function() {
         const selectedDate = new Date(this.value);
-        const now = new Date();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         
-        if (selectedDate <= now) {
+        if (selectedDate < today) {
             this.classList.add('is-invalid');
             let feedback = this.parentNode.querySelector('.invalid-feedback');
             if (!feedback) {
@@ -867,7 +1650,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 feedback.className = 'invalid-feedback';
                 this.parentNode.appendChild(feedback);
             }
-            feedback.textContent = 'Please select a future date and time.';
+            feedback.textContent = 'Please select today or a future date.';
         } else {
             this.classList.remove('is-invalid');
             this.classList.add('is-valid');
@@ -877,5 +1660,97 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today);
+    
+    // Pricing Calculator
+    const pricingParams = {
+        baseCharge: <?php echo isset($pricing_params['base_charge']) ? $pricing_params['base_charge'] : 25.00; ?>,
+        taxPercent: <?php echo isset($pricing_params['tax_percent']) ? $pricing_params['tax_percent'] : 10; ?>,
+        appPercent: <?php echo isset($pricing_params['app_percent']) ? $pricing_params['app_percent'] : 15; ?>
+    };
+    
+    console.log('Pricing params loaded:', pricingParams);
+    
+    const priceInput = document.getElementById('suggested_price');
+    const pricingBreakdown = document.getElementById('pricing-breakdown');
+    
+    if (!priceInput) {
+        console.error('Price input not found!');
+    }
+    if (!pricingBreakdown) {
+        console.error('Pricing breakdown not found!');
+    }
+    
+    function calculatePricing(suggestedPrice) {
+        console.log('Calculating pricing for:', suggestedPrice);
+        
+        if (!suggestedPrice || suggestedPrice <= 0 || isNaN(suggestedPrice)) {
+            console.log('Invalid price, not updating breakdown');
+            return;
+        }
+        
+        const baseCharge = pricingParams.baseCharge;
+        const taxAmount = (suggestedPrice * pricingParams.taxPercent) / 100;
+        const appAmount = (suggestedPrice * pricingParams.appPercent) / 100;
+        const cleanerPayout = suggestedPrice - baseCharge - taxAmount - appAmount;
+        
+        console.log('Calculated:', {
+            baseCharge,
+            taxAmount,
+            appAmount,
+            cleanerPayout
+        });
+        
+        // Update display elements
+        const elements = {
+            suggestedPrice: document.getElementById('display-suggested-price'),
+            baseCharge: document.getElementById('display-base-charge'),
+            taxPercent: document.getElementById('display-tax-percent'),
+            taxAmount: document.getElementById('display-tax-amount'),
+            appPercent: document.getElementById('display-app-percent'),
+            appAmount: document.getElementById('display-app-amount'),
+            cleanerPayout: document.getElementById('display-cleaner-payout')
+        };
+        
+        if (elements.suggestedPrice) elements.suggestedPrice.textContent = '$' + suggestedPrice.toFixed(2);
+        if (elements.baseCharge) elements.baseCharge.textContent = '-$' + baseCharge.toFixed(2);
+        if (elements.taxPercent) elements.taxPercent.textContent = pricingParams.taxPercent;
+        if (elements.taxAmount) elements.taxAmount.textContent = '-$' + taxAmount.toFixed(2);
+        if (elements.appPercent) elements.appPercent.textContent = pricingParams.appPercent;
+        if (elements.appAmount) elements.appAmount.textContent = '-$' + appAmount.toFixed(2);
+        if (elements.cleanerPayout) elements.cleanerPayout.innerHTML = '<strong>$' + cleanerPayout.toFixed(2) + '</strong>';
+        
+        console.log('Display updated successfully');
+    }
+    
+    // Real-time calculation and formatting
+    if (priceInput) {
+        priceInput.addEventListener('input', function() {
+            let value = this.value;
+            
+            // Format: Allow only 2 decimal places
+            if (value && !isNaN(value)) {
+                if (value.includes('.')) {
+                    const parts = value.split('.');
+                    if (parts[1] && parts[1].length > 2) {
+                        this.value = parts[0] + '.' + parts[1].substring(0, 2);
+                    }
+                }
+            }
+            
+            // Calculate pricing
+            const numValue = parseFloat(this.value);
+            console.log('Price input changed:', numValue);
+            calculatePricing(numValue);
+        });
+        
+        // Calculate on page load if value exists
+        if (priceInput.value) {
+            calculatePricing(parseFloat(priceInput.value));
+        }
+    }
 });
 </script>
